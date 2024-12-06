@@ -17,6 +17,7 @@ export function HuntEnd() {
 
   const handleClaim = async () => {
     // Add claim logic here
+    console.log(huntId);
     console.log('Claiming reward...');
   };
 
