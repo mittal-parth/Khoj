@@ -2,11 +2,9 @@ import { VscSnake } from "react-icons/vsc";
 import { TbChessKnight } from "react-icons/tb";
 import { TbLadder } from "react-icons/tb";
 import { BsFillCalendarDateFill } from "react-icons/bs";
-import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 
 export function Hunts() {
-  const navigate = useNavigate();
 
   const hunts = [
     {

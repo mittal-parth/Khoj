@@ -3,7 +3,7 @@ import { Button } from './ui/button';
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
-import { BsArrowLeft, BsGeoAlt, BsCheckCircle, BsXCircle } from 'react-icons/bs';
+import { BsArrowLeft, BsGeoAlt, BsCheckCircle, BsXCircle, BsArrowRepeat } from 'react-icons/bs';
 
 export function Clue() {
   const { huntId, clueId } = useParams();
@@ -255,6 +255,7 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
                 >
                   {verificationState === 'success' && <BsCheckCircle className="mr-2" />}
                   {verificationState === 'error' && <BsXCircle className="mr-2" />}
+                  {isSubmitting && <BsArrowRepeat className="mr-2 animate-spin" />}
                   {getButtonText()}
                 </Button>
               </form>
