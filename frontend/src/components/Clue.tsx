@@ -220,7 +220,7 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
                 Back to Hunts
               </Button>
               <div className="text-2xl font-bold">
-                Clue {huntData.currentClue}/{huntData.totalClues}
+                # {huntData.currentClue}/{huntData.totalClues}
               </div>
             </div>
             <h1 className="text-4xl font-bold mb-2">{huntData.title}</h1>

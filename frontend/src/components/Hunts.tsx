@@ -9,7 +9,7 @@ export function Hunts() {
   const hunts = [
     {
       id: 1,
-      title: "Ethereum Treasure Quest",
+      title: "Ethereum Treasure",
       description: "Follow the clues across the Ethereum blockchain to find hidden treasures and win rewards!",
       startDate: "2024-02-01",
       isRegistrationOpen: true,
@@ -84,7 +84,7 @@ export function Hunts() {
     },
     {
       id: 9,
-      title: "Ethereum Treasure Quest",
+      title: "Ethereum Treasure",
       description: "Follow the clues across the Ethereum blockchain to find hidden treasures and win rewards!",
       startDate: "2024-02-01",
       isRegistrationOpen: true,
@@ -94,7 +94,7 @@ export function Hunts() {
   ];
 
   return (
-    <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-8">
       <h1 className="text-3xl font-bold mb-8 text-green">Hunts</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
