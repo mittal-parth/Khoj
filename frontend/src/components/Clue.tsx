@@ -135,6 +135,8 @@ export function Clue() {
 
         setVerificationState("success");
         setShowSuccessMessage(true);
+
+        console.log("Success"), showSuccessMessage;
         
         // Wait 2 seconds before navigating
         setTimeout(async () => {
