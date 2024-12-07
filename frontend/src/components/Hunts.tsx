@@ -6,6 +6,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAccount, useReadContract } from "wagmi";
 import { huntABI } from "../assets/hunt_abi.ts"
 import { useClaudeRiddles } from "@/hooks/useClaudeRiddles";
+import {
+  Transaction,
+  TransactionButton,
+  TransactionStatus,
+  TransactionStatusAction,
+  TransactionStatusLabel,
+} from '@coinbase/onchainkit/transaction';
 
 export function Hunts() {
 
@@ -19,7 +26,7 @@ export function Hunts() {
     navigate(`/hunt/${huntId}/clue/1`);
   };
 
-  const hunts = [
+  const hunt = [
     {
       id: 1,
       title: "Ethereum Treasure",
@@ -115,37 +122,20 @@ export function Hunts() {
     },
   ];
 
-  const { data: hunt, isError, error } = useReadContract({
+  const { data: hunts, isError, error } = useReadContract({
     address: '0x6a96140C2C61BEd3A1aad40663dfC58eB500f5db',
     abi: huntABI,
     functionName: "getAllHunts",
     args: [],
   })
 
-  console.log(hunt);
-
-  const handleRegister = async () => {
-    try {
-      const contracts = [
-        {
-          address: '0x6a96140C2C61BEd3A1aad40663dfC58eB500f5db',
-          abi: huntABI,
-          functionName: 'registerForHunt',
-          args: [],
-        },
-      ];
-
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
+  console.log(hunts);
 
   return (
     <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-8">
       <h1 className="text-3xl font-bold my-8 text-green drop-shadow-xl">Hunts</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {hunts.map((hunt, index) => (
+        {hunts?.map((hunt, index) => (
           <div
             key={index}
             className="flex 
@@ -163,15 +153,15 @@ export function Hunts() {
           border-[3px]"
           >
             <div
-              className={`w-1/4 flex items-center justify-center ${hunt.bgColor}`}
+              className={`w-1/4 flex items-center justify-center bg-pink`}
             >
-              {hunt.icon}
+              <TbLadder className="w-10 h-10 text-white" />
             </div>
 
             <div className="w-3/4 p-5 flex flex-col justify-between">
               <div>
                 <h2 className="text-xl font-semibold text-gray-800 mb-2">
-                  {hunt.title}
+                  {hunt.name}
                 </h2>
                 <p className="text-[0.85rem] text-gray-600 line-clamp-2">
                   {hunt.description}
@@ -182,26 +172,43 @@ export function Hunts() {
                 <div className="flex items-center gap-1 text-gray-500 text-sm mb-3">
                   <BsFillCalendarDateFill className="w-4 h-4" />
                   <span>
-                    {new Date(hunt.startDate).toLocaleDateString("en-GB", {
+                    {String(hunt.startTime)}
+                    {/* {new Date(hunt.startDate).toLocaleDateString("en-GB", {
                       day: "numeric",
                       month: "short",
                       year: "numeric",
-                    })}
+                    })} */}
                   </span>
                 </div>
-
-                <button
-                  className={`w-full py-1.5 text-sm font-medium text-white rounded-md ${hunt.isRegistrationOpen
+                <Transaction
+                  calls={
+                    [
+                      {
+                        address: '0x6a96140C2C61BEd3A1aad40663dfC58eB500f5db',
+                        abi: huntABI,
+                        functionName: 'registerForHunt',
+                        args: [index, address, ''],
+                      },
+                    ]
+                  }
+                  className=""
+                  chainId={84532}
+                  onError={(error) => console.log(error)}
+                  onSuccess={() => handleHuntClick(index)}
+                >
+                  <TransactionButton
+                    text={true ? "Register" : "Coming Soon"} //write logic for isRegistrationOpen that if starttime is less than current time
+                    className={`w-full py-1.5 text-sm font-medium text-white rounded-md ${false //write logic for isRegistrationOpen that if starttime is less than current time
                       ? "bg-black hover:bg-gray-800"
                       : "bg-gray-300 cursor-not-allowed"
-                    } transition-colors duration-300`}
-                  disabled={!hunt.isRegistrationOpen || isLoading}
-                  onClick={() => handleHuntClick(hunt.id)}
-                >
-                  <Link to={`/hunt/${hunt.id}/clue/1`}>
-                    {hunt.isRegistrationOpen ? "Register" : "Coming Soon"}
-                  </Link>
-                </button>
+                      } transition-colors duration-300`}
+                    disabled={isLoading} //write logic for isRegistrationOpen that if starttime is less than current time
+                  />
+                  <TransactionStatus>
+                    <TransactionStatusLabel />
+                    <TransactionStatusAction />
+                  </TransactionStatus>
+                </Transaction>
               </div>
             </div>
           </div>
