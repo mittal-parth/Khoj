@@ -1,28 +1,17 @@
-// Get all locations with id and lat_lang
-export const getAllLocations = (jsonString) => {
+export const parseJSON = (clues) => {
     try {
-        const data = JSON.parse(jsonString);
-        return data.map(({ id, lat_lang }) => ({
+        const locations = clues.map(({ id, lat, long }) => ({
             id,
-            lat_lang
+            lat,
+            long
         }));
+        const cluesParsed = clues.map(({ id, description }) => ({
+            id,
+            description
+        }));
+        return [locations, cluesParsed];
     } catch (error) {
         console.error('Error parsing JSON:', error);
-        return [];
+        return [[], []];
     }
 };
-
-// Get all clues with id and clue_description
-export const getAllClues = (jsonString) => {
-    try {
-        const data = JSON.parse(jsonString);
-        return data.map(({ id, clue_description }) => ({
-            id,
-            clue_description
-        }));
-    } catch (error) {
-        console.error('Error parsing JSON:', error);
-        return [];
-    }
-};
-
