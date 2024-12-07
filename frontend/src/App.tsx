@@ -1,12 +1,13 @@
-import { Navbar } from './components/Navbar';
-import './App.css'
-import '@coinbase/onchainkit/styles.css';
+import { Navbar } from "./components/Navbar";
+import "./App.css";
+import "@coinbase/onchainkit/styles.css";
 import { BrowserRouter, Routes, Route } from "react-router";
 import { Hunts } from "./components/Hunts";
 import { Clue } from "./components/Clue";
 import { Rewards } from "./components/Rewards";
 import { HuntEnd } from "./components/HuntEnd";
 import { Footer } from "./components/Footer";
+import { About } from "./components/About";
 
 function App() {
   return (
@@ -18,13 +19,14 @@ function App() {
           <Route path="/hunt/:huntId/clue/:clueId" element={<Clue />} />
           <Route path="/hunt/:huntId/end" element={<HuntEnd />} />
           <Route path="/profile" element={<Rewards />} />
+          <Route path="/about" element={<About />} />
         </Routes>
         <div className="md:hidden">
           <Footer />
         </div>
       </div>
     </BrowserRouter>
-  )
+  );
 }
 
-export default App
+export default App;
