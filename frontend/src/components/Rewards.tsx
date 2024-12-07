@@ -275,9 +275,3 @@ export function Rewards() {
     </div>
   );
 }
-
-
-
-
-
-
