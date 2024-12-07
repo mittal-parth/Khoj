@@ -1,24 +1,38 @@
-import { useParams, useNavigate } from 'react-router-dom';
-import { Button } from './ui/button';
-import { BsArrowLeft, BsTrophy } from 'react-icons/bs';
-import { FaCoins } from 'react-icons/fa';
-import { Confetti } from './ui/confetti';
+import { useParams, useNavigate } from "react-router-dom";
+import { Button } from "./ui/button";
+import { BsArrowLeft, BsTrophy } from "react-icons/bs";
+import { FaCoins, FaRegClock, FaCheckCircle } from "react-icons/fa";
+import { Confetti } from "./ui/confetti";
+import { useEffect, useState } from "react";
 
 export function HuntEnd() {
   const { huntId } = useParams();
   const navigate = useNavigate();
+  const [progress, setProgress] = useState(0);
 
   // Mock data - replace with API call
   const huntData = {
     title: "Ethereum Treasure Quest",
     totalReward: "0.45 ETH",
-    description: "You've successfully completed all the challenges and found the treasure!"
+    description:
+      "You've successfully completed all the challenges and found the treasure!",
   };
+
+  const trustScore = localStorage.getItem("trust_score") || "0";
+  const score = parseInt(trustScore);
+
+  useEffect(() => {
+    // Animate the progress from 0 to the actual score
+    const timer = setTimeout(() => {
+      setProgress(score);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [score]);
 
   const handleClaim = async () => {
     // Add claim logic here
     console.log(huntId);
-    console.log('Claiming reward...');
+    console.log("Claiming reward...");
   };
 
   return (
@@ -29,7 +43,7 @@ export function HuntEnd() {
           <div className="bg-gradient-to-r from-green to-light-green p-6 text-white">
             <div className="flex items-center justify-between mb-4">
               <Button
-                onClick={() => navigate('/')}
+                onClick={() => navigate("/")}
                 variant="ghost"
                 className="text-white hover:bg-white/20"
               >
@@ -48,21 +62,74 @@ export function HuntEnd() {
               <BsTrophy className="w-32 h-32 text-yellow relative animate-bounce-slow" />
             </div>
 
+            {/* Trust Score Card */}
+            <div className="bg-gray-50 rounded-xl p-6 mb-8 w-full max-w-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <FaRegClock className="text-green" />
+                  <span className="text-sm text-gray-600">Speed</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <FaCheckCircle className="text-green" />
+                  <span className="text-sm text-gray-600">Accuracy</span>
+                </div>
+              </div>
+              <div className="relative flex items-center justify-center">
+                {/* Animated circular progress */}
+                <div className="relative w-40 h-40">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r="70"
+                      className="stroke-gray-200"
+                      strokeWidth="8"
+                      fill="none"
+                    />
+                    <circle
+                      cx="80"
+                      cy="80"
+                      r="70"
+                      className="stroke-green"
+                      strokeWidth="8"
+                      fill="none"
+                      strokeLinecap="round"
+                      style={{
+                        strokeDasharray: `${2 * Math.PI * 70}`,
+                        strokeDashoffset: `${
+                          2 * Math.PI * 70 * (1 - progress / 10)
+                        }`,
+                        transition: "stroke-dashoffset 1s ease-in-out",
+                      }}
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-5xl font-bold text-green">
+                      {trustScore}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-sm text-gray-500 text-center mt-4">
+                by Trust Network
+              </div>
+            </div>
+
             {/* Confetti Effect */}
             <Confetti
               style={{
-                position: 'fixed',
-                width: '100%',
-                height: '100%',
+                position: "fixed",
+                width: "100%",
+                height: "100%",
                 top: 0,
                 left: 0,
                 zIndex: 0,
-                pointerEvents: 'none'
+                pointerEvents: "none",
               }}
               options={{
                 particleCount: 100,
                 spread: 70,
-                origin: { y: 0.6 }
+                origin: { y: 0.6 },
               }}
             />
 
@@ -79,7 +146,9 @@ export function HuntEnd() {
               <FaCoins className="w-8 h-8 text-yellow" />
               <div>
                 <p className="text-sm text-gray-600">Your Reward</p>
-                <p className="text-2xl font-bold text-green">{huntData.totalReward}</p>
+                <p className="text-2xl font-bold text-green">
+                  {huntData.totalReward}
+                </p>
               </div>
             </div>
 

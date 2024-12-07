@@ -10,10 +10,22 @@ contract ETHunt {
         string name;
         string description;
         uint256 startsAt;
+        string clues_blobId;
+        string answers_blobId;
         uint256 duration;
         address[] winners;
         uint256 noOfParticipants;
         mapping(address => uint256) participantToTokenId;
+    }
+
+    struct HuntInfo {
+        string name;
+        string description;
+        uint256 startTime;
+        uint256 duration;
+        uint256 participantCount;
+        string clues_blobId;
+        string answers_blobId;
     }
 
     Hunt[] public hunts;
@@ -40,8 +52,9 @@ contract ETHunt {
         string memory _name,
         string memory _description,
         uint256 startsAt,
+        string memory _clues_blobId,
+        string memory _answers_blobId,
         uint256 _duration
-
     ) public returns (uint256) {
 
         hunts.push();
@@ -51,6 +64,8 @@ contract ETHunt {
         newHunt.description = _description;
         newHunt.startsAt = startsAt;
         newHunt.duration = _duration;
+        newHunt.clues_blobId = _clues_blobId;
+        newHunt.answers_blobId = _answers_blobId;
     
     
         uint256 huntId = hunts.length - 1;
@@ -65,7 +80,6 @@ contract ETHunt {
 
         return huntId;
     }
-
     function registerForHunt(uint256 _huntId, address _recipient, string memory _tokenURI) public returns (uint256) {
         require(_huntId < hunts.length, "Hunt does not exist");
         // require(hunts[_huntId].startsAt > block.timestamp, "Hunt has started.");
@@ -80,7 +94,12 @@ contract ETHunt {
         string memory name,
         string memory description,
         uint256 startedAt,
-        uint256 duration
+        uint256 duration,
+        uint256 noOfParticipants,
+        address[] memory winners,
+        mapping(address => uint256) memory participantToTokenId,
+        string memory clues_blobId,
+        string memory answers_blobId
     ) {
         require(_huntId < hunts.length, "Hunt does not exist");
         Hunt storage hunt = hunts[_huntId];
@@ -88,7 +107,7 @@ contract ETHunt {
             hunt.name,
             hunt.description,
             hunt.startsAt,
-            hunt.duration
+            hunt.duration,
         );
     }
 
@@ -116,10 +135,12 @@ contract ETHunt {
                 description: hunt.description,
                 startTime: hunt.startsAt,
                 duration: hunt.duration,
-                participantCount: hunt.noOfParticipants
+                participantCount: hunt.noOfParticipants,
+                clues_blobId: hunt.clues_blobId,
+                answers_blobId: hunt.answers_blobId
             });
         }
 
-        return allHunts;
-    }
+        return allHunts;
+}
 }

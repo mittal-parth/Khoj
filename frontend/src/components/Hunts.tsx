@@ -3,12 +3,15 @@ import { FaChess, FaDice } from "react-icons/fa";
 import { BsFillCalendarDateFill } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
 import { useAccount, useReadContract } from "wagmi";
-import { huntABI } from "../assets/hunt_abi.ts"
+import { huntABI } from "../assets/hunt_abi.ts";
+
 import { useClaudeRiddles } from "@/hooks/useClaudeRiddles";
 import {
   Transaction,
   TransactionButton,
 } from '@coinbase/onchainkit/transaction';
+import { Button } from "./ui/button.tsx";
+import { useState } from "react";
 
 export function Hunts() {
 
@@ -16,16 +19,51 @@ export function Hunts() {
 
   const navigate = useNavigate();
   const { fetchRiddles, isLoading } = useClaudeRiddles();
+  const [currentHuntId, setCurrentHuntId] = useState<number>(0);
 
-  const handleHuntClick = async (huntId: number) => {
-    console.log("Hunt ID:", huntId);
+
+  //get the token getTokenId
+  const { data: tokenId } = useReadContract({
+    address: '0x52B45DA5fF643a788A1d006c0FF01eeFF39b73aD',
+    abi: huntABI,
+    functionName: "getTokenId",
+    args: [currentHuntId, address],
+  })
+
+  const handleHuntClick = async (huntId: number, clue_blobid: string) => {
+    console.log("Hunt ID:", huntId, clue_blobid);
+    let headersList = {
+      "Accept": "*/*",
+      "Content-Type": "application/json"
+    }
+    
+        let bodyContent = JSON.stringify({
+      "userAddress" : "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
+      "clue_blobId" : clue_blobid,
+    });
+
+
+    //keep a delay of 5 seconds
+    // await new Promise(resolve => setTimeout(resolve, 20000));
+
+    let response = await fetch("http://localhost:8000/decrypt-clues", { 
+      method: "POST",
+      body: bodyContent,
+      headers: headersList
+    });
+    
+    let data = await response.text();
+    const clues = JSON.parse(JSON.parse(data).decryptedData);
+
+    console.log("Clues: ", clues);
+    // localStorage.setItem("clues", JSON.stringify(clues));
    
-    await fetchRiddles(huntId.toString());
+    await fetchRiddles(clues);
     navigate(`/hunt/${huntId}/clue/1`);
   };
 
   const { data: hunts } = useReadContract({
-    address: '0x6a96140C2C61BEd3A1aad40663dfC58eB500f5db',
+    address: '0x52B45DA5fF643a788A1d006c0FF01eeFF39b73aD',
     abi: huntABI,
     functionName: "getAllHunts",
     args: [],
@@ -46,7 +84,7 @@ export function Hunts() {
   
   console.log("today", today);
 
-  console.log(hunts && hunts[5] ? (new Date(Number(BigInt(hunts[5].startTime))).getTime()) : null)
+  // console.log(hunts && hunts[5] ? (new Date(Number(BigInt(hunts[5].startTime))).getTime()) : null)
 
   // Array of background colors and icons to rotate through
   const bgColors = ['bg-green', 'bg-orange', 'bg-yellow', 'bg-pink', 'bg-red'];
@@ -61,7 +99,7 @@ export function Hunts() {
     <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-[90px]">
       <h1 className="text-3xl font-bold my-8 text-green drop-shadow-xl">Hunts</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {hunts?.slice(1).map((hunt, index) => (
+        {hunts && hunts.map((hunt, index) => (
           <div
             key={index}
             className="flex 
@@ -109,17 +147,19 @@ export function Hunts() {
                   calls={
                     [
                       {
-                        address: '0x6a96140C2C61BEd3A1aad40663dfC58eB500f5db',
+                        address: '0x52B45DA5fF643a788A1d006c0FF01eeFF39b73aD',
                         abi: huntABI,
                         functionName: 'registerForHunt',
                         args: [index, address, 'https://ethunt.vercel.app/metadata.json'],
+                    
                       },
                     ]
                   }
                   className=""
                   chainId={84532}
                   onError={(error) => console.log(error)}
-                  onSuccess={() => handleHuntClick(index)}
+                  onSuccess={data => console.log(data)}
+
                 >
                   <TransactionButton
 
@@ -132,6 +172,13 @@ export function Hunts() {
 
                   />
                 </Transaction>
+
+                <Button onClick={() => {
+                  setCurrentHuntId(index);
+                  handleHuntClick(index, hunt.clues_blobId)}}
+                   disabled={(new Date(Number(BigInt(hunt.startTime))).getTime()) > today}>
+                  Start
+                </Button>
               </div>
             </div>
           </div>
