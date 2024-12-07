@@ -13,7 +13,7 @@ import { LitNetwork } from "@lit-protocol/constants";
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { parseJSON} from './data_transform.js';
-import { storeString } from "./walrus.js";
+import { readObject, storeString } from "./walrus.js";
 
 const corsOptions = {
     origin: 'http://localhost:3000', // Adjust this to your frontend's origin
@@ -274,7 +274,7 @@ export const decryptRunServerMode = async (dataToEncryptHash, ciphertext, userAd
     ]
 
     let myLit = new Lit(client, chain, accessControlConditions);
-    // await myLit.connect();
+    // await myLit.connect();userAddress
 
     const data = await myLit.decryptLitAction(ciphertext, dataToEncryptHash, userAddress);
     console.log("decrypted data: ", data);
@@ -307,19 +307,43 @@ app.post('/encrypt', async (req, res) => {
     const { ciphertext: clue_ciphertext, dataToEncryptHash: clue_dataToEncryptHash } = await encryptRunServerMode(JSON.stringify(cluesParsed), userAddress);
 
     //add to walrus
+    const combinedObjects = [
+        {
+            ciphertext: lat_lang_ciphertext,
+            dataToEncryptHash: lat_lang_dataToEncryptHash
+        },
+        {
+            ciphertext: clue_ciphertext,
+            dataToEncryptHash: clue_dataToEncryptHash
+        }
+    ];
+
+    console.log(JSON.stringify(combinedObjects[0]))
+
     const [lat_lang_blobId, clue_blobId] = await Promise.all([
-        storeString(lat_lang_ciphertext),
-        storeString(clue_ciphertext)
+        storeString(JSON.stringify(combinedObjects[0])),
+        storeString(JSON.stringify(combinedObjects[1]))
     ]);
 
     res.send({ "lat_lang_blobId": lat_lang_blobId, "clue_blobId": clue_blobId});
 });
 app.post('/decrypt', async (req, res) => {
     const bodyData = req.body;
-    const decryptedData = await decryptRunServerMode(bodyData.dataToEncryptHash, bodyData.ciphertext);
+
+    const combinedObjectsBlobId = bodyData.lat_lang_blobId;
+    // const clue_blobId = bodyData.clue_blobId;
+
+    const { ciphertext: lat_lang_ciphertext, dataToEncryptHash: lat_lang_dataToEncryptHash } = await readObject(combinedObjectsBlobId);
+
+    console.log("userAddress: ", bodyData.userAddress);
+    console.log("lat_lang_dataToEncryptHash: ", lat_lang_dataToEncryptHash);
+
+    const decryptedData = await decryptRunServerMode(lat_lang_dataToEncryptHash, lat_lang_ciphertext, bodyData.userAddress);
 
     res.send({ "decryptedData": decryptedData });
 });
+
+
 
 app.post('/startHuddle', async (req, res) => {
     try {
