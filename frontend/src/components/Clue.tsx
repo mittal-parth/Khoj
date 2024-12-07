@@ -12,7 +12,7 @@ import {
 } from "react-icons/bs";
 import { config, getTrueNetworkInstance } from "../../true-network/true.config";
 import { huntAttestationSchema } from "@/schemas/huntSchema";
-// import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
+import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
 import { HuddleRoom } from "./HuddleRoom";
 
 export function Clue() {
@@ -27,6 +27,7 @@ export function Clue() {
   const [verificationState, setVerificationState] = useState<
     "idle" | "verifying" | "success" | "error"
   >("idle");
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   useEffect(() => {
     setVerificationState("idle");
@@ -75,7 +76,9 @@ export function Clue() {
 
       console.log("Attestation created:", output);
       await api.network.disconnect();
+
     } catch (error) {
+      setIsSubmitting(false);
       console.error("Failed to create attestation:", error);
     }
   };
@@ -131,16 +134,21 @@ export function Clue() {
         await createHuntAttestation();
 
         setVerificationState("success");
-        const nextClueId = currentClue + 1;
-        if (currentClueData && nextClueId <= currentClueData.length) {
-          navigate(`/hunt/${huntId}/clue/${nextClueId}`);
-        } else {
-          // He has completed all clues
+        setShowSuccessMessage(true);
+        
+        // Wait 2 seconds before navigating
+        setTimeout(async () => {
+          const nextClueId = currentClue + 1;
+          if (currentClueData && nextClueId <= currentClueData.length) {
+            navigate(`/hunt/${huntId}/clue/${nextClueId}`);
+          } else {
+            // He has completed all clues
+            const score = await getUserScore();
+            localStorage.setItem("trust_score", score.toString());
+            navigate(`/hunt/${huntId}/end`);
+          }
+        }, 2000);
 
-          const score = await getUserScore();
-          localStorage.setItem("trust_score", score.toString());
-          navigate(`/hunt${huntId}/end`);
-        }
       } else {
         setVerificationState("error");
         setAttempts((prev) => prev - 1);
@@ -173,7 +181,7 @@ export function Clue() {
       case "verifying":
         return "Verifying location...";
       case "success":
-        return "Location verified! Moving to next clue...";
+        return "Correct Answer!";
       case "error":
         return `Wrong location - ${attempts} attempts remaining`;
       default:

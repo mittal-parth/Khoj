@@ -18,7 +18,7 @@ export function HuntEnd() {
       "You've successfully completed all the challenges and found the treasure!",
   };
 
-  const trustScore = localStorage.getItem("trust_score") || "0";
+  const trustScore = localStorage.getItem("trust_score") || "6.5";
   const score = parseInt(trustScore);
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export function HuntEnd() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green/10 to-white pt-20 px-4">
+    <div className="min-h-screen bg-gradient-to-b from-green/10 to-white pt-20 px-4 mb-20">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-green/20">
           {/* Header */}
@@ -137,7 +137,7 @@ export function HuntEnd() {
             <h2 className="text-4xl font-bold text-gray-900 mb-4 text-center">
               Treasure Found!
             </h2>
-            <p className="text-xl text-gray-600 mb-8 text-center max-w-2xl">
+            <p className="text-md text-gray-600 mb-8 text-center max-w-2xl">
               {huntData.description}
             </p>
 
