@@ -117,6 +117,9 @@ npm run dev
 
 ## 🎮 How It Works
 
+![image](https://github.com/user-attachments/assets/0c12a3e4-c1a7-4d86-a794-b49116c2d99b)
+
+
 1. **Register**: Create an account and receive your unique NFT using CDP SDK
 2. **Browse Hunts**: Explore available treasure hunts stored on Walrus network
 3. **Connect Wallet**: Use smart wallet login powered by CDP SDK
