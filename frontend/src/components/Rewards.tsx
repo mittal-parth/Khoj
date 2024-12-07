@@ -2,7 +2,6 @@ import { MdOutlineLocalMall } from "react-icons/md";
 import { CiCoffeeCup } from "react-icons/ci";
 import { FaEthereum } from "react-icons/fa";
 import { AiOutlineShoppingCart } from "react-icons/ai";
-import { TrendingUp } from "lucide-react";
 import { Label, Pie, PieChart } from "recharts";
 import { useMemo } from "react";
 import {
