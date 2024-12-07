@@ -1,4 +1,4 @@
-export const huntABI =[
+export const huntABI = [
 	{
 		"inputs": [
 			{
@@ -33,6 +33,16 @@ export const huntABI =[
 				"internalType": "uint256",
 				"name": "startsAt",
 				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "_clues_blobId",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "_answers_blobId",
+				"type": "string"
 			},
 			{
 				"internalType": "uint256",
@@ -221,6 +231,16 @@ export const huntABI =[
 						"internalType": "uint256",
 						"name": "participantCount",
 						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "clues_blobId",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "answers_blobId",
+						"type": "string"
 					}
 				],
 				"internalType": "struct ETHunt.HuntInfo[]",
@@ -260,6 +280,21 @@ export const huntABI =[
 				"internalType": "uint256",
 				"name": "duration",
 				"type": "uint256"
+			},
+			{
+				"internalType": "uint256",
+				"name": "noOfParticipants",
+				"type": "uint256"
+			},
+			{
+				"internalType": "string",
+				"name": "clues_blobId",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "answers_blobId",
+				"type": "string"
 			}
 		],
 		"stateMutability": "view",
@@ -315,6 +350,16 @@ export const huntABI =[
 				"type": "uint256"
 			},
 			{
+				"internalType": "string",
+				"name": "clues_blobId",
+				"type": "string"
+			},
+			{
+				"internalType": "string",
+				"name": "answers_blobId",
+				"type": "string"
+			},
+			{
 				"internalType": "uint256",
 				"name": "duration",
 				"type": "uint256"
@@ -341,4 +386,4 @@ export const huntABI =[
 		"stateMutability": "view",
 		"type": "function"
 	}
-] as const
+]
