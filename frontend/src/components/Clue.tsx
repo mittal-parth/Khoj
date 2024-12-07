@@ -11,7 +11,7 @@ import {
   BsArrowRepeat,
 } from "react-icons/bs";
 import { getTrueNetworkInstance } from "../../true-network/true.config";
-import { huntAttestationSchema } from "src/schemas/huntSchema";
+import { huntAttestationSchema } from "@/schemas/huntSchema";
 
 export function Clue() {
   const { huntId, clueId } = useParams();

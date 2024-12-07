@@ -2,8 +2,8 @@ import { TrueApi, testnet } from "@truenetworkio/sdk";
 import { TrueConfig } from "@truenetworkio/sdk/dist/utils/cli-config";
 import { huntAttestationSchema } from "../src/schemas/huntSchema";
 // If you are not in a NodeJS environment, please comment the code following code:
-import dotenv from "dotenv";
-dotenv.config();
+// import dotenv from "dotenv";
+// dotenv.config();
 
 export const getTrueNetworkInstance = async (): Promise<TrueApi> => {
   const trueApi = await TrueApi.create(config.account.secret);
@@ -17,7 +17,7 @@ export const config: TrueConfig = {
   network: testnet,
   account: {
     address: "jkJwhGbRf1n6jjbYMzkRJH8gXtrdLqpHynf4FaTm4kZpzfn",
-    secret: process.env.TRUE_NETWORK_SECRET_KEY ?? "",
+    secret: import.meta.env.VITE_PUBLIC_TRUE_NETWORK_SECRET_KEY ?? "",
   },
   issuer: {
     name: "ethunt",
@@ -26,6 +26,6 @@ export const config: TrueConfig = {
   algorithm: {
     id: 105,
     path: "acm",
-    schemas: [huntAttestationSchema]
+    schemas: [huntAttestationSchema],
   },
 };

@@ -13,11 +13,14 @@
     "asbuild": "npm run asbuild:debug && npm run asbuild:release"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
     "@coinbase/onchainkit": "^0.35.8",
     "@radix-ui/react-slot": "^1.1.0",
     "@truenetworkio/sdk": "^0.0.10",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "crypto-browserify": "^3.12.1",
+    "dotenv": "^16.4.7",
     "lucide-react": "^0.468.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -51,5 +54,8 @@
   "overrides": {
     "sharp": "0.32.6",
     "sharp-ico": "0.1.5"
+  },
+  "browser": {
+    "crypto": false
   }
 }
