@@ -1,7 +1,7 @@
-import { FC, useEffect, useState } from 'react';
-import { useRoom } from '@huddle01/react/hooks';
-import { HuddleVideo } from './HuddleVideo';
-import { Button } from './ui/button';
+import { FC, useEffect, useState } from "react";
+import { useRoom } from "@huddle01/react/hooks";
+import { HuddleVideo } from "./HuddleVideo";
+import { Button } from "./ui/button";
 import { FaYoutube } from "react-icons/fa";
 import {
   Drawer,
@@ -25,6 +25,8 @@ interface HuddleRoomProps {
   huntId: string;
 }
 
+const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
+
 export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -32,18 +34,18 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
   const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [streamKey, setStreamKey] = useState('');
-  const [streamUrl, setStreamUrl] = useState('');
+  const [streamKey, setStreamKey] = useState("");
+  const [streamUrl, setStreamUrl] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
 
   const { joinRoom, leaveRoom } = useRoom({
     onJoin: () => {
-      console.log('Joined the room');
+      console.log("Joined the room");
       setHasJoinedRoom(true);
       setIsJoining(false);
     },
     onLeave: () => {
-      console.log('Left the room');
+      console.log("Left the room");
       setHasJoinedRoom(false);
     },
   });
@@ -52,15 +54,15 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
     const initializeRoom = async () => {
       try {
         const storedConfig = localStorage.getItem(`huntId_${huntId}`);
-        const huddleRoomConfig: HuddleRoomConfig | null = storedConfig 
+        const huddleRoomConfig: HuddleRoomConfig | null = storedConfig
           ? JSON.parse(storedConfig)
           : null;
 
         if (huddleRoomConfig === null) {
-          const response = await fetch("http://localhost:8000/startHuddle", {
+          const response = await fetch(`${BACKEND_URL}/startHuddle`, {
             method: "POST",
             headers: {
-              'Content-Type': 'application/json'
+              "Content-Type": "application/json",
             },
             cache: "no-cache",
           });
@@ -96,12 +98,12 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
 
   const handleStreamStop = async () => {
     try {
-      const response = await fetch("http://localhost:8000/livestreams/stop", {
+      const response = await fetch(`${BACKEND_URL}/livestreams/stop`, {
         method: "POST",
-        headers: { 'Content-Type': 'application/json' },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          roomId: roomId || ""
-        })
+          roomId: roomId || "",
+        }),
       });
 
       if (!response.ok) {
@@ -115,7 +117,7 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
     } catch (error) {
       console.error("Error stopping stream:", error);
     }
-  }
+  };
 
   const handleStreamSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,22 +125,22 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
       roomId: roomId,
       token: token,
       streamUrl: streamUrl,
-      streamKey: streamKey
+      streamKey: streamKey,
     });
 
     try {
       // Start streaming
-      const response = await fetch("http://localhost:8000/livestreams/start", {
+      const response = await fetch(`${BACKEND_URL}/livestreams/start`, {
         method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           roomId: roomId,
           token: token,
           streamUrl: streamUrl,
-          streamKey: streamKey
-        })
+          streamKey: streamKey,
+        }),
       });
 
       if (!response.ok) {
@@ -150,8 +152,8 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
       console.log("Frontend Response: ", data);
       setIsStreaming(true);
       setIsDrawerOpen(false);
-      setStreamKey('');
-      setStreamUrl('');
+      setStreamKey("");
+      setStreamUrl("");
     } catch (error) {
       console.error("Error starting stream:", error);
     }
@@ -167,7 +169,7 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
                 setIsJoining(true);
                 joinRoom({
                   roomId: roomId || "",
-                  token: token || ""
+                  token: token || "",
                 });
               }}
               className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg py-2 font-medium"
@@ -198,7 +200,10 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
                         </DrawerDescription>
                       </DrawerHeader>
 
-                      <form onSubmit={handleStreamSubmit} className="p-4 space-y-4">
+                      <form
+                        onSubmit={handleStreamSubmit}
+                        className="p-4 space-y-4"
+                      >
                         <div className="space-y-2">
                           <Label htmlFor="streamKey">Stream API Key</Label>
                           <Input
@@ -224,8 +229,13 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
                         </div>
 
                         <DrawerFooter>
-                          <Button type="submit" className="w-full bg-red text-white rounded-lg py-2 font-medium" onClick={handleStreamSubmit}>
-                            <FaYoutube className=" h-5 w-5" />Start Streaming 
+                          <Button
+                            type="submit"
+                            className="w-full bg-red text-white rounded-lg py-2 font-medium"
+                            onClick={handleStreamSubmit}
+                          >
+                            <FaYoutube className=" h-5 w-5" />
+                            Start Streaming
                           </Button>
                           <DrawerClose asChild>
                             <Button variant="outline">Cancel</Button>
@@ -260,7 +270,7 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
         </div>
 
         {hasJoinedRoom && roomId && token && (
-          <HuddleVideo 
+          <HuddleVideo
             minimized={isVideoMinimized}
             onToggleMinimize={() => setIsVideoMinimized(!isVideoMinimized)}
           />
@@ -268,4 +278,4 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
       </div>
     </div>
   );
-}; 
+};

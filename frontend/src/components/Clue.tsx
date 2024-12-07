@@ -15,6 +15,8 @@ import { huntAttestationSchema } from "@/schemas/huntSchema";
 import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
 import { HuddleRoom } from "./HuddleRoom";
 
+const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
+
 export function Clue() {
   const { huntId, clueId } = useParams();
   const navigate = useNavigate();
@@ -76,7 +78,6 @@ export function Clue() {
 
       console.log("Attestation created:", output);
       await api.network.disconnect();
-
     } catch (error) {
       setIsSubmitting(false);
       console.error("Failed to create attestation:", error);
@@ -105,27 +106,27 @@ export function Clue() {
 
     try {
       let headersList = {
-        "Accept": "*/*",
-        "Content-Type": "application/json"
-       }
-       
-       let bodyContent = JSON.stringify({
-         "userAddress" : "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
-         
-         "lat_lang_blobId" : "D_WaBNHwb2N0RTQTSHNOVNjyG3w0yoU739bvTzyYc5A",
-         "cLat" : location.latitude,
-         "cLong" : location.longitude,
-         "clueId" : Number(clueId)
-       });
-       
-       let response = await fetch("http://localhost:8000/decrypt-ans", { 
-         method: "POST",
-         body: bodyContent,
-         headers: headersList
-       });
-       
-       let data = await response.json();
-       console.log(data);
+        Accept: "*/*",
+        "Content-Type": "application/json",
+      };
+
+      let bodyContent = JSON.stringify({
+        userAddress: "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
+
+        lat_lang_blobId: "D_WaBNHwb2N0RTQTSHNOVNjyG3w0yoU739bvTzyYc5A",
+        cLat: location.latitude,
+        cLong: location.longitude,
+        clueId: Number(clueId),
+      });
+
+      let response = await fetch(`${BACKEND_URL}/decrypt-ans`, {
+        method: "POST",
+        body: bodyContent,
+        headers: headersList,
+      });
+
+      let data = await response.json();
+      console.log(data);
 
       const isCorrect = data.isClose;
 
@@ -137,7 +138,7 @@ export function Clue() {
         setShowSuccessMessage(true);
 
         console.log("Success"), showSuccessMessage;
-        
+
         // Wait 2 seconds before navigating
         setTimeout(async () => {
           const nextClueId = currentClue + 1;
@@ -150,7 +151,6 @@ export function Clue() {
             navigate(`/hunt/${huntId}/end`);
           }
         }, 2000);
-
       } else {
         setVerificationState("error");
         setAttempts((prev) => prev - 1);
