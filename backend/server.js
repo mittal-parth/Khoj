@@ -19,6 +19,7 @@ import { getRoomId, getToken, startStreaming, stopStreaming } from "./huddle.js"
 
 const corsOptions = {
     origin: 'http://localhost:5173', // Adjust this to your frontend's origin
+    origin: 'http://localhost:5173', // Adjust this to your frontend's origin
     optionsSuccessStatus: 200
 };
 

@@ -80,7 +80,6 @@ contract ETHunt {
 
         return huntId;
     }
-
     function registerForHunt(uint256 _huntId, address _recipient, string memory _tokenURI) public returns (uint256) {
         require(_huntId < hunts.length, "Hunt does not exist");
         // require(hunts[_huntId].startsAt > block.timestamp, "Hunt has started.");
@@ -97,6 +96,8 @@ contract ETHunt {
         uint256 startedAt,
         uint256 duration,
         uint256 noOfParticipants,
+        address[] memory winners,
+        mapping(address => uint256) memory participantToTokenId,
         string memory clues_blobId,
         string memory answers_blobId
     ) {
