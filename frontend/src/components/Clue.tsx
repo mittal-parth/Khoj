@@ -10,9 +10,10 @@ import {
   BsXCircle,
   BsArrowRepeat,
 } from "react-icons/bs";
-import { getTrueNetworkInstance } from "../../true-network/true.config";
+import { config, getTrueNetworkInstance } from "../../true-network/true.config";
 import { huntAttestationSchema } from "@/schemas/huntSchema";
-import { HuddleRoom } from './HuddleRoom';
+import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
+import { HuddleRoom } from "./HuddleRoom";
 
 export function Clue() {
   const { huntId, clueId } = useParams();
@@ -152,6 +153,16 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
         numberOfTries: tries,
       });
 
+      // Calling runAlgo extrinsic on-chain.
+      // const score = await runAlgo(
+      //   api.network,
+      //   config.issuer.hash,
+      //   api.account,
+      //   userWallet,
+      //   config.algorithm?.id ?? 0
+      // );
+      // console.log(score);
+
       console.log("Attestation created:", output);
       await api.network.disconnect();
     } catch (error) {
@@ -173,7 +184,7 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
 
       if (isCorrect) {
         // Create attestation when clue is solved
-        await createHuntAttestation(4 - attempts);
+        await createHuntAttestation(4);
 
         setVerificationState("success");
         const nextClueId = currentClue + 1;
