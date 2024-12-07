@@ -5,6 +5,8 @@ import { BrowserRouter, Routes, Route } from "react-router";
 import { Hunts } from "./components/Hunts";
 import { Clue } from "./components/Clue";
 import { Rewards } from "./components/Rewards";
+import { HuntEnd } from "./components/HuntEnd";
+
 
 function App() {
   return (
@@ -14,6 +16,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Hunts />} />
           <Route path="/hunt/:huntId/clue/:clueId" element={<Clue />} />
+          <Route path="/hunt/:huntId/end" element={<HuntEnd />} />
           <Route path="/profile" element={<Rewards />} />
         </Routes>
       </div>
