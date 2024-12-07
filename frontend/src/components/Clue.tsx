@@ -101,14 +101,32 @@ export function Clue() {
     setVerificationState("verifying");
 
     try {
-      // await new Promise((resolve) => setTimeout(resolve, 1500));
-      console.log("Verifying location:", location);
-      
-      
+      let headersList = {
+        "Accept": "*/*",
+        "Content-Type": "application/json"
+       }
+       
+       let bodyContent = JSON.stringify({
+         "userAddress" : "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
+         
+         "lat_lang_blobId" : "D_WaBNHwb2N0RTQTSHNOVNjyG3w0yoU739bvTzyYc5A",
+         "cLat" : location.latitude,
+         "cLong" : location.longitude,
+         "clueId" : Number(clueId)
+       });
+       
+       let response = await fetch("http://localhost:8000/decrypt-ans", { 
+         method: "POST",
+         body: bodyContent,
+         headers: headersList
+       });
+       
+       let data = await response.json();
+       console.log(data);
 
-      const isCorrect = true;
+      const isCorrect = data.isClose;
 
-      if (isCorrect) {
+      if (isCorrect == true) {
         // Create attestation when clue is solved
         await createHuntAttestation();
 
