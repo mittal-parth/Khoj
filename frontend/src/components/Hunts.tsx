@@ -3,10 +3,14 @@ import { TbChessKnight } from "react-icons/tb";
 import { TbLadder } from "react-icons/tb";
 import { BsFillCalendarDateFill } from "react-icons/bs";
 import { Link, useNavigate } from "react-router-dom";
+import { useAccount, useReadContract } from "wagmi";
+import { huntABI } from "../assets/hunt_abi.ts"
 import { useClaudeRiddles } from "@/hooks/useClaudeRiddles";
 
 export function Hunts() {
-  
+
+  const { address } = useAccount();
+
   const navigate = useNavigate();
   const { fetchRiddles, isLoading } = useClaudeRiddles();
 
@@ -111,6 +115,32 @@ export function Hunts() {
     },
   ];
 
+  const { data: hunt, isError, error } = useReadContract({
+    address: '0x6a96140C2C61BEd3A1aad40663dfC58eB500f5db',
+    abi: huntABI,
+    functionName: "getAllHunts",
+    args: [],
+  })
+
+  console.log(hunt);
+
+  const handleRegister = async () => {
+    try {
+      const contracts = [
+        {
+          address: '0x6a96140C2C61BEd3A1aad40663dfC58eB500f5db',
+          abi: huntABI,
+          functionName: 'registerForHunt',
+          args: [],
+        },
+      ];
+
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+
   return (
     <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-8">
       <h1 className="text-3xl font-bold my-8 text-green drop-shadow-xl">Hunts</h1>
@@ -161,11 +191,10 @@ export function Hunts() {
                 </div>
 
                 <button
-                  className={`w-full py-1.5 text-sm font-medium text-white rounded-md ${
-                    hunt.isRegistrationOpen
+                  className={`w-full py-1.5 text-sm font-medium text-white rounded-md ${hunt.isRegistrationOpen
                       ? "bg-black hover:bg-gray-800"
                       : "bg-gray-300 cursor-not-allowed"
-                  } transition-colors duration-300`}
+                    } transition-colors duration-300`}
                   disabled={!hunt.isRegistrationOpen || isLoading}
                   onClick={() => handleHuntClick(hunt.id)}
                 >

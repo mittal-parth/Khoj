@@ -104,4 +104,22 @@ contract ETHunt {
         Hunt storage hunt = hunts[_huntId];
         return hunt.participantToTokenId[_recipient];
     }
+
+    function getAllHunts() public view returns (HuntInfo[] memory) {
+        uint256 length = hunts.length;
+        HuntInfo[] memory allHunts = new HuntInfo[](length);
+
+        for (uint256 i = 0; i < length; i++) {
+            Hunt storage hunt = hunts[i];
+            allHunts[i] = HuntInfo({
+                name: hunt.name,
+                description: hunt.description,
+                startTime: hunt.startsAt,
+                duration: hunt.duration,
+                participantCount: hunt.noOfParticipants
+            });
+        }
+
+        return allHunts;
+    }
 }
