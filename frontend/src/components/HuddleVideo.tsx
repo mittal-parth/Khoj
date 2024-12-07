@@ -17,11 +17,11 @@ interface HuddleVideoProps {
   onToggleMinimize?: () => void;
 }
 
-export const HuddleVideo: FC<HuddleVideoProps> = ({ minimized = false, onToggleMinimize }) => {
+export const HuddleVideo: FC<HuddleVideoProps> = ({ minimized = false }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   
   const { stream: localVideo, enableVideo, disableVideo, isVideoOn } = useLocalVideo();
-  const { stream: localAudio, enableAudio, disableAudio, isAudioOn } = useLocalAudio();
+  const { enableAudio, disableAudio, isAudioOn } = useLocalAudio();
   const { startScreenShare, stopScreenShare, shareStream } = useLocalScreenShare();
   const { peerIds } = usePeerIds({ roles: ["host", "guest"] });
 
