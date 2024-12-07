@@ -16,7 +16,7 @@ export function useClaudeRiddles() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchRiddles = async (huntId: string) => {
+  const fetchRiddles = async (clues : any) => {
     setIsLoading(true);
     setError(null);
 
@@ -29,13 +29,9 @@ export function useClaudeRiddles() {
       // const huntData = await response.json();
 
       //   localStorage.clear();
-      console.log(huntId);
+      console.log(clues);
       const huntData = {
-        locations: [
-          "Rameshwaram Cafe Bangalore",
-          "KTPO Bangalore",
-          "Cubbon Park",
-        ],
+        locations: clues,
         themes: ["History", "Culture", "Nature"],
       };
 
