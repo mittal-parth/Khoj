@@ -13,10 +13,11 @@ import { LitNetwork } from "@lit-protocol/constants";
 import dotenv from 'dotenv';
 import cors from 'cors';
 import { parseJSON} from './data_transform.js';
-import { readObject, storeString, startStreaming, stopStreaming } from "./walrus.js";
+import { readObject, storeString } from "./walrus.js";
+import { getRoomId, getToken, startStreaming, stopStreaming } from "./huddle.js";
 
 const corsOptions = {
-    origin: 'http://localhost:3000', // Adjust this to your frontend's origin
+    origin: 'http://localhost:5173', // Adjust this to your frontend's origin
     optionsSuccessStatus: 200
 };
 
