@@ -126,7 +126,7 @@ export function Hunts() {
                 >
                   <TransactionButton
                     text={(new Date(Number(BigInt(hunt.startTime))).getTime()) > today ? "Coming Soon" : "Register"}
-                    className={`w-full py-1.5 text-sm font-medium text-white rounded-md ${formatDate(new Date(Number(hunt.startTime)).getTime()) <= today
+                    className={`w-full py-1.5 text-sm font-medium text-white rounded-md ${(new Date(Number(hunt.startTime)).getTime()) <= today
                         ? "bg-black hover:bg-gray-800"
                         : "bg-gray-300 cursor-not-allowed"
                       } transition-colors duration-300`}
