@@ -2,9 +2,19 @@ import { VscSnake } from "react-icons/vsc";
 import { TbChessKnight } from "react-icons/tb";
 import { TbLadder } from "react-icons/tb";
 import { BsFillCalendarDateFill } from "react-icons/bs";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useClaudeRiddles } from "@/hooks/useClaudeRiddles";
 
 export function Hunts() {
+  
+  const navigate = useNavigate();
+  const { fetchRiddles, isLoading } = useClaudeRiddles();
+
+  const handleHuntClick = async (huntId: number) => {
+    await fetchRiddles(huntId.toString());
+    navigate(`/hunt/${huntId}/clue/1`);
+  };
+
   const hunts = [
     {
       id: 1,
@@ -104,7 +114,6 @@ export function Hunts() {
   return (
     <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-8">
       <h1 className="text-3xl font-bold my-8 text-green drop-shadow-xl">Hunts</h1>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {hunts.map((hunt, index) => (
           <div
@@ -157,7 +166,8 @@ export function Hunts() {
                       ? "bg-black hover:bg-gray-800"
                       : "bg-gray-300 cursor-not-allowed"
                   } transition-colors duration-300`}
-                  disabled={!hunt.isRegistrationOpen}
+                  disabled={!hunt.isRegistrationOpen || isLoading}
+                  onClick={() => handleHuntClick(hunt.id)}
                 >
                   <Link to={`/hunt/${hunt.id}/clue/1`}>
                     {hunt.isRegistrationOpen ? "Register" : "Coming Soon"}
