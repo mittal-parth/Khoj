@@ -17,7 +17,7 @@ import { getAllLocations, getAllClues } from './data_transform.js';
 import { getRoomId, getToken } from './huddle.js';
 
 const corsOptions = {
-    origin: 'http://localhost:3000', // Adjust this to your frontend's origin
+    origin: 'http://localhost:5173', // Adjust this to your frontend's origin
     optionsSuccessStatus: 200
 };
 
