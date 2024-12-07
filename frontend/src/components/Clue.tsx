@@ -255,7 +255,7 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
                 >
                   {verificationState === 'success' && <BsCheckCircle className="mr-2" />}
                   {verificationState === 'error' && <BsXCircle className="mr-2" />}
-                  {isSubmitting && <BsArrowRepeat className="mr-2 animate-spin" />}
+                  {isSubmitting && <BsArrowRepeat className="mr-2 animate-spin" />} 
                   {getButtonText()}
                 </Button>
               </form>
