@@ -4,7 +4,7 @@ import '@coinbase/onchainkit/styles.css';
 import { BrowserRouter, Routes, Route } from "react-router";
 import { Hunts } from "./components/Hunts";
 import { Clue } from "./components/Clue";
-import MyRewards from "./components/MyRewards";
+import { Rewards } from "./components/Rewards";
 
 function App() {
   return (
@@ -14,7 +14,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Hunts />} />
           <Route path="/hunt/:huntId/clue/:clueId" element={<Clue />} />
-          <Route path="/profile" element={<MyRewards />} />
+          <Route path="/profile" element={<Rewards />} />
         </Routes>
       </div>
     </BrowserRouter>

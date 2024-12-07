@@ -208,7 +208,7 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
   return (
     <div className="min-h-screen bg-gray-50 pt-20 px-4">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black">
           <div className="bg-green p-6 text-white">
             <div className="flex items-center justify-between mb-4">
               <Button
