@@ -53,7 +53,7 @@ export function Hunts() {
     });
     
     let data = await response.text();
-    const clues = JSON.parse(JSON.parse(data).decryptedData);
+    const clues = JSON.parse(data);
 
     console.log("Clues: ", clues);
     // localStorage.setItem("clues", JSON.stringify(clues));

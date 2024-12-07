@@ -175,7 +175,7 @@ export class Lit {
         return { decryptedString }
     }
 
-    async decryptLitAction(ciphertext, dataToEncryptHash, userAddress) {
+    async decryptLitActionClues(ciphertext, dataToEncryptHash, userAddress) {
         const chain = "baseSepolia";
 
         const code = `(async () => {
@@ -190,10 +190,66 @@ export class Lit {
             });
             console.log("clues: ", clues);   
 
-            const clueDistance = await Lit.Actions.runOnce(
+            Lit.Actions.setResponse({ response: clues });
+
+          })();`
+
+          const accessControlConditions = [
+            {
+              contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
+              standardContractType: 'ERC721',
+              chain,
+              method: 'balanceOf',
+              parameters: [
+                userAddress
+              ],
+              returnValueTest: {
+                comparator: '>',
+                value: '0'
+              }
+            }
+          ]
+
+        const sessionSigs = await this.getSessionSigsServer();
+        // // Decrypt the private key inside a lit action
+        const res = await this.litNodeClient.executeJs({
+            sessionSigs,
+            code: code,
+            jsParams: {
+                accessControlConditions: accessControlConditions,
+                ciphertext,
+                dataToEncryptHash,
+                sessionSigs,
+                authSig
+            }
+        });
+        console.log("result from action execution:", res);
+
+        return res;
+    }
+
+    async decryptLitActionVerify(ciphertext, dataToEncryptHash, userAddress, cLat, cLong, clueId) {
+        const chain = "baseSepolia";
+
+        const code = `(async () => {
+            console.log("hello");
+            const clues = await Lit.Actions.decryptAndCombine({
+              accessControlConditions,
+              chain: "baseSepolia",
+              ciphertext,
+              dataToEncryptHash,
+              authSig,
+              sessionSigs
+            });
+            console.log("clues: ", clues);   
+
+            const isClose = await Lit.Actions.runOnce(
             { waitForResponse: true, name: "ETH block number" },
             async () => {
                 const currentLocation = JSON.parse(clues).find(location => location.id === clueId);
+                if(!currentLocation) {
+                    return false;
+                }
                 const curLat = currentLocation.lat;
                 const curLong = currentLocation.long;
 
@@ -201,12 +257,33 @@ export class Lit {
                 console.log("curLong: ", curLong);
 
                 //get the distance between the points
-                const dis1 = curLat - cLat + curLong - cLong;
-                console.log("dis1: ", dis1);
-                return dis1;
+                // Earth's radius in meters
+                const EARTH_RADIUS = 6371000; // 6,371 kilometers
+                
+                // Convert latitude and longitude from degrees to radians
+                const toRadians = (degrees) => degrees * (Math.PI / 180);
+                
+                const φ1 = toRadians(curLat);
+                const φ2 = toRadians(${cLat});
+                const Δφ = toRadians(${cLat} - curLat);
+                const Δλ = toRadians(${cLong} - curLong);
+                
+                // Haversine formula
+                const a = 
+                    Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                    Math.cos(φ1) * Math.cos(φ2) *
+                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
+                
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                
+                // Distance in meters
+                const distance = EARTH_RADIUS * c;
+                
+                // Return true if distance is less than maxDistance (default 10 meters)
+                return distance <= 10;
             })
             
-            Lit.Actions.setResponse({ response: clueDistance });
+            Lit.Actions.setResponse({ response : isClose});
 
           })();`
 
@@ -238,14 +315,14 @@ export class Lit {
                 dataToEncryptHash,
                 sessionSigs,
                 authSig,
-                clueId : 1,
-                cLat : 37.7749,
-                cLong : 122.4194
+                clueId,
+                cLat,  
+                cLong 
             }
         });
         console.log("result from action execution:", res);
 
-        return res["response"];
+        return res;
     }
 }
 
@@ -278,7 +355,7 @@ export const encryptRunServerMode = async (message, userAddress) => {
     return { ciphertext, dataToEncryptHash };
 };
 
-export const decryptRunServerMode = async (dataToEncryptHash, ciphertext, userAddress) => {
+export const decryptRunServerMode = async (dataToEncryptHash, ciphertext, userAddress, cLat, cLong, clueId) => {
     const chain = "baseSepolia";
     console.log("userAddress: ", userAddress);
 
@@ -301,10 +378,16 @@ export const decryptRunServerMode = async (dataToEncryptHash, ciphertext, userAd
     let myLit = new Lit(client, chain, accessControlConditions);
     await myLit.connect();
 
-    const data = await myLit.decryptLitAction(ciphertext, dataToEncryptHash, userAddress);
-    console.log("decrypted data: ", data);
+    let data;
 
-    return (data)
+    if(clueId) {
+       data = await myLit.decryptLitActionVerify(ciphertext, dataToEncryptHash, userAddress, cLat, cLong, clueId);
+    }
+    else {
+        data = await myLit.decryptLitActionClues(ciphertext, dataToEncryptHash, userAddress);
+    }
+
+    return data
 }
 
 export async function run() {
@@ -354,18 +437,19 @@ app.post('/encrypt', async (req, res) => {
 });
 app.post('/decrypt-ans', async (req, res) => {
     const bodyData = req.body;
-
+    const curLat = bodyData.curLat;
+    const curLong = bodyData.curLong;
+    const clueId = bodyData.clueId;
     const combinedObjectsBlobId = bodyData.lat_lang_blobId;
-    // const clue_blobId = bodyData.clue_blobId;
 
     const { ciphertext: lat_lang_ciphertext, dataToEncryptHash: lat_lang_dataToEncryptHash } = await readObject(combinedObjectsBlobId);
 
     console.log("userAddress: ", bodyData.userAddress);
     console.log("lat_lang_dataToEncryptHash: ", lat_lang_dataToEncryptHash);
 
-    const decryptedData = await decryptRunServerMode(lat_lang_dataToEncryptHash, lat_lang_ciphertext, bodyData.userAddress);
+    const {response}  = await decryptRunServerMode(lat_lang_dataToEncryptHash, lat_lang_ciphertext, bodyData.userAddress, curLat, curLong, clueId);
 
-    res.send({ "decryptedData": decryptedData });
+    res.send({ "isClose": response });
 });
 
 
@@ -377,8 +461,8 @@ app.post('/decrypt-clues', async (req, res) => {
 
         const { ciphertext: clue_ciphertext, dataToEncryptHash: clue_dataToEncryptHash } = await readObject(clue_blobId);
 
-        const decryptedData = await decryptRunServerMode(clue_dataToEncryptHash, clue_ciphertext, userAddress);
-        res.send({ "decryptedData": decryptedData });
+        const {response} = await decryptRunServerMode(clue_dataToEncryptHash, clue_ciphertext, userAddress);
+        res.send({ "decryptedData": JSON.parse(response) });
     } catch (error) {
         console.error('Error:', error);
         res.status(500).json({ 
