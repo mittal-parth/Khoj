@@ -10,9 +10,10 @@ import {
   BsXCircle,
   BsArrowRepeat,
 } from "react-icons/bs";
-import { getTrueNetworkInstance } from "../../true-network/true.config";
+import { config, getTrueNetworkInstance } from "../../true-network/true.config";
 import { huntAttestationSchema } from "@/schemas/huntSchema";
-import { HuddleRoom } from './HuddleRoom';
+import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
+import { HuddleRoom } from "./HuddleRoom";
 
 export function Clue() {
   const { huntId, clueId } = useParams();
@@ -56,100 +57,20 @@ export function Clue() {
       "Follow the clues across the Ethereum blockchain to find hidden treasures and win rewards!",
     totalClues: 10,
     currentClue: parseInt(clueId || "1"),
-    clues: {
-      1: {
-        title: "The First Gateway",
-        content: `
-**The Challenge**
-
-What has keys, but no locks; space, but no room; and you can enter, but not go in?
-
-**Hints**
-- Think about something you use every day
-- It helps you communicate
-- You're probably using it right now
-
-**Reward**
-0.1 ETH for solving this clue correctly
-
-**Rules**
-- You have 3 attempts to solve this clue
-- Each wrong attempt reduces your potential reward by 0.02 ETH
-- Make sure to check your location before verifying
-        `,
-        reward: "0.1 ETH",
-        targetLocation: {
-          latitude: 12.9829725,
-          longitude: 77.6808016,
-        },
-      },
-      2: {
-        title: "The Crypto Conundrum",
-        content: `
-**The Challenge** 
-
-I am a digital signature that proves ownership, yet I'm not a contract. I can be traded but never physically held. What am I?
-
-**Hints**
-- I'm a fundamental part of blockchain technology
-- I secure your digital assets
-- I come in pairs, but only one is meant to be shared
-
-**Reward**
-0.15 ETH for solving this clue correctly
-
-**Rules**
-- You have 3 attempts to solve this clue
-- Each wrong attempt reduces your potential reward by 0.03 ETH
-- Location verification required
-        `,
-        reward: "0.15 ETH",
-        targetLocation: {
-          latitude: 51.5074,
-          longitude: -0.1278,
-        },
-      },
-      3: {
-        title: "The Smart Contract Maze",
-        content: `
-**The Challenge**
-
-Navigate through the decentralized maze of logic. Find the function that unlocks the next level.
-
-**Hints**
-- Study the contract's ABI carefully
-- The key lies in the event logs
-- Remember to check function modifiers
-
-**Reward**
-0.2 ETH for solving this clue correctly
-
-**Rules**
-- You have 3 attempts to solve this clue
-- Each wrong attempt reduces your potential reward by 0.04 ETH
-- Location verification required
-        `,
-        reward: "0.2 ETH",
-        targetLocation: {
-          latitude: 40.7128,
-          longitude: -74.006,
-        },
-      },
-    },
   };
 
-  const createHuntAttestation = async (tries: number) => {
+  const createHuntAttestation = async () => {
     try {
       const api = await getTrueNetworkInstance();
 
-      // Replace with actual user's wallet address from your auth system
+      // TODO: Change to wallet address
       const userWallet = "0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97";
 
       const output = await huntAttestationSchema.attest(api, userWallet, {
         huntId: parseInt(huntId || "0"),
         timestamp: Math.floor(Date.now() / 1000), // Current timestamp in seconds
         clueNumber: parseInt(clueId || "0"),
-        numberOfTries: tries,
+        numberOfTries: attempts,
       });
 
       console.log("Attestation created:", output);
@@ -157,6 +78,19 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
     } catch (error) {
       console.error("Failed to create attestation:", error);
     }
+  };
+
+  const getUserScore = async () => {
+    const api = await getTrueNetworkInstance();
+    const userWallet = "0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97";
+    const score = await runAlgo(
+      api.network,
+      config.issuer.hash,
+      api.account,
+      userWallet,
+      config.algorithm?.id ?? 0
+    );
+    return score;
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -173,14 +107,18 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
 
       if (isCorrect) {
         // Create attestation when clue is solved
-        await createHuntAttestation(4 - attempts);
+        await createHuntAttestation();
 
         setVerificationState("success");
         const nextClueId = currentClue + 1;
         if (currentClueData && nextClueId <= currentClueData.length) {
           navigate(`/hunt/${huntId}/clue/${nextClueId}`);
         } else {
-          navigate("/");
+          // He has completed all clues
+
+          const score = await getUserScore();
+          localStorage.setItem("trust_score", score.toString());
+          navigate(`/hunt${huntId}/end`);
         }
       } else {
         setVerificationState("error");
@@ -254,7 +192,7 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
   return (
     <div className="min-h-screen bg-gray-50 pt-20 px-4 mb-[90px]">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black h-[calc(100vh-180px)] justify-between flex flex-col">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] md:h-[calc(100vh-180px)] justify-between flex flex-col">
           <div className="bg-green p-6 text-white">
             <div className="flex items-center justify-between mb-4">
               <Button
