@@ -12,6 +12,7 @@ import {
 } from "react-icons/bs";
 import { getTrueNetworkInstance } from "../../true-network/true.config";
 import { huntAttestationSchema } from "@/schemas/huntSchema";
+import { HuddleRoom } from './HuddleRoom';
 
 export function Clue() {
   const { huntId, clueId } = useParams();
@@ -44,6 +45,10 @@ export function Clue() {
   }, [clueId]);
 
   const currentClue = parseInt(clueId || "0");
+  const currentClueData = JSON.parse(
+    localStorage.getItem("hunt_riddles") || "[]"
+  );
+
   // Mock data - replace with API call
   const huntData = {
     title: "Ethereum Treasure Quest",
@@ -132,10 +137,6 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
       },
     },
   };
-
-  const currentClueData = JSON.parse(
-    localStorage.getItem("hunt_riddles") || "[]"
-  );
 
   const createHuntAttestation = async (tries: number) => {
     try {
@@ -270,57 +271,56 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
             </div>
 
             <h1 className="text-xl font-bold mb-2">{huntData.title}</h1>
-            {/* <p className="text-purple-100/80">{huntData.description}</p> */}
           </div>
 
-            <div className="prose max-w-none p-6 h-full">
-              <h1 className="text-xl font-semibold mb-2">Clue</h1>
-              <ReactMarkdown className="text-lg">
-                {currentClueData?.[currentClue - 1]?.riddle}
-              </ReactMarkdown>
-            </div>
+          <div className="prose max-w-none p-6 h-full">
+            <h1 className="text-xl font-semibold mb-2">Clue</h1>
+            <ReactMarkdown className="text-lg">
+              {currentClueData?.[currentClue - 1]?.riddle}
+            </ReactMarkdown>
+          </div>
 
-            <div className="mt-8 border-t pt-6 p-6 flex flex-col">
-              <div className="flex items-center justify-between mb-4 ">
-                <div className="flex items-center text-gray-600">
-                  <BsGeoAlt className="mr-2" />
-                  {location ? "Location detected" : "Detecting location..."}
-                </div>
-                <div className="text-gray-600">
-                  Attempts remaining: {attempts}/3
-                </div>
+          <div className="mt-8 border-t pt-6 p-6 flex flex-col">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center text-gray-600">
+                <BsGeoAlt className="mr-2" />
+                {location ? "Location detected" : "Detecting location..."}
               </div>
-
-              <form onSubmit={handleVerify}>
-                <Button
-                  type="submit"
-                  size="lg"
-                  className={cn(
-                    "w-full text-white transition-colors duration-300",
-                    getButtonStyles()
-                  )}
-                  disabled={
-                    !location ||
-                    verificationState === "verifying" ||
-                    verificationState === "success"
-                  }
-                >
-                  {verificationState === "success" && (
-                    <BsCheckCircle className="mr-2" />
-                  )}
-                  {verificationState === "error" && (
-                    <BsXCircle className="mr-2" />
-                  )}
-                  {isSubmitting && (
-                    <BsArrowRepeat className="mr-2 animate-spin" />
-                  )}
-                  {getButtonText()}
-                </Button>
-              </form>
+              <div className="text-gray-600">
+                Attempts remaining: {attempts}/3
+              </div>
             </div>
 
-       
+            <form onSubmit={handleVerify}>
+              <Button
+                type="submit"
+                size="lg"
+                className={cn(
+                  "w-full text-white transition-colors duration-300",
+                  getButtonStyles()
+                )}
+                disabled={
+                  !location ||
+                  verificationState === "verifying" ||
+                  verificationState === "success"
+                }
+              >
+                {verificationState === "success" && (
+                  <BsCheckCircle className="mr-2" />
+                )}
+                {verificationState === "error" && (
+                  <BsXCircle className="mr-2" />
+                )}
+                {isSubmitting && (
+                  <BsArrowRepeat className="mr-2 animate-spin" />
+                )}
+                {getButtonText()}
+              </Button>
+            </form>
+          </div>
         </div>
+
+        {huntId && <HuddleRoom huntId={huntId} />}
       </div>
     </div>
   );

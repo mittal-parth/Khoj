@@ -12,10 +12,12 @@ import {
 import { LitNetwork } from "@lit-protocol/constants";
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { getAllLocations, getAllClues } from './data_transform';
+import { getAllLocations, getAllClues } from './data_transform.js';
+
+import { getRoomId, getToken } from './huddle.js';
 
 const corsOptions = {
-    origin: 'http://localhost:3000', // Adjust this to your frontend's origin
+    origin: 'http://localhost:5173', // Adjust this to your frontend's origin
     optionsSuccessStatus: 200
 };
 
@@ -292,6 +294,22 @@ app.post('/decrypt', async (req, res) => {
     const decryptedData = await decryptRunServerMode(bodyData.dataToEncryptHash, bodyData.ciphertext);
 
     res.send({ "decryptedData": decryptedData });
+});
+
+app.post('/startHuddle', async (req, res) => {
+    try {
+        const roomId = await getRoomId();
+        const token = await getToken(roomId);
+        res.json({ 
+            roomId: roomId, 
+            token: token 
+        });
+    } catch (error) {
+        console.error('Error:', error);
+        res.status(500).json({ 
+            error: 'Failed to create room or generate token' 
+        });
+    }
 });
 
 
