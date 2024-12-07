@@ -1,6 +1,6 @@
-import { MdOutlineRestaurant, MdOutlineLocalMall } from "react-icons/md";
+import { MdOutlineLocalMall } from "react-icons/md";
 import { CiCoffeeCup } from "react-icons/ci";
-import { FaEthereum, FaTshirt } from "react-icons/fa";
+import { FaEthereum } from "react-icons/fa";
 import { AiOutlineShoppingCart } from "react-icons/ai";
 
 interface RewardCard {
