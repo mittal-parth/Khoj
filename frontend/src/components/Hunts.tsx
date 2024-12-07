@@ -8,9 +8,6 @@ import { useClaudeRiddles } from "@/hooks/useClaudeRiddles";
 import {
   Transaction,
   TransactionButton,
-  TransactionStatus,
-  TransactionStatusAction,
-  TransactionStatusLabel,
 } from '@coinbase/onchainkit/transaction';
 
 export function Hunts() {
@@ -125,17 +122,15 @@ export function Hunts() {
                   onSuccess={() => handleHuntClick(index)}
                 >
                   <TransactionButton
+
                     text={(new Date(Number(BigInt(hunt.startTime))).getTime()) > today ? "Coming Soon" : "Register"}
-                    className={`w-full py-1.5 text-sm font-medium text-white rounded-md ${(new Date(Number(hunt.startTime)).getTime()) <= today
-                        ? "bg-black hover:bg-gray-800"
-                        : "bg-gray-300 cursor-not-allowed"
+                    className={`w-full py-1.5 text-sm font-medium rounded-md ${(new Date(Number(hunt.startTime)).getTime()) <= today
+                        ? "bg-yellow/40 border border-black text-black hover:bg-orange/90 "
+                        : "bg-gray-300 cursor-not-allowed text-gray-500"
                       } transition-colors duration-300`}
                     disabled={isLoading || (new Date(Number(BigInt(hunt.startTime))).getTime()) > today}
+
                   />
-                  <TransactionStatus>
-                    <TransactionStatusLabel />
-                    <TransactionStatusAction />
-                  </TransactionStatus>
                 </Transaction>
               </div>
             </div>

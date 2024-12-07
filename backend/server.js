@@ -14,7 +14,7 @@ import dotenv from 'dotenv';
 import cors from 'cors';
 import { getAllLocations, getAllClues } from './data_transform.js';
 
-import { getRoomId, getToken } from './huddle.js';
+import { getRoomId, getToken, startStreaming, stopStreaming } from './huddle.js';
 
 const corsOptions = {
     origin: 'http://localhost:5173', // Adjust this to your frontend's origin
@@ -312,6 +312,19 @@ app.post('/startHuddle', async (req, res) => {
     }
 });
 
+app.post('/livestreams/start', async (req, res) => {
+    const bodyData = req.body;
+    console.log("BackendbodyData: ", bodyData);
+    await startStreaming(bodyData.roomId, bodyData.token, bodyData.streamUrl, bodyData.streamKey);
+    res.send({ "message": "Streaming started" });
+});
+
+app.post('/livestreams/stop', async (req, res) => {
+    const bodyData = req.body;
+    console.log("Backend bodyData: ", bodyData);
+    await stopStreaming(bodyData.roomId);
+    res.send({ "message": "Streaming stopped" });
+});
 
 
 app.listen(port, () => {
