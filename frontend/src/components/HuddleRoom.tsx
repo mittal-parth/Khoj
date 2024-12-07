@@ -2,6 +2,7 @@ import { FC, useEffect, useState } from 'react';
 import { useRoom } from '@huddle01/react/hooks';
 import { HuddleVideo } from './HuddleVideo';
 import { Button } from './ui/button';
+import { FaYoutube } from "react-icons/fa";
 
 interface HuddleRoomConfig {
   roomId: string;
@@ -96,15 +97,27 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
               {isJoining ? "Joining Room..." : "Join Huddle Room"}
             </Button>
           ) : (
-            <Button
-              onClick={() => {
-                leaveRoom();
-              }}
-              size="lg"
-              className="w-full bg-red hover:bg-gray-600 rounded-lg py-2 font-medium"
-            >
-              Leave Room
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => {
+                  // Add YouTube streaming logic
+                }}
+                size="lg"
+                className="flex-1 bg-red text-white rounded-lg py-2 font-medium px-4"
+              >
+                <FaYoutube className="mr-2 h-5 w-5" />
+                Stream to YouTube
+              </Button>
+              <Button
+                onClick={() => {
+                  leaveRoom();
+                }}
+                size="lg"
+                className="bg-gray-600 hover:bg-gray-700 text-white rounded-lg py-2 font-medium px-4"
+              >
+                Leave Room
+              </Button>
+            </div>
           )}
         </div>
 
