@@ -4,6 +4,7 @@ import { BsFillCalendarDateFill } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
 import { useAccount, useReadContract } from "wagmi";
 import { huntABI } from "../assets/hunt_abi.ts";
+import { type Abi } from 'viem';
 
 import { useClaudeRiddles } from "@/hooks/useClaudeRiddles";
 import {
@@ -13,6 +14,17 @@ import {
 import { Button } from "./ui/button.tsx";
 import { useState } from "react";
 
+interface Hunt {
+  name: string;
+  description: string;
+  startTime: bigint;
+  clues_blobId: string;
+  // add other properties as needed
+}
+
+// Add type assertion for the ABI
+const typedHuntABI = huntABI as Abi;
+
 export function Hunts() {
 
   const { address } = useAccount();
@@ -20,15 +32,19 @@ export function Hunts() {
   const navigate = useNavigate();
   const { fetchRiddles, isLoading } = useClaudeRiddles();
   const [currentHuntId, setCurrentHuntId] = useState<number>(0);
+  const [isRegistered, setIsRegistered] = useState(false);
 
 
   //get the token getTokenId
+
   const { data: tokenId } = useReadContract({
-    address: '0x52B45DA5fF643a788A1d006c0FF01eeFF39b73aD',
+    address: '0x52B45DA5fF643a788 A1d006c0FF01eeFF39b73aD',
     abi: huntABI,
     functionName: "getTokenId",
     args: [currentHuntId, address],
   })
+
+  console.log("tokenId", tokenId);
 
   const handleHuntClick = async (huntId: number, clue_blobid: string) => {
     console.log("Hunt ID:", huntId, clue_blobid);
@@ -62,12 +78,17 @@ export function Hunts() {
     navigate(`/hunt/${huntId}/clue/1`);
   };
 
-  const { data: hunts } = useReadContract({
+  const handleRegisterSuccess = (data: any) => {
+    console.log("Register success: ", data);
+    setIsRegistered(true);
+  }
+
+  const { data: hunts = [] } = useReadContract({
     address: '0x52B45DA5fF643a788A1d006c0FF01eeFF39b73aD',
-    abi: huntABI,
+    abi: typedHuntABI,
     functionName: "getAllHunts",
     args: [],
-  })
+  }) as { data: Hunt[] };
 
   console.log(hunts);
 
@@ -99,7 +120,8 @@ export function Hunts() {
     <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-[90px]">
       <h1 className="text-3xl font-bold my-8 text-green drop-shadow-xl">Hunts</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {hunts && hunts.map((hunt, index) => (
+      
+        {hunts.map((hunt: Hunt, index: number) => (
           <div
             key={index}
             className="flex 
@@ -143,12 +165,14 @@ export function Hunts() {
                     })}
                   </span>
                 </div>
+
+                <div className="flex flex-row gap-2">
                 <Transaction
                   calls={
                     [
                       {
                         address: '0x52B45DA5fF643a788A1d006c0FF01eeFF39b73aD',
-                        abi: huntABI,
+                        abi: typedHuntABI,
                         functionName: 'registerForHunt',
                         args: [index, address, 'https://ethunt.vercel.app/metadata.json'],
                     
@@ -158,27 +182,30 @@ export function Hunts() {
                   className=""
                   chainId={84532}
                   onError={(error) => console.log(error)}
-                  onSuccess={data => console.log(data)}
+                  onSuccess={
+                    handleRegisterSuccess
+                  }
 
                 >
                   <TransactionButton
-
                     text={(new Date(Number(BigInt(hunt.startTime))).getTime()) > today ? "Coming Soon" : "Register"}
                     className={`w-full py-1.5 text-sm font-medium rounded-md ${(new Date(Number(hunt.startTime)).getTime()) <= today
                         ? "bg-yellow/40 border border-black text-black hover:bg-orange/90 "
                         : "bg-gray-300 cursor-not-allowed text-gray-500"
                       } transition-colors duration-300`}
                     disabled={isLoading || (new Date(Number(BigInt(hunt.startTime))).getTime()) > today}
-
                   />
                 </Transaction>
 
                 <Button onClick={() => {
                   setCurrentHuntId(index);
                   handleHuntClick(index, hunt.clues_blobId)}}
-                   disabled={(new Date(Number(BigInt(hunt.startTime))).getTime()) > today}>
+                   disabled={(new Date(Number(BigInt(hunt.startTime))).getTime()) > today || !isRegistered}>
                   Start
                 </Button>
+
+                </div>
+
               </div>
             </div>
           </div>
