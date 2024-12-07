@@ -1,8 +1,6 @@
-import { VscSnake } from "react-icons/vsc";
-import { TbChessKnight } from "react-icons/tb";
 import { TbLadder } from "react-icons/tb";
 import { BsFillCalendarDateFill } from "react-icons/bs";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAccount, useReadContract } from "wagmi";
 import { huntABI } from "../assets/hunt_abi.ts"
 import { useClaudeRiddles } from "@/hooks/useClaudeRiddles";
@@ -26,103 +24,103 @@ export function Hunts() {
     navigate(`/hunt/${huntId}/clue/1`);
   };
 
-  const hunt = [
-    {
-      id: 1,
-      title: "Ethereum Treasure",
-      description:
-        "Follow the clues across the Ethereum blockchain to find hidden treasures and win rewards!",
-      startDate: "2024-02-01",
-      isRegistrationOpen: true,
-      icon: <VscSnake className="w-10 h-10 text-white" />,
-      bgColor: "bg-green",
-      firstClueId: 1,
-    },
-    {
-      id: 2,
-      title: "NFT Explorer Challenge",
-      description:
-        "Discover rare NFTs and solve puzzles in this exciting blockchain adventure.",
-      startDate: "2024-02-15",
-      isRegistrationOpen: true,
-      icon: <TbChessKnight className="w-10 h-10 text-white" />,
-      bgColor: "bg-orange",
-      firstClueId: 2,
-    },
-    {
-      id: 3,
-      title: "DeFi Detective Hunt",
-      description:
-        "Navigate through DeFi protocols solving mysteries and earning tokens.",
-      startDate: "2024-03-01",
-      isRegistrationOpen: false,
-      icon: <TbLadder className="w-10 h-10 text-white" />,
-      bgColor: "bg-pink",
-      firstClueId: 3,
-    },
-    {
-      id: 4,
-      title: "NFT Explorer Challenge",
-      description:
-        "Discover rare NFTs and solve puzzles in this exciting blockchain adventure.",
-      startDate: "2024-02-15",
-      isRegistrationOpen: true,
-      icon: <TbChessKnight className="w-10 h-10 text-white" />,
-      bgColor: "bg-orange",
-    },
-    {
-      id: 5,
-      title: "Ethereum Treasure Quest",
-      description:
-        "Follow the clues across the Ethereum blockchain to find hidden treasures and win rewards!",
-      startDate: "2024-02-01",
-      isRegistrationOpen: true,
-      icon: <VscSnake className="w-10 h-10 text-white" />,
-      bgColor: "bg-green",
-    },
-    {
-      id: 6,
-      title: "DeFi Detective Hunt",
-      description:
-        "Navigate through DeFi protocols solving mysteries and earning tokens.",
-      startDate: "2024-03-01",
-      isRegistrationOpen: false,
-      icon: <TbLadder className="w-10 h-10 text-white" />,
-      bgColor: "bg-pink",
-    },
-    {
-      id: 7,
-      title: "NFT Explorer Challenge",
-      description:
-        "Discover rare NFTs and solve puzzles in this exciting blockchain adventure.",
-      startDate: "2024-02-15",
-      isRegistrationOpen: true,
-      icon: <TbChessKnight className="w-10 h-10 text-white" />,
-      bgColor: "bg-orange",
-    },
-    {
-      id: 8,
-      title: "DeFi Detective Hunt",
-      description:
-        "Navigate through DeFi protocols solving mysteries and earning tokens.",
-      startDate: "2024-03-01",
-      isRegistrationOpen: false,
-      icon: <TbLadder className="w-10 h-10 text-white" />,
-      bgColor: "bg-pink",
-    },
-    {
-      id: 9,
-      title: "Ethereum Treasure",
-      description:
-        "Follow the clues across the Ethereum blockchain to find hidden treasures and win rewards!",
-      startDate: "2024-02-01",
-      isRegistrationOpen: true,
-      icon: <VscSnake className="w-10 h-10 text-white" />,
-      bgColor: "bg-green",
-    },
-  ];
+  // const hunt = [
+  //   {
+  //     id: 1,
+  //     title: "Ethereum Treasure",
+  //     description:
+  //       "Follow the clues across the Ethereum blockchain to find hidden treasures and win rewards!",
+  //     startDate: "2024-02-01",
+  //     isRegistrationOpen: true,
+  //     icon: <VscSnake className="w-10 h-10 text-white" />,
+  //     bgColor: "bg-green",
+  //     firstClueId: 1,
+  //   },
+  //   {
+  //     id: 2,
+  //     title: "NFT Explorer Challenge",
+  //     description:
+  //       "Discover rare NFTs and solve puzzles in this exciting blockchain adventure.",
+  //     startDate: "2024-02-15",
+  //     isRegistrationOpen: true,
+  //     icon: <TbChessKnight className="w-10 h-10 text-white" />,
+  //     bgColor: "bg-orange",
+  //     firstClueId: 2,
+  //   },
+  //   {
+  //     id: 3,
+  //     title: "DeFi Detective Hunt",
+  //     description:
+  //       "Navigate through DeFi protocols solving mysteries and earning tokens.",
+  //     startDate: "2024-03-01",
+  //     isRegistrationOpen: false,
+  //     icon: <TbLadder className="w-10 h-10 text-white" />,
+  //     bgColor: "bg-pink",
+  //     firstClueId: 3,
+  //   },
+  //   {
+  //     id: 4,
+  //     title: "NFT Explorer Challenge",
+  //     description:
+  //       "Discover rare NFTs and solve puzzles in this exciting blockchain adventure.",
+  //     startDate: "2024-02-15",
+  //     isRegistrationOpen: true,
+  //     icon: <TbChessKnight className="w-10 h-10 text-white" />,
+  //     bgColor: "bg-orange",
+  //   },
+  //   {
+  //     id: 5,
+  //     title: "Ethereum Treasure Quest",
+  //     description:
+  //       "Follow the clues across the Ethereum blockchain to find hidden treasures and win rewards!",
+  //     startDate: "2024-02-01",
+  //     isRegistrationOpen: true,
+  //     icon: <VscSnake className="w-10 h-10 text-white" />,
+  //     bgColor: "bg-green",
+  //   },
+  //   {
+  //     id: 6,
+  //     title: "DeFi Detective Hunt",
+  //     description:
+  //       "Navigate through DeFi protocols solving mysteries and earning tokens.",
+  //     startDate: "2024-03-01",
+  //     isRegistrationOpen: false,
+  //     icon: <TbLadder className="w-10 h-10 text-white" />,
+  //     bgColor: "bg-pink",
+  //   },
+  //   {
+  //     id: 7,
+  //     title: "NFT Explorer Challenge",
+  //     description:
+  //       "Discover rare NFTs and solve puzzles in this exciting blockchain adventure.",
+  //     startDate: "2024-02-15",
+  //     isRegistrationOpen: true,
+  //     icon: <TbChessKnight className="w-10 h-10 text-white" />,
+  //     bgColor: "bg-orange",
+  //   },
+  //   {
+  //     id: 8,
+  //     title: "DeFi Detective Hunt",
+  //     description:
+  //       "Navigate through DeFi protocols solving mysteries and earning tokens.",
+  //     startDate: "2024-03-01",
+  //     isRegistrationOpen: false,
+  //     icon: <TbLadder className="w-10 h-10 text-white" />,
+  //     bgColor: "bg-pink",
+  //   },
+  //   {
+  //     id: 9,
+  //     title: "Ethereum Treasure",
+  //     description:
+  //       "Follow the clues across the Ethereum blockchain to find hidden treasures and win rewards!",
+  //     startDate: "2024-02-01",
+  //     isRegistrationOpen: true,
+  //     icon: <VscSnake className="w-10 h-10 text-white" />,
+  //     bgColor: "bg-green",
+  //   },
+  // ];
 
-  const { data: hunts, isError, error } = useReadContract({
+  const { data: hunts } = useReadContract({
     address: '0x6a96140C2C61BEd3A1aad40663dfC58eB500f5db',
     abi: huntABI,
     functionName: "getAllHunts",
