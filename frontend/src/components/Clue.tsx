@@ -42,6 +42,7 @@ export function Clue() {
     }
   }, [clueId]);
 
+  const currentClue = parseInt(clueId || "1");
   // Mock data - replace with API call
   const huntData = {
     title: "Ethereum Treasure Quest",
@@ -131,8 +132,9 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
     },
   };
 
-  const currentClueData =
-    huntData.clues[huntData.currentClue as keyof typeof huntData.clues];
+  const currentClueData = JSON.parse(
+    localStorage.getItem("hunt_riddles") || "[]"
+  );
 
   const createHuntAttestation = async (tries: number) => {
     try {
@@ -165,20 +167,15 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
     try {
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      const isCorrect =
-        Math.abs(location.latitude - currentClueData.targetLocation.latitude) <
-          0.01 &&
-        Math.abs(
-          location.longitude - currentClueData.targetLocation.longitude
-        ) < 0.01;
+      const isCorrect = true;
 
       if (isCorrect) {
         // Create attestation when clue is solved
         await createHuntAttestation(4 - attempts);
 
         setVerificationState("success");
-        const nextClueId = huntData.currentClue + 1;
-        if (nextClueId <= huntData.totalClues) {
+        const nextClueId = currentClue + 1;
+        if (currentClueData && nextClueId <= currentClueData.length) {
           navigate(`/hunt/${huntId}/clue/${nextClueId}`);
         } else {
           navigate("/");
@@ -267,7 +264,7 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
                 Back to Hunts
               </Button>
               <div className="text-2xl font-bold">
-                # {huntData.currentClue}/{huntData.totalClues}
+                # {currentClue + 1}/{currentClueData?.length}
               </div>
             </div>
             <h1 className="text-4xl font-bold mb-2">{huntData.title}</h1>
@@ -276,7 +273,9 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
 
           <div className="p-6">
             <div className="prose max-w-none">
-              <ReactMarkdown>{currentClueData.content}</ReactMarkdown>
+              <ReactMarkdown>
+                {currentClueData?.[currentClue]?.riddle}
+              </ReactMarkdown>
             </div>
 
             <div className="mt-8 border-t pt-6">

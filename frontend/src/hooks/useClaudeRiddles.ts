@@ -28,7 +28,7 @@ export function useClaudeRiddles() {
       // }
       // const huntData = await response.json();
 
-      localStorage.clear();
+      //   localStorage.clear();
       const huntData = {
         locations: [
           "Rameshwaram Cafe Bangalore",
@@ -54,7 +54,7 @@ export function useClaudeRiddles() {
         ", "
       )}.
 
-      Return the response in this exact JSON format:
+      Return the response in this exact JSON format, make sure you dont include names of locationns in the riddles:
       [
         {
           "riddle": "Cryptic riddle text describing the location",
@@ -68,16 +68,26 @@ export function useClaudeRiddles() {
         messages: [{ role: "user", content: prompt }],
       });
 
-      // 3. Parse and store the riddles
-      const content = aiResponse.content[0].text;
-      const cleanedContent = content.replace(/```json\n|```/g, "").trim();
-      const parsedRiddles = JSON.parse(cleanedContent);
+      console.log(aiResponse);
 
-      console.log(parsedRiddles);
+      const extractJSON = (text: string) => {
+        const jsonMatch = text.match(/\[.*\]/s);
+        return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+      };
 
-      // 4. Store in localStorage and state
-      localStorage.setItem("hunt_riddles", JSON.stringify(parsedRiddles));
-      setRiddles(parsedRiddles);
+      // Add type assertion or check to handle the content type
+      if ("text" in aiResponse.content[0]) {
+        const content = aiResponse.content[0].text;
+        const parsedRiddles = extractJSON(content);
+
+        console.log(content);
+        console.log(parsedRiddles);
+
+        localStorage.setItem("hunt_riddles", JSON.stringify(parsedRiddles));
+        setRiddles(parsedRiddles);
+      } else {
+        throw new Error("Unexpected response format from Claude");
+      }
     } catch (err) {
       console.error("Riddle Generation Error:", err);
       setError(err instanceof Error ? err : new Error("Unknown error"));
