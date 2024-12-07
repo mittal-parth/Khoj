@@ -29,6 +29,7 @@ export function useClaudeRiddles() {
       // const huntData = await response.json();
 
       //   localStorage.clear();
+      console.log(huntId);
       const huntData = {
         locations: [
           "Rameshwaram Cafe Bangalore",
