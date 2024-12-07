@@ -1,10 +1,9 @@
-const axios = require('axios');
-
+import axios from 'axios';
 // Configuration
 const AGGREGATOR = 'https://aggregator.walrus-testnet.walrus.space';
 const PUBLISHER = 'https://publisher.walrus-testnet.walrus.space';
 
-async function storeString(text, epochs = 5) {
+export async function storeString(text, epochs = 5) {
   try {
     const response = await axios.put(`${PUBLISHER}/v1/store`, text, {
       params: { epochs },
@@ -21,7 +20,7 @@ async function storeString(text, epochs = 5) {
   }
 }
 
-async function readObject(blobId) {
+export async function readObject(blobId) {
   try {
     const response = await axios.get(`${AGGREGATOR}/v1/${blobId}`);
     console.log('File Content:', response.data);
