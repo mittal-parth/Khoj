@@ -112,7 +112,7 @@ export function Hunts() {
                         address: '0x6a96140C2C61BEd3A1aad40663dfC58eB500f5db',
                         abi: huntABI,
                         functionName: 'registerForHunt',
-                        args: [index, address, ''],
+                        args: [index, address, 'https://ethunt.vercel.app/metadata.json'],
                       },
                     ]
                   }

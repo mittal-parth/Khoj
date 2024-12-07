@@ -16,6 +16,7 @@
     "@lit-protocol/auth-helpers": "^6.4.10",
     "@lit-protocol/constants": "^6.4.10",
     "@lit-protocol/lit-node-client": "^6.4.10",
+    "axios": "^1.7.9",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.2",
