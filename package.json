@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@truenetworkio/sdk": "^0.0.10"
+  }
+}
