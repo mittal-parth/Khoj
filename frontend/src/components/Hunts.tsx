@@ -6,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useClaudeRiddles } from "@/hooks/useClaudeRiddles";
 
 export function Hunts() {
+  
   const navigate = useNavigate();
   const { fetchRiddles, isLoading } = useClaudeRiddles();
 
@@ -112,13 +113,24 @@ export function Hunts() {
 
   return (
     <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-8">
-      <h1 className="text-3xl font-bold mb-8 text-green">Hunts</h1>
-
+      <h1 className="text-3xl font-bold my-8 text-green drop-shadow-xl">Hunts</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {hunts.map((hunt, index) => (
           <div
             key={index}
-            className="flex overflow-hidden bg-white rounded-lg shadow-md h-48"
+            className="flex 
+         bg-white rounded-lg h-48
+          border-2 border-black 
+          relative  
+          before:absolute 
+          before:inset-0 
+          before:rounded-lg
+          before:border-[16px]
+          before:border-black
+          before:-translate-x-2
+          before:translate-y-2
+          before:-z-10
+          border-[3px]"
           >
             <div
               className={`w-1/4 flex items-center justify-center ${hunt.bgColor}`}
@@ -157,11 +169,9 @@ export function Hunts() {
                   disabled={!hunt.isRegistrationOpen || isLoading}
                   onClick={() => handleHuntClick(hunt.id)}
                 >
-                  {isLoading
-                    ? "Loading..."
-                    : hunt.isRegistrationOpen
-                    ? "Start Hunt"
-                    : "Coming Soon"}
+                  <Link to={`/hunt/${hunt.id}/clue/1`}>
+                    {hunt.isRegistrationOpen ? "Register" : "Coming Soon"}
+                  </Link>
                 </button>
               </div>
             </div>
