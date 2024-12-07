@@ -6,7 +6,7 @@ import { Hunts } from "./components/Hunts";
 import { Clue } from "./components/Clue";
 import { Rewards } from "./components/Rewards";
 import { HuntEnd } from "./components/HuntEnd";
-
+import { Footer } from "./components/Footer";
 
 function App() {
   return (
@@ -19,6 +19,9 @@ function App() {
           <Route path="/hunt/:huntId/end" element={<HuntEnd />} />
           <Route path="/profile" element={<Rewards />} />
         </Routes>
+        <div className="md:hidden">
+          <Footer />
+        </div>
       </div>
     </BrowserRouter>
   )

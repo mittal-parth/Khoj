@@ -1,18 +1,7 @@
-import { 
-  ConnectWallet, 
-  Wallet, 
-  WalletDropdown, 
-  WalletDropdownDisconnect, 
-} from '@coinbase/onchainkit/wallet';
-import {
-  Address,
-  Avatar,
-  Name,
-  Identity,
-} from '@coinbase/onchainkit/identity';
-import { color } from '@coinbase/onchainkit/theme';
+
 import { FaEthereum } from "react-icons/fa";
 import { Link } from 'react-router-dom';
+import WalletWrapper from '@/helpers/WalletWrapper';
 
 export function Navbar() {
   return (
@@ -38,23 +27,12 @@ export function Navbar() {
           </div>
 
           {/* Wallet Connect */}
-          <div className="flex items-center">
-            <Wallet>
-              <ConnectWallet className='rounded-2xl bg-yellow/10 hover:bg-green/80 transition-colors duration-300 text-white'>
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-6 w-6" />
-                  <Name />
-                </div>
-              </ConnectWallet>
-              <WalletDropdown>
-                <Identity className="px-4 pt-3 pb-2" hasCopyAddressOnClick>
-                  <Avatar />
-                  <Name />
-                  <Address className={color.primary} />
-                </Identity>
-                <WalletDropdownDisconnect />
-              </WalletDropdown>
-            </Wallet>
+          <div className="flex items-center text-black">
+          <WalletWrapper
+              className="bg-green text-white rounded-2xl hover:bg-green/80"
+              text="Connect Wallet"
+              withWalletAggregator={true}
+            />
           </div>
         </div>
       </div>
