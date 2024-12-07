@@ -13,6 +13,9 @@ export const getTrueNetworkInstance = async (): Promise<TrueApi> => {
   return trueApi;
 };
 
+// const VITE_PUBLIC_NEXT_PUBLIC_TRUE_NETWORK_SECRET_KEY =
+//   import.meta.env.VITE_PUBLIC_NEXT_PUBLIC_TRUE_NETWORK_SECRET_KEY ?? "";
+
 export const config: TrueConfig = {
   network: testnet,
   account: {
