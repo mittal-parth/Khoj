@@ -12,7 +12,7 @@ import {
 } from "react-icons/bs";
 import { config, getTrueNetworkInstance } from "../../true-network/true.config";
 import { huntAttestationSchema } from "@/schemas/huntSchema";
-import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
+// import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
 import { HuddleRoom } from "./HuddleRoom";
 
 export function Clue() {
@@ -178,7 +178,10 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
     setVerificationState("verifying");
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // await new Promise((resolve) => setTimeout(resolve, 1500));
+      console.log("Verifying location:", location);
+      
+      
 
       const isCorrect = true;
 
