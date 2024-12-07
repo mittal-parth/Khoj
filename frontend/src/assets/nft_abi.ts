@@ -1,4 +1,4 @@
-[
+export const nftAbi = [
 	{
 		"inputs": [
 			{
@@ -341,4 +341,4 @@
 		"stateMutability": "view",
 		"type": "function"
 	}
-]
+] as const;

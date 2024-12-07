@@ -34,6 +34,7 @@ export function Clue() {
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
           const { latitude, longitude } = coords;
+          console.log(latitude, longitude);
           setLocation({ latitude, longitude });
         },
         (error) => {
@@ -43,7 +44,7 @@ export function Clue() {
     }
   }, [clueId]);
 
-  const currentClue = parseInt(clueId || "1");
+  const currentClue = parseInt(clueId || "0");
   // Mock data - replace with API call
   const huntData = {
     title: "Ethereum Treasure Quest",
@@ -261,9 +262,9 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 px-4">
+    <div className="min-h-screen bg-gray-50 pt-20 px-4 mb-[90px]">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black h-[calc(100vh-180px)] justify-between flex flex-col">
           <div className="bg-green p-6 text-white">
             <div className="flex items-center justify-between mb-4">
               <Button
@@ -275,22 +276,23 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
                 Back to Hunts
               </Button>
               <div className="text-2xl font-bold">
-                # {currentClue + 1}/{currentClueData?.length}
+                # {currentClue}/{currentClueData?.length}
               </div>
             </div>
-            <h1 className="text-4xl font-bold mb-2">{huntData.title}</h1>
-            <p className="text-purple-100">{huntData.description}</p>
+
+            <h1 className="text-xl font-bold mb-2">{huntData.title}</h1>
+            {/* <p className="text-purple-100/80">{huntData.description}</p> */}
           </div>
 
-          <div className="p-6">
-            <div className="prose max-w-none">
-              <ReactMarkdown>
-                {currentClueData?.[currentClue]?.riddle}
+            <div className="prose max-w-none p-6 h-full">
+              <h1 className="text-xl font-semibold mb-2">Clue</h1>
+              <ReactMarkdown className="text-lg">
+                {currentClueData?.[currentClue - 1]?.riddle}
               </ReactMarkdown>
             </div>
 
-            <div className="mt-8 border-t pt-6">
-              <div className="flex items-center justify-between mb-4">
+            <div className="mt-8 border-t pt-6 p-6 flex flex-col">
+              <div className="flex items-center justify-between mb-4 ">
                 <div className="flex items-center text-gray-600">
                   <BsGeoAlt className="mr-2" />
                   {location ? "Location detected" : "Detecting location..."}
@@ -327,7 +329,8 @@ Navigate through the decentralized maze of logic. Find the function that unlocks
                 </Button>
               </form>
             </div>
-          </div>
+
+       
         </div>
       </div>
     </div>

@@ -20,6 +20,8 @@
     "@truenetworkio/sdk": "^0.0.10",
     "@types/canvas-confetti": "^1.6.4",
     "canvas-confetti": "^1.9.3",
+    "@rainbow-me/rainbowkit": "^2.2.1",
+    "@tanstack/react-query": "^5.62.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "crypto-browserify": "^3.12.1",
@@ -33,7 +35,8 @@
     "react-router-dom": "^7.0.2",
     "recharts": "^2.14.1",
     "tailwind-merge": "^2.5.5",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "wagmi": "^2.13.4"
   },
   "devDependencies": {
     "@types/node": "^22.10.1",
