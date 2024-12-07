@@ -51,9 +51,10 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
   useEffect(() => {
     const initializeRoom = async () => {
       try {
-        const huddleRoomConfig: HuddleRoomConfig = JSON.parse(
-          localStorage.getItem(`huntId_${huntId}`) || ""
-        );
+        const storedConfig = localStorage.getItem(`huntId_${huntId}`);
+        const huddleRoomConfig: HuddleRoomConfig | null = storedConfig 
+          ? JSON.parse(storedConfig)
+          : null;
 
         if (huddleRoomConfig === null) {
           const response = await fetch("http://localhost:8000/startHuddle", {

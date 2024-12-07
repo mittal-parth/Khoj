@@ -11,7 +11,7 @@ export function Navbar() {
           <div className="flex-shrink-0">
             <Link to="/" className="text-xl font-bold flex items-center gap-2">
               <FaEthereum className="text-green text-2xl" />
-              Khojo
+              Khoj
             </Link>
           </div>
 

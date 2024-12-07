@@ -1,8 +1,6 @@
 import { API } from '@huddle01/server-sdk/api';
 import { Recorder } from '@huddle01/server-sdk/recorder';
 import { AccessToken, Role } from '@huddle01/server-sdk/auth';
-import dotenv from 'dotenv';
-dotenv.config({ path: './.env' });
  
 const recorder = new Recorder(process.env.HUDDLE_PROJECT_ID, process.env.HUDDLE_API_KEY);
 
