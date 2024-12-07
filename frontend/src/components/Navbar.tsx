@@ -40,7 +40,7 @@ export function Navbar() {
           {/* Wallet Connect */}
           <div className="flex items-center">
             <Wallet>
-              <ConnectWallet className='bg-green hover:bg-green/80 transition-colors duration-300'>
+              <ConnectWallet className='rounded-2xl bg-yellow/10 hover:bg-green/80 transition-colors duration-300 text-white'>
                 <div className="flex items-center gap-2">
                   <Avatar className="h-6 w-6" />
                   <Name />
