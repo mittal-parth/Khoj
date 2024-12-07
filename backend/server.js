@@ -327,7 +327,7 @@ app.post('/encrypt', async (req, res) => {
 
     res.send({ "lat_lang_blobId": lat_lang_blobId, "clue_blobId": clue_blobId});
 });
-app.post('/decrypt', async (req, res) => {
+app.post('/decrypt-ans', async (req, res) => {
     const bodyData = req.body;
 
     const combinedObjectsBlobId = bodyData.lat_lang_blobId;
@@ -343,6 +343,15 @@ app.post('/decrypt', async (req, res) => {
     res.send({ "decryptedData": decryptedData });
 });
 
+
+app.post('/decrypt-clues', async (req, res) => {
+    const bodyData = req.body;
+    const clue_blobId = bodyData.clue_blobId;
+    const userAddress = bodyData.userAddress;
+    const { ciphertext: clue_ciphertext, dataToEncryptHash: clue_dataToEncryptHash } = await readObject(clue_blobId);
+    const decryptedData = await decryptRunServerMode(clue_dataToEncryptHash, clue_ciphertext, userAddress);
+    res.send({ "decryptedData": decryptedData });
+});
 
 
 app.post('/startHuddle', async (req, res) => {
