@@ -1,8 +1,7 @@
 # Khoj 🗺️ - Web3 Treasure Hunt Platform
 
-![Khoj Banner](path/to/banner.png)
 
-Khoj (meaning "search" or "discovery" in Hindi) is a gamified geo-location based treasure hunt platform that combines real-world exploration with Web3 technology. Built during ETHIndia Hackathon 2024, Khoj transforms traditional scavenger hunts into an immersive blockchain experience.
+Khoj (meaning "search" or "discovery" in Hindi) is a gamified geo-location based treasure hunt platform that combines real-world exploration with Web3 technology. Built during ETHIndia Hackathon 2024, Khoj transforms traditional scavenger hunts into an immersive blockchain experience with a dream to bring millions of new users to the Web3 world.
 
 ## 🌟 Overview
 
@@ -10,13 +9,15 @@ Khoj allows users to participate in location-based AI treasure hunts where they 
 
 ## ✨ Key Features
 
-### 🎮 Core Gameplay
-- **Location-Based Verification**: Real-time GPS tracking to verify players' presence at clue locations
-- **Progressive Riddles**: Each hunt consists of multiple interconnected clues that tell a story
+### Core Gameplay
+- **Progressive Riddles**: Each hunt consists of multiple interconnected clues that tell a story. 
+- **Location-Based Verification**: The answer to each clue is a physical location.
+- **Personalised Clues**: The clues are tailored to the user's taste using AI while still keeping the answer same.
 - **Multiple Attempts**: Players get 3 attempts per clue to verify their location
-- **Real-time Collaboration**: Built-in video chat for team coordination
+- **Real-time Collaboration**: Built-in video chat for team coordination.
+- **Rewards & Reputation**: Fastest players win rewards based on a reputation score generated which can be redeemed later.
 
-### 💫 Web3 Integration
+### Web3 Integration
 - **Multi-Chain Support**: Deployed across Base, Moonbeam Parachain, and BNB Chain
 - **Smart Wallet Integration**: Seamless login via Coinbase Developer Platform SDK
 - **NFT Registration**: Unique NFTs minted for each registered user
@@ -26,11 +27,53 @@ Khoj allows users to participate in location-based AI treasure hunts where they 
 - **Smart Contract Integration**: Hunt registration and reward distribution handled on-chain
 - **Token Rewards**: Earn Crypto Coins and special perks based on performance
 
-### 🎨 User Experience
+### User Experience
+- **Superior UX**: 
 - **Sleek UI**: Modern, responsive interface with playful design elements
-- **Real-time Progress**: Live tracking of hunt progress and trust score
 - **Picture-in-Picture**: Continue video collaboration while solving clues
 - **Reward Marketplace**: Redeem earned rewards for real-world perks
+
+## Use Cases
+
+1. **Co-Branded Hunts**
+
+    Brands can sponsor treasure hunts to promote their products or services.
+    Example: A sports brand can create a hunt where players visit local gyms and sports shops, promoting their latest line of athletic wear.
+
+3. **Airdrops**
+
+    Projects and blockchain platforms can organize hunts to distribute airdrops to their community.
+    Example: A new blockchain project might require participants to solve riddles related to their platform to earn free tokens.
+
+3. **Community Engagement**
+
+    DAOs and NFT communities can host collaborative hunts to strengthen member connections.
+    Example: An NFT art community might host a hunt to physical art galleries, ending with exclusive NFT drops.
+
+4. **Educational Hunts**
+
+    Organizations can use Khoj to create educational experiences.
+    Example: A museum could create a hunt where participants explore exhibits while solving riddles about history or science.
+
+5. **Local Tourism Promotion**
+
+    Tourism boards or local councils can host hunts that encourage exploration of cultural landmarks.
+    Example: A hunt through a city's historical sites with rewards tied to local crafts or businesses.
+
+6. **Team-Building Activities**
+
+    Corporations can use Khoj for team-building exercises.
+    Example: Employees work together to solve riddles and explore company campuses or nearby landmarks.
+
+7. **Event-Based Engagement**
+
+    Conferences, expos, and festivals can host themed hunts to enhance attendee experiences.
+    Example: A hackathon event could include a hunt guiding participants to booths of key sponsors and talks.
+
+8. **Fitness and Wellness Incentives**
+
+    Khoj can partner with fitness apps or gyms to encourage physical activity.
+    Example: Users participate in a hunt requiring them to run or walk to specific locations.
 
 ## 🛠️ Technology Stack
 
@@ -161,10 +204,11 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Team
 
-- [Team Member 1](https://github.com/member1) - Frontend & Design
-- [Team Member 2](https://github.com/member2) - Smart Contracts
-- [Team Member 3](https://github.com/member3) - Backend Integration
-- [Team Member 4](https://github.com/member4) - Product & Documentation
+- [Abhiraj Mengade](https://github.com/abhiraj-mengade)
+- [Ayush Kumar Singh](https://github.com/ayush4345)
+- [Mardav Gandhi](https://github.com/marcdhi)
+- [Parth Mittal](https://github.com/mittal-parth)
+- [Shubham Rasal](https://github.com/Shubham-Rasal)
 
 
 Built with ❤️ by Team Khoj
