@@ -22,19 +22,29 @@ export function useClaudeRiddles() {
 
     try {
       // 1. Fetch hunt data from your backend
-      const response = await fetch(`/api/hunts/${huntId}/data`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch hunt data");
-      }
-      const huntData = await response.json();
+      // const response = await fetch(`/api/hunts/${huntId}/data`);
+      // if (!response.ok) {
+      //   throw new Error("Failed to fetch hunt data");
+      // }
+      // const huntData = await response.json();
+
+      localStorage.clear();
+      const huntData = {
+        locations: [
+          "Rameshwaram Cafe Bangalore",
+          "KTPO Bangalore",
+          "Cubbon Park",
+        ],
+        themes: ["History", "Culture", "Nature"],
+      };
 
       // 2. Generate riddles using Claude
       const anthropic = new Anthropic({
-        apiKey: process.env.NEXT_PUBLIC_ANTHROPIC_API_KEY,
+        apiKey: import.meta.env.VITE_PUBLIC_NEXT_PUBLIC_ANTHROPIC_API_KEY,
         dangerouslyAllowBrowser: true,
       });
 
-      const prompt = `Generate a treasure hunt with ${
+      const prompt = `You are riddlemaker who generates json responses.Generate a treasure hunt with ${
         huntData.locations.length
       } riddles in strict JSON format. 
       Each riddle should lead to one of these locations: ${huntData.locations.join(
@@ -62,6 +72,8 @@ export function useClaudeRiddles() {
       const content = aiResponse.content[0].text;
       const cleanedContent = content.replace(/```json\n|```/g, "").trim();
       const parsedRiddles = JSON.parse(cleanedContent);
+
+      console.log(parsedRiddles);
 
       // 4. Store in localStorage and state
       localStorage.setItem("hunt_riddles", JSON.stringify(parsedRiddles));
