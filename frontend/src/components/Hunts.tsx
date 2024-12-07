@@ -36,20 +36,20 @@ export function Hunts() {
 
   console.log(hunts);
 
-  console.log(hunts && hunts[5] ? new Date(Number(BigInt(hunts[5].startTime))).getTime() : null)
-
   function formatDate(date: number) {
     const dateObj = new Date(date);
     const year = dateObj.getFullYear();
     const month = String(dateObj.getMonth() + 1).padStart(2, '0');
     const day = String(dateObj.getDate()).padStart(2, '0');
 
-    return `${year}${month}${day}`;
+    return Number(`${year}${month}${day}`);
   }
   
   let today = formatDate(Date.now()); 
   
-  console.log(today);
+  console.log("today", today);
+
+  console.log(hunts && hunts[5] ? (new Date(Number(BigInt(hunts[5].startTime))).getTime()) : null)
 
   // Array of background colors and icons to rotate through
   const bgColors = ['bg-green', 'bg-orange', 'bg-yellow', 'bg-pink', 'bg-red'];
@@ -125,12 +125,12 @@ export function Hunts() {
                   onSuccess={() => handleHuntClick(index)}
                 >
                   <TransactionButton
-                    text={new Date(Number(BigInt(hunt.startTime))).getTime() > today ? "Coming Soon" : "Register"}
-                    className={`w-full py-1.5 text-sm font-medium text-white rounded-md ${new Date(Number(hunt.startTime)).getTime() <= Date.now()
+                    text={(new Date(Number(BigInt(hunt.startTime))).getTime()) > today ? "Coming Soon" : "Register"}
+                    className={`w-full py-1.5 text-sm font-medium text-white rounded-md ${formatDate(new Date(Number(hunt.startTime)).getTime()) <= today
                         ? "bg-black hover:bg-gray-800"
                         : "bg-gray-300 cursor-not-allowed"
                       } transition-colors duration-300`}
-                    disabled={isLoading || new Date(Number(BigInt(hunt.startTime))).getTime() > today}
+                    disabled={isLoading || (new Date(Number(BigInt(hunt.startTime))).getTime()) > today}
                   />
                   <TransactionStatus>
                     <TransactionStatusLabel />

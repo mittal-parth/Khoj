@@ -23,7 +23,6 @@ import {
   export default function WalletWrapper({
     className,
     text,
-    withWalletAggregator = false,
   }: WalletWrapperParams) {
     return (
       <>
@@ -31,6 +30,7 @@ import {
           <ConnectWallet
             text={text}
             className={className}
+            
           >
             <Avatar className="h-6 w-6" />
             <Name />
