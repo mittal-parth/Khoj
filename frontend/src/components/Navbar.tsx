@@ -1,6 +1,5 @@
-
 import { FaEthereum } from "react-icons/fa";
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 import WalletWrapper from "@/helpers/WalletWrapper";
 
 export function Navbar() {
@@ -12,7 +11,7 @@ export function Navbar() {
           <div className="flex-shrink-0">
             <Link to="/" className="text-xl font-bold flex items-center gap-2">
               <FaEthereum className="text-green text-2xl" />
-              ETH Hunt
+              Khojo
             </Link>
           </div>
 
@@ -28,7 +27,7 @@ export function Navbar() {
 
           {/* Wallet Connect */}
           <div className="flex items-center text-black">
-          <WalletWrapper
+            <WalletWrapper
               className="bg-yellow/80 border border-black text-black rounded-2xl hover:bg-yellow/80"
               text="Connect Wallet"
               withWalletAggregator={true}
@@ -38,4 +37,4 @@ export function Navbar() {
       </div>
     </nav>
   );
-} 
+}

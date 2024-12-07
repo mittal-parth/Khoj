@@ -2,8 +2,8 @@ import { MdOutlineLocalMall } from "react-icons/md";
 import { CiCoffeeCup } from "react-icons/ci";
 import { FaEthereum } from "react-icons/fa";
 import { AiOutlineShoppingCart } from "react-icons/ai";
-import { TrendingUp } from "lucide-react"
-import { Label, Pie, PieChart } from "recharts"
+import { TrendingUp } from "lucide-react";
+import { Label, Pie, PieChart } from "recharts";
 import { useMemo } from "react";
 import {
   Card,
@@ -12,50 +12,42 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
-} from "@/components/ui/chart"
+} from "@/components/ui/chart";
 
 const chartData = [
-  { browser: "chrome", visitors: 275, fill: "#ba739b" },
-  { browser: "safari", visitors: 200, fill: "#2d763f" },
-  { browser: "firefox", visitors: 287, fill: "#ff7208" },
-  { browser: "edge", visitors: 173, fill: "#c1ac3b" },
-  { browser: "other", visitors: 190, fill: "#777777" },
-]
-
+  {
+    segment: "Trust Score",
+    value: Number(localStorage.getItem("trust_score")) || 0,
+    fill: "#2d763f",
+  },
+  {
+    segment: "Remaining",
+    value: ((score) => 10 - score)(
+      Number(localStorage.getItem("trust_score")) || 0
+    ),
+    fill: "#e0e0e0",
+  },
+];
 
 const chartConfig = {
-  visitors: {
-    label: "Visitors",
+  value: {
+    label: "Trust Score",
   },
-  chrome: {
-    label: "Chrome",
-    color: "bg-pink",
+  "Trust Score": {
+    label: "Current Score",
+    color: "bg-green",
   },
-  safari: {
-    label: "Safari",
-    color: "bg-blue",
-  },
-  firefox: {
-    label: "Firefox",
-    color: "bg-yellow",
-  },
-  edge: {
-    label: "Edge",
-    color: "bg-orange",
-  },
-  other: {
-    label: "Other",
+  Remaining: {
+    label: "Remaining",
     color: "bg-gray",
   },
-} satisfies ChartConfig
-
-
+} satisfies ChartConfig;
 
 interface RewardCard {
   code: string;
@@ -113,42 +105,20 @@ const rewardCards: RewardCard[] = [
 ];
 
 export function Rewards() {
-
-  const totalVisitors = useMemo(() => {
-    return chartData.reduce((acc, curr) => acc + curr.visitors, 0)
-  }, [])
-
+  const trustScore = useMemo(() => {
+    return Number(localStorage.getItem("trust_score")) || 0;
+  }, []);
 
   return (
     <div className="pt-16 px-4 sm:px-6 lg:px-8 mb-8 p-4">
       <div className="mb-6">
-
         <h2 className="text-3xl font-bold my-8 text-green">Analytics</h2>
 
-        <div className="flex flex-col md:flex-row gap-4">
-          <Card className="mt-4 w-fit h-fit
-      rounded-2xl 
-      p-4 
-      flex 
-      flex-col 
-      gap-2 
-      bg-white 
-      relative  
-                before:absolute 
-                before:inset-0 
-                before:rounded-2xl
-                before:border-8
-                before:border-green
-                before:-translate-x-2
-                before:translate-y-2
-                before:-z-10
-                border-[3px]
-                border-black
-        transition-all
-      ">
+        <div className="flex flex-col md:flex-row gap-4 justify-center">
+          <Card className="mt-4 w-full md:w-[400px] h-fit rounded-2xl p-4 flex flex-col gap-2 bg-white relative before:absolute before:inset-0 before:rounded-2xl before:border-8 before:border-green before:-translate-x-2 before:translate-y-2 before:-z-10 border-[3px] border-black transition-all">
             <CardHeader className="items-center pb-0">
-              <CardTitle>Visitors</CardTitle>
-              <CardDescription>Last 6 months</CardDescription>
+              <CardTitle>Trust Score</CardTitle>
+              <CardDescription>Your current standing</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 pb-0">
               <ChartContainer
@@ -162,8 +132,8 @@ export function Rewards() {
                   />
                   <Pie
                     data={chartData}
-                    dataKey="visitors"
-                    nameKey="browser"
+                    dataKey="value"
+                    nameKey="segment"
                     innerRadius={60}
                     strokeWidth={5}
                   >
@@ -176,23 +146,24 @@ export function Rewards() {
                               y={viewBox.cy}
                               textAnchor="middle"
                               dominantBaseline="middle"
+                              className="fill-white"
                             >
                               <tspan
                                 x={viewBox.cx}
                                 y={viewBox.cy}
-                                className="fill-foreground text-3xl font-bold"
+                                className="fill-white text-3xl font-bold"
                               >
-                                {totalVisitors.toLocaleString()}
+                                {trustScore}/10
                               </tspan>
                               <tspan
                                 x={viewBox.cx}
                                 y={(viewBox.cy || 0) + 24}
-                                className="fill-muted-foreground"
+                                className="fill-white"
                               >
-                                Visitors
+                                Trust Score
                               </tspan>
                             </text>
-                          )
+                          );
                         }
                       }}
                     />
@@ -201,16 +172,11 @@ export function Rewards() {
               </ChartContainer>
             </CardContent>
             <CardFooter className="flex-col gap-2 text-sm">
-              <div className="flex items-center gap-2 font-medium leading-none">
-                Trending up by 5.2% this month <TrendingUp className="h-4 w-4" />
-              </div>
               <div className="leading-none text-muted-foreground">
-                Showing total visitors for the last 6 months
+                Higher trust, more rewards!
               </div>
             </CardFooter>
           </Card>
-
-          
         </div>
         <h2 className="text-3xl font-bold my-8 text-green">Your Rewards</h2>
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -239,21 +205,24 @@ export function Rewards() {
               `}
             >
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center ${card.isExpired ? "bg-gray-700" : "bg-green-600"
-                  }`}
+                className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                  card.isExpired ? "bg-gray-700" : "bg-green-600"
+                }`}
               >
                 {card.icon}
               </div>
               <div className="space-y-0.5">
                 <h3
-                  className={`text-lg font-bold ${card.isExpired ? "text-gray-500" : "text-green-600"
-                    }`}
+                  className={`text-lg font-bold ${
+                    card.isExpired ? "text-gray-500" : "text-green-600"
+                  }`}
                 >
                   {card.code}
                 </h3>
                 <p
-                  className={`text-xs ${card.isExpired ? "text-gray-400" : "text-gray-600"
-                    }`}
+                  className={`text-xs ${
+                    card.isExpired ? "text-gray-400" : "text-gray-600"
+                  }`}
                 >
                   {card.description}
                 </p>
