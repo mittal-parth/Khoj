@@ -111,7 +111,7 @@ export function HuntEnd() {
                 </div>
               </div>
               <div className="text-sm text-gray-500 text-center mt-4">
-                by Trust Network
+                by True Network
               </div>
             </div>
 
