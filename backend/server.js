@@ -300,7 +300,7 @@ export class Lit {
                 
                 // Return true if distance is less than maxDistance (default 10 meters)
                 console.log("distance: ", distance);
-                return distance <= 100;
+                return distance <= 20000;
             })
             
             Lit.Actions.setResponse({ response : isClose});
@@ -466,6 +466,8 @@ app.post('/decrypt-ans', async (req, res) => {
     const curLong = bodyData.cLong;
     const clueId = bodyData.clueId;
     const combinedObjectsBlobId = bodyData.lat_lang_blobId;
+
+    console.log("combinedObjectsBlobId: ", combinedObjectsBlobId);
 
     const { ciphertext: lat_lang_ciphertext, dataToEncryptHash: lat_lang_dataToEncryptHash } = await readObject(combinedObjectsBlobId);
 
