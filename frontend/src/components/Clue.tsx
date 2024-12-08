@@ -50,14 +50,13 @@ export function Clue() {
 
   const currentClue = parseInt(clueId || "0");
   const currentClueData = JSON.parse(
-    localStorage.getItem("hunt_riddles") || "[]"
+    localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
   );
 
   // Mock data - replace with API call
   const huntData = {
-    title: "Ethereum Treasure Quest",
-    description:
-      "Follow the clues across the Ethereum blockchain to find hidden treasures and win rewards!",
+    title: "KhojNet Airdrop",
+    description: "Bringing the best realworld experiences onchain!",
     totalClues: 10,
     currentClue: parseInt(clueId || "1"),
   };

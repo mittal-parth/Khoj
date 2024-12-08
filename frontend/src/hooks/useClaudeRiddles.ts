@@ -7,16 +7,16 @@ export interface Riddle {
   hint: string;
 }
 
-export function useClaudeRiddles() {
+export function useClaudeRiddles(huntId: any) {
   const [riddles, setRiddles] = useState<Riddle[] | null>(() => {
     // Initialize from localStorage if available
-    const stored = localStorage.getItem("hunt_riddles");
+    const stored = localStorage.getItem(`hunt_riddles_${huntId}`);
     return stored ? JSON.parse(stored) : null;
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchRiddles = async (clues : any) => {
+  const fetchRiddles = async (clues: any, huntId: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -31,7 +31,9 @@ export function useClaudeRiddles() {
       //   localStorage.clear();
       console.log(clues.decryptedData);
       const huntData = {
-        locations: clues.decryptedData.map((location: any) => location.description),
+        locations: clues.decryptedData.map(
+          (location: any) => location.description
+        ),
         themes: ["Tech", "web3", "easy"],
       };
 
@@ -82,7 +84,9 @@ export function useClaudeRiddles() {
         console.log(content);
         console.log(parsedRiddles);
 
-        localStorage.setItem("hunt_riddles", JSON.stringify(parsedRiddles));
+        // Store riddles with hunt ID
+        const storageKey = `hunt_riddles_${huntId}`;
+        localStorage.setItem(storageKey, JSON.stringify(parsedRiddles));
         setRiddles(parsedRiddles);
       } else {
         throw new Error("Unexpected response format from Claude");

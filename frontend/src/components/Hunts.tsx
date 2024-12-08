@@ -40,9 +40,9 @@ export function Hunts() {
   // console.log("chainId", chainId);
 
   const navigate = useNavigate();
-  const { fetchRiddles, isLoading } = useClaudeRiddles();
   const [currentHuntId, setCurrentHuntId] = useState<number>(0);
   const [isRegistered, setIsRegistered] = useState(false);
+  const { fetchRiddles, isLoading } = useClaudeRiddles(currentHuntId);
 
   // Add this to get current network from localStorage
   const currentNetwork = localStorage.getItem("current_network") || "base";
@@ -91,7 +91,7 @@ export function Hunts() {
     console.log("Clues: ", clues);
     // localStorage.setItem("clues", JSON.stringify(clues));
 
-    await fetchRiddles(clues);
+    await fetchRiddles(clues, huntId.toString());
     navigate(`/hunt/${huntId}/clue/1`);
   };
 
@@ -122,7 +122,7 @@ export function Hunts() {
   let today = formatDate(Date.now());
 
   console.log("today", today);
-  console.log("reg", isRegistered)
+  console.log("reg", isRegistered);
 
   // console.log(hunts && hunts[5] ? (new Date(Number(BigInt(hunts[5].startTime))).getTime()) : null)
 
@@ -237,8 +237,7 @@ export function Hunts() {
                       handleHuntClick(index, hunt.clues_blobId);
                     }}
                     disabled={
-                      new Date(Number(BigInt(hunt.startTime))).getTime() >
-                        today
+                      new Date(Number(BigInt(hunt.startTime))).getTime() > today
                     }
                   >
                     Start
