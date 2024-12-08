@@ -122,6 +122,7 @@ export function Hunts() {
   let today = formatDate(Date.now());
 
   console.log("today", today);
+  console.log("reg", isRegistered)
 
   // console.log(hunts && hunts[5] ? (new Date(Number(BigInt(hunts[5].startTime))).getTime()) : null)
 
@@ -237,7 +238,7 @@ export function Hunts() {
                     }}
                     disabled={
                       new Date(Number(BigInt(hunt.startTime))).getTime() >
-                        today || !isRegistered
+                        today
                     }
                   >
                     Start

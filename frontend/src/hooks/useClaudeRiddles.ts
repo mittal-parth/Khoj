@@ -29,11 +29,13 @@ export function useClaudeRiddles() {
       // const huntData = await response.json();
 
       //   localStorage.clear();
-      console.log(clues);
+      console.log(clues.decryptedData);
       const huntData = {
-        locations: clues,
-        themes: ["History", "Culture", "Nature"],
+        locations: clues.decryptedData.map((location: any) => location.description),
+        themes: ["Tech", "web3", "easy"],
       };
+
+      console.log(huntData);
 
       // 2. Generate riddles using Claude
       const anthropic = new Anthropic({
