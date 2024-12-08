@@ -12,7 +12,7 @@ import {
 import { LitNetwork } from "@lit-protocol/constants";
 import dotenv from 'dotenv';
 import cors from 'cors';
-import { parseJSON} from './data_transform.js';
+import { parseJSON } from './data_transform.js';
 
 import { readObject, storeString } from "./walrus.js";
 import { getRoomId, getToken, startStreaming, stopStreaming } from "./huddle.js";
@@ -193,21 +193,21 @@ export class Lit {
 
           })();`
 
-          const accessControlConditions = [
+        const accessControlConditions = [
             {
-              contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
-              standardContractType: 'ERC721',
-              chain,
-              method: 'balanceOf',
-              parameters: [
-                userAddress
-              ],
-              returnValueTest: {
-                comparator: '>',
-                value: '0'
-              }
+                contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
+                standardContractType: 'ERC721',
+                chain,
+                method: 'balanceOf',
+                parameters: [
+                    userAddress
+                ],
+                returnValueTest: {
+                    comparator: '>',
+                    value: '0'
+                }
             }
-          ]
+        ]
 
         const sessionSigs = await this.getSessionSigsServer();
         // // Decrypt the private key inside a lit action
@@ -240,12 +240,19 @@ export class Lit {
               authSig,
               sessionSigs
             });
-            console.log("clues: ", clues);   
+            
 
             const isClose = await Lit.Actions.runOnce(
             { waitForResponse: true, name: "ETH block number" },
             async () => {
                 const currentLocation = JSON.parse(clues).find(location => location.id === clueId);
+                console.log("currentLocation: ", currentLocation);
+
+                console.log("i M HERE")
+                console.log("clueId: ", clueId);
+                console.log("cLat: ", cLat);
+                console.log("cLong: ", cLong);
+
                 if(!currentLocation) {
                     return false;
                 }
@@ -260,12 +267,22 @@ export class Lit {
                 const EARTH_RADIUS = 6371000; // 6,371 kilometers
                 
                 // Convert latitude and longitude from degrees to radians
-                const toRadians = (degrees) => degrees * (Math.PI / 180);
+                const toRadians = (degrees) => degrees * (3.14 / 180);
+
+                console.log("curLat: ", curLat);
+                console.log("cLat: ", cLat);
+                console.log("cLong: ", cLong);
+                console.log("curLong: ", curLong);
                 
                 const φ1 = toRadians(curLat);
-                const φ2 = toRadians(${cLat});
-                const Δφ = toRadians(${cLat} - curLat);
-                const Δλ = toRadians(${cLong} - curLong);
+                const φ2 = toRadians(cLat);
+                const Δφ = toRadians(cLat - curLat);
+                const Δλ = toRadians(cLong - curLong);
+
+                console.log("φ1: ", φ1);
+                console.log("φ2: ", φ2);
+                console.log("Δφ: ", Δφ);
+                console.log("Δλ: ", Δλ);
                 
                 // Haversine formula
                 const a = 
@@ -274,33 +291,39 @@ export class Lit {
                     Math.sin(Δλ/2) * Math.sin(Δλ/2);
                 
                 const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+                console.log("a: ", a);
+                console.log("c: ", c);
                 
                 // Distance in meters
                 const distance = EARTH_RADIUS * c;
                 
                 // Return true if distance is less than maxDistance (default 10 meters)
-                return distance <= 10;
+                console.log("distance: ", distance);
+                return distance <= 100;
             })
             
             Lit.Actions.setResponse({ response : isClose});
 
           })();`
 
-          const accessControlConditions = [
+        const accessControlConditions = [
             {
-              contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
-              standardContractType: 'ERC721',
-              chain,
-              method: 'balanceOf',
-              parameters: [
-                userAddress
-              ],
-              returnValueTest: {
-                comparator: '>',
-                value: '0'
-              }
+                contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
+                standardContractType: 'ERC721',
+                chain,
+                method: 'balanceOf',
+                parameters: [
+                    userAddress
+                ],
+                returnValueTest: {
+                    comparator: '>',
+                    value: '0'
+                }
             }
-          ]
+        ]
+
+        console.log(cLat, cLong, clueId)
 
         const sessionSigs = await this.getSessionSigsServer();
         // // Decrypt the private key inside a lit action
@@ -314,9 +337,9 @@ export class Lit {
                 dataToEncryptHash,
                 sessionSigs,
                 authSig,
-                clueId,
-                cLat,  
-                cLong 
+                clueId: clueId,
+                cLat: cLat,
+                cLong: cLong
             }
         });
         console.log("result from action execution:", res);
@@ -330,19 +353,19 @@ export const encryptRunServerMode = async (message, userAddress) => {
 
     const accessControlConditions = [
         {
-          contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
-          standardContractType: 'ERC721',
-          chain,
-          method: 'balanceOf',
-          parameters: [
-            userAddress
-          ],
-          returnValueTest: {
-            comparator: '>',
-            value: '0'
-          }
+            contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
+            standardContractType: 'ERC721',
+            chain,
+            method: 'balanceOf',
+            parameters: [
+                userAddress
+            ],
+            returnValueTest: {
+                comparator: '>',
+                value: '0'
+            }
         }
-      ]
+    ]
 
     let myLit = new Lit(client, chain, accessControlConditions);
     await myLit.connect();
@@ -357,30 +380,33 @@ export const encryptRunServerMode = async (message, userAddress) => {
 export const decryptRunServerMode = async (dataToEncryptHash, ciphertext, userAddress, cLat, cLong, clueId) => {
     const chain = "baseSepolia";
     console.log("userAddress: ", userAddress);
+    console.log("cLat: ", cLat);
+    console.log("cLong: ", cLong);
+    console.log("clueId: ", clueId);
 
     const accessControlConditions = [
         {
-          contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
-          standardContractType: 'ERC721',
-          chain,
-          method: 'balanceOf',
-          parameters: [
-            userAddress
-          ],
-          returnValueTest: {
-            comparator: '>',
-            value: '0'
-          }
+            contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
+            standardContractType: 'ERC721',
+            chain,
+            method: 'balanceOf',
+            parameters: [
+                userAddress
+            ],
+            returnValueTest: {
+                comparator: '>',
+                value: '0'
+            }
         }
-      ]
+    ]
 
     let myLit = new Lit(client, chain, accessControlConditions);
     await myLit.connect();
 
     let data;
 
-    if(clueId) {
-       data = await myLit.decryptLitActionVerify(ciphertext, dataToEncryptHash, userAddress, cLat, cLong, clueId);
+    if (clueId) {
+        data = await myLit.decryptLitActionVerify(ciphertext, dataToEncryptHash, userAddress, cLat, cLong, clueId);
     }
     else {
         data = await myLit.decryptLitActionClues(ciphertext, dataToEncryptHash, userAddress);
@@ -432,12 +458,12 @@ app.post('/encrypt', async (req, res) => {
         storeString(JSON.stringify(combinedObjects[1]))
     ]);
 
-    res.send({ "lat_lang_blobId": lat_lang_blobId, "clue_blobId": clue_blobId});
+    res.send({ "lat_lang_blobId": lat_lang_blobId, "clue_blobId": clue_blobId });
 });
 app.post('/decrypt-ans', async (req, res) => {
     const bodyData = req.body;
-    const curLat = bodyData.curLat;
-    const curLong = bodyData.curLong;
+    const curLat = bodyData.cLat;
+    const curLong = bodyData.cLong;
     const clueId = bodyData.clueId;
     const combinedObjectsBlobId = bodyData.lat_lang_blobId;
 
@@ -446,7 +472,7 @@ app.post('/decrypt-ans', async (req, res) => {
     console.log("userAddress: ", bodyData.userAddress);
     console.log("lat_lang_dataToEncryptHash: ", lat_lang_dataToEncryptHash);
 
-    const {response}  = await decryptRunServerMode(lat_lang_dataToEncryptHash, lat_lang_ciphertext, bodyData.userAddress, curLat, curLong, clueId);
+    const { response } = await decryptRunServerMode(lat_lang_dataToEncryptHash, lat_lang_ciphertext, bodyData.userAddress, curLat, curLong, clueId);
 
     res.send({ "isClose": response });
 });
@@ -460,12 +486,12 @@ app.post('/decrypt-clues', async (req, res) => {
 
         const { ciphertext: clue_ciphertext, dataToEncryptHash: clue_dataToEncryptHash } = await readObject(clue_blobId);
 
-        const {response} = await decryptRunServerMode(clue_dataToEncryptHash, clue_ciphertext, userAddress);
+        const { response } = await decryptRunServerMode(clue_dataToEncryptHash, clue_ciphertext, userAddress);
         res.send({ "decryptedData": JSON.parse(response) });
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).json({ 
-            error: 'Failed to decrypt clues' 
+        res.status(500).json({
+            error: 'Failed to decrypt clues'
         });
     }
 });
@@ -475,14 +501,14 @@ app.post('/startHuddle', async (req, res) => {
     try {
         const roomId = await getRoomId();
         const token = await getToken(roomId);
-        res.json({ 
-            roomId: roomId, 
-            token: token 
+        res.json({
+            roomId: roomId,
+            token: token
         });
     } catch (error) {
         console.error('Error:', error);
-        res.status(500).json({ 
-            error: 'Failed to create room or generate token' 
+        res.status(500).json({
+            error: 'Failed to create room or generate token'
         });
     }
 });
