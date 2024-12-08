@@ -1,5 +1,5 @@
 # Khoj 🗺️ - Web3 Treasure Hunt Platform
-
+<img src="https://github.com/user-attachments/assets/16b2a600-afb0-41b1-86cc-698bfcd2d333" width="400" alt="Khoj Logo">
 
 Khoj (meaning "search" or "discovery" in Hindi) is a gamified geo-location based treasure hunt platform that combines real-world exploration with Web3 technology. Built during ETHIndia Hackathon 2024, Khoj transforms traditional scavenger hunts into an immersive blockchain experience with a dream to bring millions of new users to the Web3 world.
 
