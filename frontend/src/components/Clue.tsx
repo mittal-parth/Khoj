@@ -112,7 +112,7 @@ export function Clue() {
       let bodyContent = JSON.stringify({
         userAddress: "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
 
-        lat_lang_blobId: "mA5i8AuAJ-GByGbbCf7ybofRNBgC7yDqzT4Hb__BmB4",
+        lat_lang_blobId: "LnmXBTX2OBNljpi2isip18U21C4dwSKmDIbUnHSqJMY",
         cLat: location.latitude,
         cLong: location.longitude,
         clueId: Number(clueId),

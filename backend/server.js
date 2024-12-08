@@ -300,7 +300,7 @@ export class Lit {
                 
                 // Return true if distance is less than maxDistance (default 10 meters)
                 console.log("distance: ", distance);
-                return distance <= 20000;
+                return distance <= 20000000;
             })
             
             Lit.Actions.setResponse({ response : isClose});
