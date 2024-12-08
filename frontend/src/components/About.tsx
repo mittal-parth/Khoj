@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { BsLightbulb, BsShield, BsCoin } from "react-icons/bs";
 import { FaEthereum } from "react-icons/fa";
-import { GiTreasureMap, GiChest } from "react-icons/gi";
 
 export function About() {
   const features = [
@@ -58,45 +57,15 @@ export function About() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6 }}
-              className="flex items-center justify-center gap-2 sm:gap-4"
+              className="flex items-center justify-center"
             >
-              <motion.div
-                animate={{
-                  rotateY: [0, 360],
-                  scale: [1, 1.2, 1],
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                  ease: "easeInOut",
-                }}
-                className="text-6xl"
-              >
-                <GiTreasureMap />
-              </motion.div>
               <motion.h1
-                className="text-4xl sm:text-6xl font-bold mb-4"
+                className="text-4xl sm:text-6xl font-bold"
                 animate={{ scale: [1, 1.02, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
                 Khojo
               </motion.h1>
-              <motion.div
-                animate={{
-                  rotateY: [0, -360],
-                  scale: [1, 1.2, 1],
-                }}
-                transition={{
-                  duration: 3,
-                  repeat: Infinity,
-                  repeatType: "reverse",
-                  ease: "easeInOut",
-                }}
-                className="text-6xl"
-              >
-                <GiChest />
-              </motion.div>
             </motion.div>
           </div>
 

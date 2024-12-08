@@ -13,7 +13,7 @@ import {
 } from "@coinbase/onchainkit/transaction";
 import { Button } from "./ui/button.tsx";
 import { useState } from "react";
-
+import { SUPPORTED_CHAINS } from "../providers.tsx";
 interface Hunt {
   name: string;
   description: string;
@@ -36,6 +36,8 @@ const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
 export function Hunts() {
   const { address } = useAccount();
+  // const chainId = useChainId();
+  // console.log("chainId", chainId);
 
   const navigate = useNavigate();
   const { fetchRiddles, isLoading } = useClaudeRiddles();
@@ -48,12 +50,16 @@ export function Hunts() {
     CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES];
 
   //get the token getTokenId
+  const chainId =
+    SUPPORTED_CHAINS[currentNetwork as keyof typeof SUPPORTED_CHAINS].id;
 
+  console.log(chainId);
   const { data: tokenId } = useReadContract({
     address: contractAddress,
     abi: huntABI,
     functionName: "getTokenId",
     args: [currentHuntId, address],
+    chainId: chainId,
   });
 
   console.log("tokenId", tokenId);
@@ -94,6 +100,7 @@ export function Hunts() {
     setIsRegistered(true);
   };
 
+  console.log(contractAddress);
   const { data: hunts = [] } = useReadContract({
     address: contractAddress,
     abi: typedHuntABI,
