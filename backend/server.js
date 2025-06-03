@@ -178,7 +178,6 @@ export class Lit {
         const chain = "baseSepolia";
 
         const code = `(async () => {
-            console.log("hello");
             const clues = await Lit.Actions.decryptAndCombine({
               accessControlConditions,
               chain: "baseSepolia",
@@ -248,7 +247,7 @@ export class Lit {
                 const currentLocation = JSON.parse(clues).find(location => location.id === clueId);
                 console.log("currentLocation: ", currentLocation);
 
-                console.log("i M HERE")
+                // console.log("i M HERE")
                 console.log("clueId: ", clueId);
                 console.log("cLat: ", cLat);
                 console.log("cLong: ", cLong);
@@ -279,10 +278,10 @@ export class Lit {
                 const Δφ = toRadians(cLat - curLat);
                 const Δλ = toRadians(cLong - curLong);
 
-                console.log("φ1: ", φ1);
-                console.log("φ2: ", φ2);
-                console.log("Δφ: ", Δφ);
-                console.log("Δλ: ", Δλ);
+                // console.log("φ1: ", φ1);
+                // console.log("φ2: ", φ2);
+                // console.log("Δφ: ", Δφ);
+                // console.log("Δλ: ", Δλ);
                 
                 // Haversine formula
                 const a = 
@@ -292,15 +291,15 @@ export class Lit {
                 
                 const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 
-                console.log("a: ", a);
-                console.log("c: ", c);
+                // console.log("a: ", a);
+                // console.log("c: ", c);
                 
                 // Distance in meters
                 const distance = EARTH_RADIUS * c;
                 
                 // Return true if distance is less than maxDistance (default 10 meters)
                 console.log("distance: ", distance);
-                return distance <= 20000000;
+                return distance;
             })
             
             Lit.Actions.setResponse({ response : isClose});
@@ -416,120 +415,137 @@ export const decryptRunServerMode = async (dataToEncryptHash, ciphertext, userAd
 }
 
 export async function run() {
-    const message = "Hello, Lit Protocol!";
+    // Sample clues array
+    const clues = [
+        { id: "clue1", lat: 12.9716, long: 77.5946 },
+        { id: "clue2", lat: 28.7041, long: 77.1025 }
+    ];
+    const userAddress = "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397";
+    const clueId = "clue1";
+    const cLat = 12.9716; // Same as clue1 for a positive match
+    const cLong = 77.5946;
 
-    // Encrypt the message
-    const { ciphertext, dataToEncryptHash } = await encryptRunServerMode(message, "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397");
+    //check for negative match
+    const farLong = 10.5946; // Far away longitude for negative match
+    const farLat = 10.9716; // Far away latitude for negative match
 
-    // Decrypt the message
-    const decryptedData = await decryptRunServerMode(dataToEncryptHash, ciphertext, "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397");
-    console.log("Decrypted Data:", decryptedData);
-    return decryptedData;
+    // Encrypt the clues array
+    const { ciphertext, dataToEncryptHash } = await encryptRunServerMode(JSON.stringify(clues), userAddress);
+
+    // Test Lit clue verify function
+    const result = await decryptRunServerMode(dataToEncryptHash, ciphertext, userAddress, cLat, cLong, clueId);
+    console.log("Positive Match Result:", result);
+
+    // Test Lit clue verify function with negative match
+    const negativeResult = await decryptRunServerMode(dataToEncryptHash, ciphertext, userAddress, farLat, farLong, clueId);
+    console.log("Negative Match Result:", negativeResult);
+
+    return result;
 }
 
 
-// run().catch(console.error);
+run().catch(console.error);
 
-app.post('/encrypt', async (req, res) => {
-    const bodyData = req.body;
-    const userAddress = bodyData.userAddress;
-    const [locations, cluesParsed] = parseJSON(bodyData.clues);
-    console.log(JSON.stringify(locations), JSON.stringify(cluesParsed));
+// app.post('/encrypt', async (req, res) => {
+//     const bodyData = req.body;
+//     const userAddress = bodyData.userAddress;
+//     const [locations, cluesParsed] = parseJSON(bodyData.clues);
+//     console.log(JSON.stringify(locations), JSON.stringify(cluesParsed));
 
-    const { ciphertext: lat_lang_ciphertext, dataToEncryptHash: lat_lang_dataToEncryptHash } = await encryptRunServerMode(JSON.stringify(locations), userAddress);
-    const { ciphertext: clue_ciphertext, dataToEncryptHash: clue_dataToEncryptHash } = await encryptRunServerMode(JSON.stringify(cluesParsed), userAddress);
+//     const { ciphertext: lat_lang_ciphertext, dataToEncryptHash: lat_lang_dataToEncryptHash } = await encryptRunServerMode(JSON.stringify(locations), userAddress);
+//     const { ciphertext: clue_ciphertext, dataToEncryptHash: clue_dataToEncryptHash } = await encryptRunServerMode(JSON.stringify(cluesParsed), userAddress);
 
-    //add to walrus
-    const combinedObjects = [
-        {
-            ciphertext: lat_lang_ciphertext,
-            dataToEncryptHash: lat_lang_dataToEncryptHash
-        },
-        {
-            ciphertext: clue_ciphertext,
-            dataToEncryptHash: clue_dataToEncryptHash
-        }
-    ];
+//     //add to walrus
+//     const combinedObjects = [
+//         {
+//             ciphertext: lat_lang_ciphertext,
+//             dataToEncryptHash: lat_lang_dataToEncryptHash
+//         },
+//         {
+//             ciphertext: clue_ciphertext,
+//             dataToEncryptHash: clue_dataToEncryptHash
+//         }
+//     ];
 
-    console.log(JSON.stringify(combinedObjects[0]))
+//     console.log(JSON.stringify(combinedObjects[0]))
 
-    const [lat_lang_blobId, clue_blobId] = await Promise.all([
-        storeString(JSON.stringify(combinedObjects[0])),
-        storeString(JSON.stringify(combinedObjects[1]))
-    ]);
+//     const [lat_lang_blobId, clue_blobId] = await Promise.all([
+//         storeString(JSON.stringify(combinedObjects[0])),
+//         storeString(JSON.stringify(combinedObjects[1]))
+//     ]);
 
-    res.send({ "lat_lang_blobId": lat_lang_blobId, "clue_blobId": clue_blobId });
-});
-app.post('/decrypt-ans', async (req, res) => {
-    const bodyData = req.body;
-    const curLat = bodyData.cLat;
-    const curLong = bodyData.cLong;
-    const clueId = bodyData.clueId;
-    const combinedObjectsBlobId = bodyData.lat_lang_blobId;
+//     res.send({ "lat_lang_blobId": lat_lang_blobId, "clue_blobId": clue_blobId });
+// });
+// app.post('/decrypt-ans', async (req, res) => {
+//     const bodyData = req.body;
+//     const curLat = bodyData.cLat;
+//     const curLong = bodyData.cLong;
+//     const clueId = bodyData.clueId;
+//     const combinedObjectsBlobId = bodyData.lat_lang_blobId;
 
-    console.log("combinedObjectsBlobId: ", combinedObjectsBlobId);
+//     console.log("combinedObjectsBlobId: ", combinedObjectsBlobId);
 
-    const { ciphertext: lat_lang_ciphertext, dataToEncryptHash: lat_lang_dataToEncryptHash } = await readObject(combinedObjectsBlobId);
+//     const { ciphertext: lat_lang_ciphertext, dataToEncryptHash: lat_lang_dataToEncryptHash } = await readObject(combinedObjectsBlobId);
 
-    console.log("userAddress: ", bodyData.userAddress);
-    console.log("lat_lang_dataToEncryptHash: ", lat_lang_dataToEncryptHash);
+//     console.log("userAddress: ", bodyData.userAddress);
+//     console.log("lat_lang_dataToEncryptHash: ", lat_lang_dataToEncryptHash);
 
-    const { response } = await decryptRunServerMode(lat_lang_dataToEncryptHash, lat_lang_ciphertext, bodyData.userAddress, curLat, curLong, clueId);
+//     const { response } = await decryptRunServerMode(lat_lang_dataToEncryptHash, lat_lang_ciphertext, bodyData.userAddress, curLat, curLong, clueId);
 
-    res.send({ "isClose": response });
-});
-
-
-app.post('/decrypt-clues', async (req, res) => {
-    try {
-        const bodyData = req.body;
-        const clue_blobId = bodyData.clue_blobId;
-        const userAddress = bodyData.userAddress;
-
-        const { ciphertext: clue_ciphertext, dataToEncryptHash: clue_dataToEncryptHash } = await readObject(clue_blobId);
-
-        const { response } = await decryptRunServerMode(clue_dataToEncryptHash, clue_ciphertext, userAddress);
-        res.send({ "decryptedData": JSON.parse(response) });
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({
-            error: 'Failed to decrypt clues'
-        });
-    }
-});
+//     res.send({ "isClose": response });
+// });
 
 
-app.post('/startHuddle', async (req, res) => {
-    try {
-        const roomId = await getRoomId();
-        const token = await getToken(roomId);
-        res.json({
-            roomId: roomId,
-            token: token
-        });
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({
-            error: 'Failed to create room or generate token'
-        });
-    }
-});
+// app.post('/decrypt-clues', async (req, res) => {
+//     try {
+//         const bodyData = req.body;
+//         const clue_blobId = bodyData.clue_blobId;
+//         const userAddress = bodyData.userAddress;
 
-app.post('/livestreams/start', async (req, res) => {
-    const bodyData = req.body;
-    console.log("BackendbodyData: ", bodyData);
-    await startStreaming(bodyData.roomId, bodyData.token, bodyData.streamUrl, bodyData.streamKey);
-    res.send({ "message": "Streaming started" });
-});
+//         const { ciphertext: clue_ciphertext, dataToEncryptHash: clue_dataToEncryptHash } = await readObject(clue_blobId);
 
-app.post('/livestreams/stop', async (req, res) => {
-    const bodyData = req.body;
-    console.log("Backend bodyData: ", bodyData);
-    await stopStreaming(bodyData.roomId);
-    res.send({ "message": "Streaming stopped" });
-});
+//         const { response } = await decryptRunServerMode(clue_dataToEncryptHash, clue_ciphertext, userAddress);
+//         res.send({ "decryptedData": JSON.parse(response) });
+//     } catch (error) {
+//         console.error('Error:', error);
+//         res.status(500).json({
+//             error: 'Failed to decrypt clues'
+//         });
+//     }
+// });
 
 
-app.listen(port, () => {
-    console.log(`Server listening at http://localhost:${port}`);
-});
+// app.post('/startHuddle', async (req, res) => {
+//     try {
+//         const roomId = await getRoomId();
+//         const token = await getToken(roomId);
+//         res.json({
+//             roomId: roomId,
+//             token: token
+//         });
+//     } catch (error) {
+//         console.error('Error:', error);
+//         res.status(500).json({
+//             error: 'Failed to create room or generate token'
+//         });
+//     }
+// });
+
+// app.post('/livestreams/start', async (req, res) => {
+//     const bodyData = req.body;
+//     console.log("BackendbodyData: ", bodyData);
+//     await startStreaming(bodyData.roomId, bodyData.token, bodyData.streamUrl, bodyData.streamKey);
+//     res.send({ "message": "Streaming started" });
+// });
+
+// app.post('/livestreams/stop', async (req, res) => {
+//     const bodyData = req.body;
+//     console.log("Backend bodyData: ", bodyData);
+//     await stopStreaming(bodyData.roomId);
+//     res.send({ "message": "Streaming stopped" });
+// });
+
+
+// app.listen(port, () => {
+//     console.log(`Server listening at http://localhost:${port}`);
+// });
