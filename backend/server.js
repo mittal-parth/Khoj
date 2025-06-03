@@ -22,7 +22,7 @@ const corsOptions = {
     optionsSuccessStatus: 200
 };
 
-dotenv.config({ path: './.env' });
+dotenv.config();
 
 const app = express();
 app.use(cors());  // Add this line to enable CORS for all routes
@@ -36,7 +36,7 @@ const client = new LitNodeClient({
     debug: true,
 });
 
-// console.log(process.env.PRIVATE_KEY)
+console.log(process.env.PRIVATE_KEY)
 const walletWithCapacityCredit = new Wallet(
     process.env.PRIVATE_KEY
 );
