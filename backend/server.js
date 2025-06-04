@@ -16,6 +16,8 @@ import { parseJSON } from './data_transform.js';
 
 import { readObject, storeString } from "./walrus.js";
 import { getRoomId, getToken, startStreaming, stopStreaming } from "./huddle.js";
+import haversineDistance from './haversine-distance.js';
+const MAX_DISTANCE_IN_METERS = 50;
 
 const corsOptions = {
     origin: '*', // Adjust this to your frontend's origin
@@ -230,82 +232,40 @@ export class Lit {
     async decryptLitActionVerify(ciphertext, dataToEncryptHash, userAddress, cLat, cLong, clueId) {
         const chain = "baseSepolia";
 
-        const code = `(async () => {
-            console.log("hello");
+        const _litActionCode = async () => {
             const clues = await Lit.Actions.decryptAndCombine({
-              accessControlConditions,
-              chain: "baseSepolia",
-              ciphertext,
-              dataToEncryptHash,
-              authSig,
-              sessionSigs
+                accessControlConditions,
+                chain: "baseSepolia",
+                ciphertext,
+                dataToEncryptHash,
+                authSig,
+                sessionSigs
             });
             
+            const isLocationInProximity = await Lit.Actions.runOnce(
+                { waitForResponse: true, name: "ETH block number" },
+                async () => {
+                    const currentLocation = JSON.parse(clues).find(location => location.id === clueId);
+                    console.log("currentLocation: ", currentLocation);
 
-            const isClose = await Lit.Actions.runOnce(
-            { waitForResponse: true, name: "ETH block number" },
-            async () => {
-                const currentLocation = JSON.parse(clues).find(location => location.id === clueId);
-                console.log("currentLocation: ", currentLocation);
+                    if(!currentLocation) {
+                        return false;
+                    }
 
-                console.log("i M HERE")
-                console.log("clueId: ", clueId);
-                console.log("cLat: ", cLat);
-                console.log("cLong: ", cLong);
-
-                if(!currentLocation) {
-                    return false;
+                    const distance = haversineDistance(
+                        { lat: currentLocation.lat, lng: currentLocation.long },
+                        { lat: cLat, lng: cLong }
+                    );
+                    
+                    console.log("distance: ", distance);
+                    return distance <= MAX_DISTANCE_IN_METERS;
                 }
-                const curLat = currentLocation.lat;
-                const curLong = currentLocation.long;
-
-                console.log("curLat: ", curLat);
-                console.log("curLong: ", curLong);
-
-                //get the distance between the points
-                // Earth's radius in meters
-                const EARTH_RADIUS = 6371000; // 6,371 kilometers
-                
-                // Convert latitude and longitude from degrees to radians
-                const toRadians = (degrees) => degrees * (3.14 / 180);
-
-                console.log("curLat: ", curLat);
-                console.log("cLat: ", cLat);
-                console.log("cLong: ", cLong);
-                console.log("curLong: ", curLong);
-                
-                const φ1 = toRadians(curLat);
-                const φ2 = toRadians(cLat);
-                const Δφ = toRadians(cLat - curLat);
-                const Δλ = toRadians(cLong - curLong);
-
-                console.log("φ1: ", φ1);
-                console.log("φ2: ", φ2);
-                console.log("Δφ: ", Δφ);
-                console.log("Δλ: ", Δλ);
-                
-                // Haversine formula
-                const a = 
-                    Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                    Math.cos(φ1) * Math.cos(φ2) *
-                    Math.sin(Δλ/2) * Math.sin(Δλ/2);
-                
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-                console.log("a: ", a);
-                console.log("c: ", c);
-                
-                // Distance in meters
-                const distance = EARTH_RADIUS * c;
-                
-                // Return true if distance is less than maxDistance (default 10 meters)
-                console.log("distance: ", distance);
-                return distance <= 20000000;
-            })
+            );
             
-            Lit.Actions.setResponse({ response : isClose});
+            Lit.Actions.setResponse({ response: isLocationInProximity });
+        };
 
-          })();`
+        const code = `(${_litActionCode.toString()})();`;
 
         const accessControlConditions = [
             {
@@ -326,11 +286,10 @@ export class Lit {
         console.log(cLat, cLong, clueId)
 
         const sessionSigs = await this.getSessionSigsServer();
-        // // Decrypt the private key inside a lit action
+        // Decrypt the private key inside a lit action
         const res = await this.litNodeClient.executeJs({
             sessionSigs,
             code: code,
-            // code: genActionSource2(),
             jsParams: {
                 accessControlConditions: accessControlConditions,
                 ciphertext,
@@ -339,7 +298,8 @@ export class Lit {
                 authSig,
                 clueId: clueId,
                 cLat: cLat,
-                cLong: cLong
+                cLong: cLong,
+                haversineDistance: MAX_DISTANCE_IN_METERS
             }
         });
         console.log("result from action execution:", res);
