@@ -66,7 +66,7 @@ export function Clue() {
       const api = await getTrueNetworkInstance();
 
       // TODO: Change to wallet address
-      const userWallet = "0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97";
+      const userWallet = "0x9dfa242c8E10d16796174214797BC5b9893ab517";
 
       const output = await huntAttestationSchema.attest(api, userWallet, {
         huntId: parseInt(huntId || "0"),
