@@ -1,185 +1,192 @@
-import express from "express"
+import express from "express";
 
-import { encryptString, decryptToString, LitNodeClient } from "@lit-protocol/lit-node-client";
+import {
+  encryptString,
+  decryptToString,
+  LitNodeClient,
+} from "@lit-protocol/lit-node-client";
 import { Wallet } from "ethers";
 import {
-    LitActionResource,
-    LitAccessControlConditionResource,
-    LitAbility,
-    createSiweMessageWithRecaps,
-    generateAuthSig,
-} from "@lit-protocol/auth-helpers"
+  LitActionResource,
+  LitAccessControlConditionResource,
+  LitAbility,
+  createSiweMessageWithRecaps,
+  generateAuthSig,
+} from "@lit-protocol/auth-helpers";
 import { LitNetwork } from "@lit-protocol/constants";
-import dotenv from 'dotenv';
-import cors from 'cors';
-import { parseJSON } from './data_transform.js';
+import dotenv from "dotenv";
+import cors from "cors";
+import { parseJSON } from "./data_transform.js";
 
 import { readObject, storeString } from "./walrus.js";
-import { getRoomId, getToken, startStreaming, stopStreaming } from "./huddle.js";
-import haversineDistance from './haversine-distance.js';
+import {
+  getRoomId,
+  getToken,
+  startStreaming,
+  stopStreaming,
+} from "./huddle.js";
+// import haversineDistance from './haversine-distance.js';
 const MAX_DISTANCE_IN_METERS = 50;
 
 const corsOptions = {
-    origin: '*', // Adjust this to your frontend's origin
-    optionsSuccessStatus: 200
+  origin: "*", // Adjust this to your frontend's origin
+  optionsSuccessStatus: 200,
 };
 
-dotenv.config({ path: './.env' });
+dotenv.config({ path: "./.env" });
 
 const app = express();
-app.use(cors());  // Add this line to enable CORS for all routes
+app.use(cors()); // Add this line to enable CORS for all routes
 app.use(express.json());
 app.use(cors(corsOptions));
 
 const port = process.env.PORT || 8000;
 
 const client = new LitNodeClient({
-    litNetwork: LitNetwork.DatilDev,
-    debug: true,
+  litNetwork: LitNetwork.DatilDev,
+  debug: true,
 });
 
 // console.log(process.env.PRIVATE_KEY)
-const walletWithCapacityCredit = new Wallet(
-    process.env.PRIVATE_KEY
-);
+const walletWithCapacityCredit = new Wallet(process.env.PRIVATE_KEY);
 
 const authSig = await (async () => {
-    const toSign = await createSiweMessageWithRecaps({
-        uri: "http://localhost",
-        expiration: new Date(Date.now() + 1000 * 60 * 60).toISOString(), // 24 hours
-        walletAddress: walletWithCapacityCredit.address,
-        nonce: await client.getLatestBlockhash(),
-        resources: [
-            {
-                resource: new LitActionResource('*'),
-                ability: LitAbility.LitActionExecution,
-            },
-            {
-                resource: new LitAccessControlConditionResource('*'),
-                ability: LitAbility.AccessControlConditionDecryption,
-            }
-        ],
-        litNodeClient: client,
-    });
-    return await generateAuthSig({
-        signer: walletWithCapacityCredit,
-        toSign,
-    });
+  const toSign = await createSiweMessageWithRecaps({
+    uri: "http://localhost",
+    expiration: new Date(Date.now() + 1000 * 60 * 60).toISOString(), // 24 hours
+    walletAddress: walletWithCapacityCredit.address,
+    nonce: await client.getLatestBlockhash(),
+    resources: [
+      {
+        resource: new LitActionResource("*"),
+        ability: LitAbility.LitActionExecution,
+      },
+      {
+        resource: new LitAccessControlConditionResource("*"),
+        ability: LitAbility.AccessControlConditionDecryption,
+      },
+    ],
+    litNodeClient: client,
+  });
+  return await generateAuthSig({
+    signer: walletWithCapacityCredit,
+    toSign,
+  });
 })();
 
 export class Lit {
-    litNodeClient;
-    accessControlConditions;
-    chain;
+  litNodeClient;
+  accessControlConditions;
+  chain;
 
-    constructor(client, chain, accessControlConditions) {
-        this.litNodeClient = client;
-        this.chain = chain;
-        this.accessControlConditions = accessControlConditions;
-    }
+  constructor(client, chain, accessControlConditions) {
+    this.litNodeClient = client;
+    this.chain = chain;
+    this.accessControlConditions = accessControlConditions;
+  }
 
-    async connect() {
-        // disconnectWeb3();
-        await this.litNodeClient.connect()
-    }
+  async connect() {
+    // disconnectWeb3();
+    await this.litNodeClient.connect();
+  }
 
-    async disconnect() {
-        await this.litNodeClient.disconnect()
-    }
+  async disconnect() {
+    await this.litNodeClient.disconnect();
+  }
 
-    async getSessionSigsServer() {
-        const latestBlockhash = await this.litNodeClient.getLatestBlockhash();
+  async getSessionSigsServer() {
+    const latestBlockhash = await this.litNodeClient.getLatestBlockhash();
 
-        const authNeededCallback = async (params) => {
-            if (!params.uri) {
-                throw new Error("uri is required");
-            }
-            if (!params.expiration) {
-                throw new Error("expiration is required");
-            }
+    const authNeededCallback = async (params) => {
+      if (!params.uri) {
+        throw new Error("uri is required");
+      }
+      if (!params.expiration) {
+        throw new Error("expiration is required");
+      }
 
-            if (!params.resourceAbilityRequests) {
-                throw new Error("resourceAbilityRequests is required");
-            }
+      if (!params.resourceAbilityRequests) {
+        throw new Error("resourceAbilityRequests is required");
+      }
 
-            const toSign = await createSiweMessageWithRecaps({
-                uri: params.uri,
-                expiration: params.expiration,
-                resources: params.resourceAbilityRequests,
-                walletAddress: walletWithCapacityCredit.address,
-                nonce: latestBlockhash,
-                litNodeClient: this.litNodeClient,
-            });
+      const toSign = await createSiweMessageWithRecaps({
+        uri: params.uri,
+        expiration: params.expiration,
+        resources: params.resourceAbilityRequests,
+        walletAddress: walletWithCapacityCredit.address,
+        nonce: latestBlockhash,
+        litNodeClient: this.litNodeClient,
+      });
 
-            const authSig = await generateAuthSig({
-                signer: walletWithCapacityCredit,
-                toSign,
-            });
-            // console.log("authSig:", authSig);
-            return authSig;
-        }
+      const authSig = await generateAuthSig({
+        signer: walletWithCapacityCredit,
+        toSign,
+      });
+      // console.log("authSig:", authSig);
+      return authSig;
+    };
 
-        // const litResource = new LitAccessControlConditionResource('*');
+    // const litResource = new LitAccessControlConditionResource('*');
 
-        const sessionSigs = await this.litNodeClient.getSessionSigs({
-            chain: this.chain,
-            resourceAbilityRequests: [
-                {
-                    resource: new LitActionResource('*'),
-                    ability: LitAbility.LitActionExecution,
-                },
-                {
-                    resource: new LitAccessControlConditionResource('*'),
-                    ability: LitAbility.AccessControlConditionDecryption,
-                }
-            ],
-            authNeededCallback,
-        });
-        console.log("sessionSigs:", sessionSigs);
-        return sessionSigs
-    }
+    const sessionSigs = await this.litNodeClient.getSessionSigs({
+      chain: this.chain,
+      resourceAbilityRequests: [
+        {
+          resource: new LitActionResource("*"),
+          ability: LitAbility.LitActionExecution,
+        },
+        {
+          resource: new LitAccessControlConditionResource("*"),
+          ability: LitAbility.AccessControlConditionDecryption,
+        },
+      ],
+      authNeededCallback,
+    });
+    console.log("sessionSigs:", sessionSigs);
+    return sessionSigs;
+  }
 
-    async encrypt(message) {
-        console.log("encrypting message: ", message, typeof message);
-        const sessionSigs = await this.getSessionSigsServer();
-        console.log(sessionSigs)
-        const { ciphertext, dataToEncryptHash } = await encryptString(
-            {
-                accessControlConditions: this.accessControlConditions,
-                chain: this.chain,
-                dataToEncrypt: message,
-                sessionSigs,
-            },
-            this.litNodeClient,
-        );
-        return {
-            ciphertext,
-            dataToEncryptHash,
-        };
-    }
+  async encrypt(message) {
+    console.log("encrypting message: ", message, typeof message);
+    const sessionSigs = await this.getSessionSigsServer();
+    console.log(sessionSigs);
+    const { ciphertext, dataToEncryptHash } = await encryptString(
+      {
+        accessControlConditions: this.accessControlConditions,
+        chain: this.chain,
+        dataToEncrypt: message,
+        sessionSigs,
+      },
+      this.litNodeClient
+    );
+    return {
+      ciphertext,
+      dataToEncryptHash,
+    };
+  }
 
-    async decrypt(ciphertext, dataToEncryptHash) {
-        const sessionSigs = await this.getSessionSigsServer();
-        console.log(sessionSigs)
+  async decrypt(ciphertext, dataToEncryptHash) {
+    const sessionSigs = await this.getSessionSigsServer();
+    console.log(sessionSigs);
 
-        const decryptedString = await decryptToString(
-            {
-                accessControlConditions: [this.accessControlConditions],
-                chain: this.chain,
-                ciphertext,
-                dataToEncryptHash,
-                sessionSigs,
-                authSig,
-            },
-            this.litNodeClient,
-        );
-        return { decryptedString }
-    }
+    const decryptedString = await decryptToString(
+      {
+        accessControlConditions: [this.accessControlConditions],
+        chain: this.chain,
+        ciphertext,
+        dataToEncryptHash,
+        sessionSigs,
+        authSig,
+      },
+      this.litNodeClient
+    );
+    return { decryptedString };
+  }
 
-    async decryptLitActionClues(ciphertext, dataToEncryptHash, userAddress) {
-        const chain = "baseSepolia";
+  async decryptLitActionClues(ciphertext, dataToEncryptHash, userAddress) {
+    const chain = "baseSepolia";
 
-        const code = `(async () => {
+    const code = `(async () => {
             console.log("hello");
             const clues = await Lit.Actions.decryptAndCombine({
               accessControlConditions,
@@ -193,303 +200,418 @@ export class Lit {
 
             Lit.Actions.setResponse({ response: clues });
 
-          })();`
+          })();`;
 
-        const accessControlConditions = [
-            {
-                contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
-                standardContractType: 'ERC721',
-                chain,
-                method: 'balanceOf',
-                parameters: [
-                    userAddress
-                ],
-                returnValueTest: {
-                    comparator: '>',
-                    value: '0'
-                }
-            }
-        ]
+    const accessControlConditions = [
+      {
+        contractAddress: "0x50Fe11213FA2B800C5592659690A38F388060cE4",
+        standardContractType: "ERC721",
+        chain,
+        method: "balanceOf",
+        parameters: [userAddress],
+        returnValueTest: {
+          comparator: ">",
+          value: "0",
+        },
+      },
+    ];
 
-        const sessionSigs = await this.getSessionSigsServer();
-        // // Decrypt the private key inside a lit action
-        const res = await this.litNodeClient.executeJs({
-            sessionSigs,
-            code: code,
-            jsParams: {
-                accessControlConditions: accessControlConditions,
-                ciphertext,
-                dataToEncryptHash,
-                sessionSigs,
-                authSig
-            }
-        });
-        console.log("result from action execution:", res);
+    const sessionSigs = await this.getSessionSigsServer();
+    // // Decrypt the private key inside a lit action
+    const res = await this.litNodeClient.executeJs({
+      sessionSigs,
+      code: code,
+      jsParams: {
+        accessControlConditions: accessControlConditions,
+        ciphertext,
+        dataToEncryptHash,
+        sessionSigs,
+        authSig,
+      },
+    });
+    console.log("result from action execution:", res);
 
-        return res;
-    }
+    return res;
+  }
 
-    async decryptLitActionVerify(ciphertext, dataToEncryptHash, userAddress, cLat, cLong, clueId) {
-        const chain = "baseSepolia";
+  async decryptLitActionVerify(
+    ciphertext,
+    dataToEncryptHash,
+    userAddress,
+    cLat,
+    cLong,
+    clueId
+  ) {
+    const chain = "baseSepolia";
 
-        const _litActionCode = async () => {
-            const clues = await Lit.Actions.decryptAndCombine({
-                accessControlConditions,
-                chain: "baseSepolia",
-                ciphertext,
-                dataToEncryptHash,
-                authSig,
-                sessionSigs
-            });
-            
-            const isLocationInProximity = await Lit.Actions.runOnce(
-                { waitForResponse: true, name: "ETH block number" },
-                async () => {
-                    const currentLocation = JSON.parse(clues).find(location => location.id === clueId);
-                    console.log("currentLocation: ", currentLocation);
+    const _litActionCode = async () => {
+      const clues = await Lit.Actions.decryptAndCombine({
+        accessControlConditions,
+        chain: "baseSepolia",
+        ciphertext,
+        dataToEncryptHash,
+        authSig,
+        sessionSigs,
+      });
 
-                    if(!currentLocation) {
-                        return false;
-                    }
+      const asin = Math.asin;
+      const cos = Math.cos;
+      const sin = Math.sin;
+      const sqrt = Math.sqrt;
+      const PI = Math.PI;
+      const MAX_DISTANCE_IN_METERS = 50;
 
-                    const distance = haversineDistance(
-                        { lat: currentLocation.lat, lng: currentLocation.long },
-                        { lat: cLat, lng: cLong }
-                    );
-                    
-                    console.log("distance: ", distance);
-                    return distance <= MAX_DISTANCE_IN_METERS;
-                }
-            );
-            
-            Lit.Actions.setResponse({ response: isLocationInProximity });
-        };
+      // equatorial mean radius of Earth (in meters)
+      const R = 6378137;
 
-        const code = `(${_litActionCode.toString()})();`;
+      function squared(x) {
+        return x * x;
+      }
+      function toRad(x) {
+        return (x * PI) / 180.0;
+      }
+      function hav(x) {
+        return squared(sin(x / 2));
+      }
 
-        const accessControlConditions = [
-            {
-                contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
-                standardContractType: 'ERC721',
-                chain,
-                method: 'balanceOf',
-                parameters: [
-                    userAddress
-                ],
-                returnValueTest: {
-                    comparator: '>',
-                    value: '0'
-                }
-            }
-        ]
+      // hav(theta) = hav(bLat - aLat) + cos(aLat) * cos(bLat) * hav(bLon - aLon)
+      function haversineDistance(a, b) {
+        const aLat = toRad(Array.isArray(a) ? a[1] : a.latitude ?? a.lat);
+        const bLat = toRad(Array.isArray(b) ? b[1] : b.latitude ?? b.lat);
+        const aLng = toRad(
+          Array.isArray(a) ? a[0] : a.longitude ?? a.lng ?? a.lon
+        );
+        const bLng = toRad(
+          Array.isArray(b) ? b[0] : b.longitude ?? b.lng ?? b.lon
+        );
 
-        console.log(cLat, cLong, clueId)
+        const ht = hav(bLat - aLat) + cos(aLat) * cos(bLat) * hav(bLng - aLng);
+        return 2 * R * asin(sqrt(ht));
+      }
 
-        const sessionSigs = await this.getSessionSigsServer();
-        // Decrypt the private key inside a lit action
-        const res = await this.litNodeClient.executeJs({
-            sessionSigs,
-            code: code,
-            jsParams: {
-                accessControlConditions: accessControlConditions,
-                ciphertext,
-                dataToEncryptHash,
-                sessionSigs,
-                authSig,
-                clueId: clueId,
-                cLat: cLat,
-                cLong: cLong,
-                haversineDistance: MAX_DISTANCE_IN_METERS
-            }
-        });
-        console.log("result from action execution:", res);
+      const isLocationInProximity = await Lit.Actions.runOnce(
+        { waitForResponse: true, name: "ETH block number" },
+        async () => {
+          const currentLocation = JSON.parse(clues).find(
+            (location) => location.id === clueId
+          );
+          console.log("currentLocation: ", currentLocation);
+          console.log("compare with: ", cLat, cLong);
 
-        return res;
-    }
+          if (!currentLocation) {
+            return false;
+          }
+
+          const distance = haversineDistance(
+            { lat: currentLocation.lat, lng: currentLocation.long },
+            { lat: cLat, lng: cLong }
+          );
+
+          console.log("distance: ", distance);
+          return distance <= MAX_DISTANCE_IN_METERS;
+        }
+      );
+
+      Lit.Actions.setResponse({ response: isLocationInProximity });
+    };
+
+    const code = `(${_litActionCode.toString()})();`;
+
+    const accessControlConditions = [
+      {
+        contractAddress: "0x50Fe11213FA2B800C5592659690A38F388060cE4",
+        standardContractType: "ERC721",
+        chain,
+        method: "balanceOf",
+        parameters: [userAddress],
+        returnValueTest: {
+          comparator: ">",
+          value: "0",
+        },
+      },
+    ];
+
+    console.log(cLat, cLong, clueId);
+
+    const sessionSigs = await this.getSessionSigsServer();
+    // Decrypt the private key inside a lit action
+    const res = await this.litNodeClient.executeJs({
+      sessionSigs,
+      code: code,
+      jsParams: {
+        accessControlConditions: accessControlConditions,
+        ciphertext,
+        dataToEncryptHash,
+        sessionSigs,
+        authSig,
+        clueId: clueId,
+        cLat: cLat,
+        cLong: cLong,
+        haversineDistance: MAX_DISTANCE_IN_METERS,
+      },
+    });
+    console.log("result from action execution:", res);
+
+    return res;
+  }
 }
 
 export const encryptRunServerMode = async (message, userAddress) => {
-    const chain = "baseSepolia";
+  const chain = "baseSepolia";
 
-    const accessControlConditions = [
-        {
-            contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
-            standardContractType: 'ERC721',
-            chain,
-            method: 'balanceOf',
-            parameters: [
-                userAddress
-            ],
-            returnValueTest: {
-                comparator: '>',
-                value: '0'
-            }
-        }
-    ]
+  const accessControlConditions = [
+    {
+      contractAddress: "0x50Fe11213FA2B800C5592659690A38F388060cE4",
+      standardContractType: "ERC721",
+      chain,
+      method: "balanceOf",
+      parameters: [userAddress],
+      returnValueTest: {
+        comparator: ">",
+        value: "0",
+      },
+    },
+  ];
 
-    let myLit = new Lit(client, chain, accessControlConditions);
-    await myLit.connect();
+  let myLit = new Lit(client, chain, accessControlConditions);
+  await myLit.connect();
 
-    const { ciphertext, dataToEncryptHash } = await myLit.encrypt(message, "server");
-    console.log("ciphertext: ", ciphertext);
-    console.log("dataToEncryptHash: ", dataToEncryptHash);
+  const { ciphertext, dataToEncryptHash } = await myLit.encrypt(
+    message,
+    "server"
+  );
+  console.log("ciphertext: ", ciphertext);
+  console.log("dataToEncryptHash: ", dataToEncryptHash);
 
-    return { ciphertext, dataToEncryptHash };
+  return { ciphertext, dataToEncryptHash };
 };
 
-export const decryptRunServerMode = async (dataToEncryptHash, ciphertext, userAddress, cLat, cLong, clueId) => {
-    const chain = "baseSepolia";
-    console.log("userAddress: ", userAddress);
-    console.log("cLat: ", cLat);
-    console.log("cLong: ", cLong);
-    console.log("clueId: ", clueId);
+export const decryptRunServerMode = async (
+  dataToEncryptHash,
+  ciphertext,
+  userAddress,
+  cLat,
+  cLong,
+  clueId
+) => {
+  const chain = "baseSepolia";
+  console.log("userAddress: ", userAddress);
+  console.log("cLat: ", cLat);
+  console.log("cLong: ", cLong);
+  console.log("clueId: ", clueId);
 
-    const accessControlConditions = [
-        {
-            contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
-            standardContractType: 'ERC721',
-            chain,
-            method: 'balanceOf',
-            parameters: [
-                userAddress
-            ],
-            returnValueTest: {
-                comparator: '>',
-                value: '0'
-            }
-        }
-    ]
+  const accessControlConditions = [
+    {
+      contractAddress: "0x50Fe11213FA2B800C5592659690A38F388060cE4",
+      standardContractType: "ERC721",
+      chain,
+      method: "balanceOf",
+      parameters: [userAddress],
+      returnValueTest: {
+        comparator: ">",
+        value: "0",
+      },
+    },
+  ];
 
-    let myLit = new Lit(client, chain, accessControlConditions);
-    await myLit.connect();
+  let myLit = new Lit(client, chain, accessControlConditions);
+  await myLit.connect();
 
-    let data;
+  let data;
 
-    if (clueId) {
-        data = await myLit.decryptLitActionVerify(ciphertext, dataToEncryptHash, userAddress, cLat, cLong, clueId);
-    }
-    else {
-        data = await myLit.decryptLitActionClues(ciphertext, dataToEncryptHash, userAddress);
-    }
+  if (clueId) {
+    data = await myLit.decryptLitActionVerify(
+      ciphertext,
+      dataToEncryptHash,
+      userAddress,
+      cLat,
+      cLong,
+      clueId
+    );
+  } else {
+    data = await myLit.decryptLitActionClues(
+      ciphertext,
+      dataToEncryptHash,
+      userAddress
+    );
+  }
 
-    return data
-}
+  return data;
+};
 
 export async function run() {
-    const message = "Hello, Lit Protocol!";
+  // Sample clues array
+  const clues = [
+    { id: "clue1", lat: 12.9716, long: 77.5946 },
+    // { id: "clue2", lat: 12.7041, long: 77.1025 },
+  ];
+  const userAddress = "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397";
+  const clueId = "clue1";
+  const cLat = 12.9716; // Same as clue1 for a positive match
+  const cLong = 77.5946;
 
-    // Encrypt the message
-    const { ciphertext, dataToEncryptHash } = await encryptRunServerMode(message, "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397");
+  //check for negative match
+  const farLong = 10.5946; // Far away longitude for negative match
+  const farLat = 10.9716; // Far away latitude for negative match
 
-    // Decrypt the message
-    const decryptedData = await decryptRunServerMode(dataToEncryptHash, ciphertext, "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397");
-    console.log("Decrypted Data:", decryptedData);
-    return decryptedData;
+  // Encrypt the clues array
+  const { ciphertext, dataToEncryptHash } = await encryptRunServerMode(
+    JSON.stringify(clues),
+    userAddress
+  );
+
+  // Test Lit clue verify function
+  const result = await decryptRunServerMode(
+    dataToEncryptHash,
+    ciphertext,
+    userAddress,
+    cLat,
+    cLong,
+    clueId
+  );
+  console.log("Positive Match Result:", result);
+
+  // Test Lit clue verify function with negative match
+  const negativeResult = await decryptRunServerMode(
+    dataToEncryptHash,
+    ciphertext,
+    userAddress,
+    farLat,
+    farLong,
+    clueId
+  );
+  console.log("Negative Match Result:", negativeResult);
+
+//   return result;
 }
 
+run()
 
-// run().catch(console.error);
+app.post("/encrypt", async (req, res) => {
+  const bodyData = req.body;
+  const userAddress = bodyData.userAddress;
+  const [locations, cluesParsed] = parseJSON(bodyData.clues);
+  console.log(JSON.stringify(locations), JSON.stringify(cluesParsed));
 
-app.post('/encrypt', async (req, res) => {
+  const {
+    ciphertext: lat_lang_ciphertext,
+    dataToEncryptHash: lat_lang_dataToEncryptHash,
+  } = await encryptRunServerMode(JSON.stringify(locations), userAddress);
+  const {
+    ciphertext: clue_ciphertext,
+    dataToEncryptHash: clue_dataToEncryptHash,
+  } = await encryptRunServerMode(JSON.stringify(cluesParsed), userAddress);
+
+  //add to walrus
+  const combinedObjects = [
+    {
+      ciphertext: lat_lang_ciphertext,
+      dataToEncryptHash: lat_lang_dataToEncryptHash,
+    },
+    {
+      ciphertext: clue_ciphertext,
+      dataToEncryptHash: clue_dataToEncryptHash,
+    },
+  ];
+
+  console.log(JSON.stringify(combinedObjects[0]));
+
+  const [lat_lang_blobId, clue_blobId] = await Promise.all([
+    storeString(JSON.stringify(combinedObjects[0])),
+    storeString(JSON.stringify(combinedObjects[1])),
+  ]);
+
+  res.send({ lat_lang_blobId: lat_lang_blobId, clue_blobId: clue_blobId });
+});
+app.post("/decrypt-ans", async (req, res) => {
+  const bodyData = req.body;
+  const curLat = bodyData.cLat;
+  const curLong = bodyData.cLong;
+  const clueId = bodyData.clueId;
+  const combinedObjectsBlobId = bodyData.lat_lang_blobId;
+
+  console.log("combinedObjectsBlobId: ", combinedObjectsBlobId);
+
+  const {
+    ciphertext: lat_lang_ciphertext,
+    dataToEncryptHash: lat_lang_dataToEncryptHash,
+  } = await readObject(combinedObjectsBlobId);
+
+  console.log("userAddress: ", bodyData.userAddress);
+  console.log("lat_lang_dataToEncryptHash: ", lat_lang_dataToEncryptHash);
+
+  const { response } = await decryptRunServerMode(
+    lat_lang_dataToEncryptHash,
+    lat_lang_ciphertext,
+    bodyData.userAddress,
+    curLat,
+    curLong,
+    clueId
+  );
+
+  res.send({ isClose: response });
+});
+
+app.post("/decrypt-clues", async (req, res) => {
+  try {
     const bodyData = req.body;
+    const clue_blobId = bodyData.clue_blobId;
     const userAddress = bodyData.userAddress;
-    const [locations, cluesParsed] = parseJSON(bodyData.clues);
-    console.log(JSON.stringify(locations), JSON.stringify(cluesParsed));
 
-    const { ciphertext: lat_lang_ciphertext, dataToEncryptHash: lat_lang_dataToEncryptHash } = await encryptRunServerMode(JSON.stringify(locations), userAddress);
-    const { ciphertext: clue_ciphertext, dataToEncryptHash: clue_dataToEncryptHash } = await encryptRunServerMode(JSON.stringify(cluesParsed), userAddress);
+    const {
+      ciphertext: clue_ciphertext,
+      dataToEncryptHash: clue_dataToEncryptHash,
+    } = await readObject(clue_blobId);
 
-    //add to walrus
-    const combinedObjects = [
-        {
-            ciphertext: lat_lang_ciphertext,
-            dataToEncryptHash: lat_lang_dataToEncryptHash
-        },
-        {
-            ciphertext: clue_ciphertext,
-            dataToEncryptHash: clue_dataToEncryptHash
-        }
-    ];
-
-    console.log(JSON.stringify(combinedObjects[0]))
-
-    const [lat_lang_blobId, clue_blobId] = await Promise.all([
-        storeString(JSON.stringify(combinedObjects[0])),
-        storeString(JSON.stringify(combinedObjects[1]))
-    ]);
-
-    res.send({ "lat_lang_blobId": lat_lang_blobId, "clue_blobId": clue_blobId });
-});
-app.post('/decrypt-ans', async (req, res) => {
-    const bodyData = req.body;
-    const curLat = bodyData.cLat;
-    const curLong = bodyData.cLong;
-    const clueId = bodyData.clueId;
-    const combinedObjectsBlobId = bodyData.lat_lang_blobId;
-
-    console.log("combinedObjectsBlobId: ", combinedObjectsBlobId);
-
-    const { ciphertext: lat_lang_ciphertext, dataToEncryptHash: lat_lang_dataToEncryptHash } = await readObject(combinedObjectsBlobId);
-
-    console.log("userAddress: ", bodyData.userAddress);
-    console.log("lat_lang_dataToEncryptHash: ", lat_lang_dataToEncryptHash);
-
-    const { response } = await decryptRunServerMode(lat_lang_dataToEncryptHash, lat_lang_ciphertext, bodyData.userAddress, curLat, curLong, clueId);
-
-    res.send({ "isClose": response });
+    const { response } = await decryptRunServerMode(
+      clue_dataToEncryptHash,
+      clue_ciphertext,
+      userAddress
+    );
+    res.send({ decryptedData: JSON.parse(response) });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Failed to decrypt clues",
+    });
+  }
 });
 
-
-app.post('/decrypt-clues', async (req, res) => {
-    try {
-        const bodyData = req.body;
-        const clue_blobId = bodyData.clue_blobId;
-        const userAddress = bodyData.userAddress;
-
-        const { ciphertext: clue_ciphertext, dataToEncryptHash: clue_dataToEncryptHash } = await readObject(clue_blobId);
-
-        const { response } = await decryptRunServerMode(clue_dataToEncryptHash, clue_ciphertext, userAddress);
-        res.send({ "decryptedData": JSON.parse(response) });
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({
-            error: 'Failed to decrypt clues'
-        });
-    }
+app.post("/startHuddle", async (req, res) => {
+  try {
+    const roomId = await getRoomId();
+    const token = await getToken(roomId);
+    res.json({
+      roomId: roomId,
+      token: token,
+    });
+  } catch (error) {
+    console.error("Error:", error);
+    res.status(500).json({
+      error: "Failed to create room or generate token",
+    });
+  }
 });
 
-
-app.post('/startHuddle', async (req, res) => {
-    try {
-        const roomId = await getRoomId();
-        const token = await getToken(roomId);
-        res.json({
-            roomId: roomId,
-            token: token
-        });
-    } catch (error) {
-        console.error('Error:', error);
-        res.status(500).json({
-            error: 'Failed to create room or generate token'
-        });
-    }
+app.post("/livestreams/start", async (req, res) => {
+  const bodyData = req.body;
+  console.log("BackendbodyData: ", bodyData);
+  await startStreaming(
+    bodyData.roomId,
+    bodyData.token,
+    bodyData.streamUrl,
+    bodyData.streamKey
+  );
+  res.send({ message: "Streaming started" });
 });
 
-app.post('/livestreams/start', async (req, res) => {
-    const bodyData = req.body;
-    console.log("BackendbodyData: ", bodyData);
-    await startStreaming(bodyData.roomId, bodyData.token, bodyData.streamUrl, bodyData.streamKey);
-    res.send({ "message": "Streaming started" });
+app.post("/livestreams/stop", async (req, res) => {
+  const bodyData = req.body;
+  console.log("Backend bodyData: ", bodyData);
+  await stopStreaming(bodyData.roomId);
+  res.send({ message: "Streaming stopped" });
 });
 
-app.post('/livestreams/stop', async (req, res) => {
-    const bodyData = req.body;
-    console.log("Backend bodyData: ", bodyData);
-    await stopStreaming(bodyData.roomId);
-    res.send({ "message": "Streaming stopped" });
-});
-
-
-app.listen(port, () => {
-    console.log(`Server listening at http://localhost:${port}`);
-});
+// app.listen(port, () => {
+//     console.log(`Server listening at http://localhost:${port}`);
+// });
