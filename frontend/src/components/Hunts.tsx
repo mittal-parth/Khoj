@@ -2,7 +2,7 @@ import { TbLadder, TbChessKnight } from "react-icons/tb";
 import { FaChess, FaDice } from "react-icons/fa";
 import { BsFillCalendarDateFill } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
-import { useAccount, useReadContract } from "wagmi";
+import { useAccount, useReadContract, usePublicClient } from "wagmi";
 import { huntABI } from "../assets/hunt_abi.ts";
 import { type Abi } from "viem";
 
@@ -54,17 +54,28 @@ export function Hunts() {
     SUPPORTED_CHAINS[currentNetwork as keyof typeof SUPPORTED_CHAINS].id;
 
   console.log(chainId);
-  const { data: tokenId } = useReadContract({
-    address: contractAddress,
-    abi: huntABI,
-    functionName: "getTokenId",
-    args: [currentHuntId, address],
-    chainId: chainId,
-  });
 
-  console.log("tokenId", tokenId);
+  const publicClient = usePublicClient();
 
-  const handleHuntClick = async (huntId: number, clue_blobid: string) => {
+  const handleHuntStart = async (huntId: number, clue_blobid: string) => {
+    if (!publicClient) {
+      console.error("Public client not initialized");
+      return;
+    }
+    
+    const tokenId = await publicClient.readContract({
+      address: contractAddress,
+      abi: huntABI,
+      functionName: "getTokenId",
+      args: [huntId, address],
+      // chainId: chainId,
+    });
+
+    if (tokenId === 0n) {
+      console.log("Token ID is 0");
+      return;
+    }
+
     console.log("Hunt ID:", huntId, clue_blobid);
     let headersList = {
       Accept: "*/*",
@@ -141,10 +152,13 @@ export function Hunts() {
         Hunts
       </h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {hunts.map((hunt: Hunt, index: number) => (
-          <div
-            key={index}
-            className="flex 
+        {hunts.map((hunt: Hunt, index: number) => {
+
+
+          return (
+            <div
+              key={index}
+              className="flex 
          bg-white rounded-lg h-48
         border-black 
           relative  
@@ -157,96 +171,97 @@ export function Hunts() {
           before:translate-y-2
           before:-z-10
           border-[3px]"
-          >
-            <div
-              className={`w-1/4 flex items-center justify-center ${
-                bgColors[index % bgColors.length]
-              }`}
             >
-              {icons[index % icons.length]}
-            </div>
-
-            <div className="w-3/4 p-5 flex flex-col justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-gray-800 mb-2 h-[32px] overflow-hidden">
-                  {hunt.name}
-                </h2>
-                <p className="text-[0.85rem] text-gray-600 line-clamp-2">
-                  {hunt.description}
-                </p>
+              <div
+                className={`w-1/4 flex items-center justify-center ${
+                  bgColors[index % bgColors.length]
+                }`}
+              >
+                {icons[index % icons.length]}
               </div>
 
-              <div className="mt-auto">
-                <div className="flex items-center gap-1 text-gray-500 text-sm mb-3">
-                  <BsFillCalendarDateFill className="w-4 h-4" />
-                  <span>
-                    {new Date(
-                      Number(hunt.startTime.toString().substring(0, 4)),
-                      Number(hunt.startTime.toString().substring(4, 6)) - 1,
-                      Number(hunt.startTime.toString().substring(6, 8))
-                    ).toLocaleDateString("en-GB", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </span>
+              <div className="w-3/4 p-5 flex flex-col justify-between">
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-800 mb-2 h-[32px] overflow-hidden">
+                    {hunt.name}
+                  </h2>
+                  <p className="text-[0.85rem] text-gray-600 line-clamp-2">
+                    {hunt.description}
+                  </p>
                 </div>
 
-                <div className="flex flex-row gap-2">
-                  <Transaction
-                    calls={[
-                      {
-                        address: contractAddress,
-                        abi: typedHuntABI,
-                        functionName: "registerForHunt",
-                        args: [
-                          index,
-                          address,
-                          "https://ethunt.vercel.app/metadata.json",
-                        ],
-                      },
-                    ]}
-                    className=""
-                    chainId={84532}
-                    onError={(error) => console.log(error)}
-                    onSuccess={handleRegisterSuccess}
-                  >
-                    <TransactionButton
-                      text={
-                        new Date(Number(BigInt(hunt.startTime))).getTime() >
-                        today
-                          ? "Coming Soon"
-                          : "Register"
-                      }
-                      className={`w-full py-1.5 text-sm font-medium rounded-md ${
-                        new Date(Number(hunt.startTime)).getTime() <= today
-                          ? "bg-yellow/40 border border-black text-black hover:bg-orange/90 "
-                          : "bg-gray-300 cursor-not-allowed text-gray-500"
-                      } transition-colors duration-300`}
-                      disabled={
-                        isLoading ||
-                        new Date(Number(BigInt(hunt.startTime))).getTime() >
+                <div className="mt-auto">
+                  <div className="flex items-center gap-1 text-gray-500 text-sm mb-3">
+                    <BsFillCalendarDateFill className="w-4 h-4" />
+                    <span>
+                      {new Date(
+                        Number(hunt.startTime.toString().substring(0, 4)),
+                        Number(hunt.startTime.toString().substring(4, 6)) - 1,
+                        Number(hunt.startTime.toString().substring(6, 8))
+                      ).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-row gap-2">
+                    <Transaction
+                      calls={[
+                        {
+                          address: contractAddress,
+                          abi: typedHuntABI,
+                          functionName: "registerForHunt",
+                          args: [
+                            index,
+                            address,
+                            "https://ethunt.vercel.app/metadata.json",
+                          ],
+                        },
+                      ]}
+                      className=""
+                      chainId={84532}
+                      onError={(error) => console.log(error)}
+                      onSuccess={handleRegisterSuccess}
+                    >
+                      <TransactionButton
+                        text={
+                          new Date(Number(BigInt(hunt.startTime))).getTime() >
                           today
-                      }
-                    />
-                  </Transaction>
+                            ? "Coming Soon"
+                            : "Register"
+                        }
+                        className={`w-full py-1.5 text-sm font-medium rounded-md ${
+                          new Date(Number(hunt.startTime)).getTime() <= today
+                            ? "bg-yellow/40 border border-black text-black hover:bg-orange/90 "
+                            : "bg-gray-300 cursor-not-allowed text-gray-500"
+                        } transition-colors duration-300`}
+                        disabled={
+                          isLoading ||
+                          new Date(Number(BigInt(hunt.startTime))).getTime() >
+                            today
+                        }
+                      />
+                    </Transaction>
 
-                  <Button
-                    onClick={() => {
-                      setCurrentHuntId(index);
-                      handleHuntClick(index, hunt.clues_blobId);
-                    }}
-                    disabled={
-                      new Date(Number(BigInt(hunt.startTime))).getTime() > today
-                    }
-                  >
-                    Start
-                  </Button>
+                    <Button
+                      onClick={() => {
+                        setCurrentHuntId(index);
+                        handleHuntStart(index, hunt.clues_blobId);
+                      }}
+                      disabled={
+                        new Date(Number(BigInt(hunt.startTime))).getTime() > today 
+                      }
+                    >
+                      Start
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

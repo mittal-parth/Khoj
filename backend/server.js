@@ -195,7 +195,7 @@ export class Lit {
 
         const accessControlConditions = [
             {
-                contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
+                contractAddress: process.env.ETHUNT_NFT_CONTRACT_ADDRESS,
                 standardContractType: 'ERC721',
                 chain,
                 method: 'balanceOf',
@@ -309,7 +309,7 @@ export class Lit {
 
         const accessControlConditions = [
             {
-                contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
+                contractAddress: process.env.ETHUNT_NFT_CONTRACT_ADDRESS,
                 standardContractType: 'ERC721',
                 chain,
                 method: 'balanceOf',
@@ -353,7 +353,7 @@ export const encryptRunServerMode = async (message, userAddress) => {
 
     const accessControlConditions = [
         {
-            contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
+            contractAddress: process.env.ETHUNT_NFT_CONTRACT_ADDRESS,
             standardContractType: 'ERC721',
             chain,
             method: 'balanceOf',
@@ -386,7 +386,7 @@ export const decryptRunServerMode = async (dataToEncryptHash, ciphertext, userAd
 
     const accessControlConditions = [
         {
-            contractAddress: '0x50Fe11213FA2B800C5592659690A38F388060cE4',
+            contractAddress: process.env.ETHUNT_NFT_CONTRACT_ADDRESS,
             standardContractType: 'ERC721',
             chain,
             method: 'balanceOf',
