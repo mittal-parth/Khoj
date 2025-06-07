@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAccount, useReadContract, usePublicClient } from "wagmi";
 import { huntABI } from "../assets/hunt_abi.ts";
 import { type Abi } from "viem";
+import { toast } from "sonner";
 
 import { useClaudeRiddles } from "@/hooks/useClaudeRiddles";
 import {
@@ -72,7 +73,7 @@ export function Hunts() {
     });
 
     if (tokenId === 0n) {
-      console.log("Token ID is 0");
+      toast.error("You are not eligible for this hunt. Please register or check the requirements.");
       return;
     }
 
