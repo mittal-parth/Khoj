@@ -97,7 +97,6 @@ contract ETHunt {
         uint256 duration,
         uint256 noOfParticipants,
         address[] memory winners,
-        mapping(address => uint256) memory participantToTokenId,
         string memory clues_blobId,
         string memory answers_blobId
     ) {
@@ -109,6 +108,7 @@ contract ETHunt {
             hunt.startsAt,
             hunt.duration,
             hunt.noOfParticipants,
+            hunt.winners,
             hunt.clues_blobId,
             hunt.answers_blobId
         );
