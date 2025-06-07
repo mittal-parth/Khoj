@@ -214,3 +214,44 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 
 Built with ❤️ by Team Khoj
+
+## 📝 Creating a Hunt via Remix
+
+You can create a new hunt directly on-chain using the [Remix IDE](https://remix.ethereum.org/) and the `ETHunt.sol` smart contract. This is useful for admins or sponsors who want to launch a new treasure hunt with custom parameters.
+
+### Step 1: Deploy the ETHunt Contract (if not already deployed)
+1. Open [Remix IDE](https://remix.ethereum.org/).
+2. Upload the `ETHunt.sol` and `ETHuntNFT.sol` files from the `contracts/` directory of this repo.
+3. Compile both contracts using the Solidity compiler in Remix.
+4. Deploy the `ETHuntNFT` contract first. Copy its deployed address.
+5. Deploy the `ETHunt` contract, passing the `ETHuntNFT` contract address as the constructor argument.
+
+> **Note:** If the contract is already deployed on your target network, you can skip deployment and just interact with the existing contract address.
+
+### Step 2: Prepare Your Hunt Data
+Here is an example hunt you can create:
+
+- **_name:** `Goa Hack`
+- **_description:** `This is a a hackathon hunt`
+- **startsAt:** `20240607` (Format: YYYYMMDD)
+- **_clues_blobId:** `KWgH3bJHO0_ZfBnxjp2XR3U0nqGeq4XivhYk9JI5e6s`
+- **_answers_blobId:** `0x7C31d6A0B7b10eE9e79f601265691EA6F28E86BC`
+- **_duration:** `6000` (in seconds)
+
+### Step 3: Call `createHunt` in Remix
+1. In Remix, select the deployed `ETHunt` contract instance.
+2. Find the `createHunt` function in the contract's interface.
+3. Enter the parameters as follows:
+   - `_name`: `Goa Hack`
+   - `_description`: `This is a a hackathon hunt`
+   - `startsAt`: `20240607`
+   - `_clues_blobId`: `KWgH3bJHO0_ZfBnxjp2XR3U0nqGeq4XivhYk9JI5e6s`
+   - `_answers_blobId`: `0x7C31d6A0B7b10eE9e79f601265691EA6F28E86BC`
+   - `_duration`: `6000`
+4. Click `transact` to create the hunt. The transaction will return a new `huntId`.
+
+### Step 4: Verify the Hunt
+- Use the `getAllHunts` or `getHunt(huntId)` function to verify your hunt was created successfully.
+- Your hunt will now be available for users to register and participate in via the Khoj platform!
+
+> **Tip:** Make sure you are connected to the correct network (Base, Moonbeam, or BNB Chain) in Remix before deploying or interacting with the contract.
