@@ -87,8 +87,8 @@ Khoj allows users to participate in location-based AI treasure hunts where they 
   - Lit Protocol for secure location verification and blind compute
   - Walrus for decentralized storage
 - **Storage & Media**: 
-  - Walrus Network for NFT and hunt data
-  - Distributed content delivery
+  - Pinata IPFS for NFT and hunt data
+  - Decentralized content delivery via IPFS
 - **Video**: Huddle01 for real-time collaboration
 - **UI Components**: 
   - Radix UI primitives
@@ -126,12 +126,12 @@ Khoj allows users to participate in location-based AI treasure hunts where they 
 - Cross-chain composability
 - Privacy-preserving computations
 
-### Walrus
-- Decentralized storage for NFT metadata
+### Pinata
+- Decentralized IPFS storage for NFT metadata
 - Rich media content storage (images, videos, audio)
-- Efficient erasure coding for data availability
-- Sui-powered coordination layer
-- Cost-effective content distribution
+- Reliable content pinning and persistence
+- Fast content retrieval via dedicated gateways
+- Cost-effective content distribution via IPFS
 
 ## 🚀 Getting Started
 

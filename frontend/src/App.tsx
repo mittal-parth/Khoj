@@ -8,6 +8,7 @@ import { Rewards } from "./components/Rewards";
 import { HuntEnd } from "./components/HuntEnd";
 import { Footer } from "./components/Footer";
 import { About } from "./components/About";
+import { Create } from "./components/Create";
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/hunt/:huntId/end" element={<HuntEnd />} />
           <Route path="/profile" element={<Rewards />} />
           <Route path="/about" element={<About />} />
+          <Route path="/hunt/create" element={<Create />} />
         </Routes>
         <div className="md:hidden">
           <Footer />

@@ -35,6 +35,9 @@ importers:
       express:
         specifier: ^4.19.2
         version: 4.21.2
+      pinata:
+        specifier: ^2.4.5
+        version: 2.4.5(react@18.3.1)
 
 packages:
 
@@ -1237,6 +1240,18 @@ packages:
   picomatch@2.3.1:
     resolution: {integrity: sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==}
     engines: {node: '>=8.6'}
+
+  pinata@2.4.5:
+    resolution: {integrity: sha512-WdT2hs88c0/z3iYrr3JogAi9EHo1yAGrhXOxI57vspilh8Tf+0wsHR6FaX9K+FabTd5l0cM1QeU53X/dj6jtvQ==}
+    engines: {node: '>=20'}
+    peerDependencies:
+      react: '>=16.8.0'
+      react-dom: '>=16.8.0'
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
 
   pino-abstract-transport@0.5.0:
     resolution: {integrity: sha512-+KAgmVeqXYbTtU2FScx1XS3kNyfZ5TrXY07V96QnUSFqo2gAqlvmaxH67Lj7SWazqsMabf+58ctdTcBgnOLUOQ==}
@@ -3714,6 +3729,10 @@ snapshots:
   pathe@1.1.2: {}
 
   picomatch@2.3.1: {}
+
+  pinata@2.4.5(react@18.3.1):
+    optionalDependencies:
+      react: 18.3.1
 
   pino-abstract-transport@0.5.0:
     dependencies:

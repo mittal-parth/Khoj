@@ -61,6 +61,9 @@ export function Navbar() {
               <Link to="/profile" className="text-gray-700 hover:text-green">
                 Profile
               </Link>
+              <Link to="/hunt/create" className="text-gray-700 hover:text-green">
+                Create Hunt
+              </Link>
             </div>
 
             {/* Custom Network Selector */}

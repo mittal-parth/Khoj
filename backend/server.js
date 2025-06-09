@@ -18,7 +18,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import { parseJSON } from "./data_transform.js";
 
-import { readObject, storeString } from "./walrus.js";
+import { readObject, storeString } from "./pinata.js";
 import {
   getRoomId,
   getToken,
@@ -41,7 +41,7 @@ app.use(express.json());
 app.use(cors(corsOptions));
 
 const port = process.env.PORT || 8000;
-
+const userAddress = "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397";
 const client = new LitNodeClient({
   litNetwork: LitNetwork.DatilDev,
   debug: true,
@@ -430,6 +430,7 @@ export const decryptRunServerMode = async (
       clueId
     );
   } else {
+    console.log("decrypting clues");
     data = await myLit.decryptLitActionClues(
       ciphertext,
       dataToEncryptHash,
@@ -446,7 +447,7 @@ export async function run() {
     { id: "clue1", lat: 12.9716, long: 77.5946 },
     // { id: "clue2", lat: 12.7041, long: 77.1025 },
   ];
-  const userAddress = "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397";
+  
   const clueId = "clue1";
   const cLat = 12.9716; // Same as clue1 for a positive match
   const cLong = 77.5946;
@@ -466,31 +467,72 @@ export async function run() {
     dataToEncryptHash,
     ciphertext,
     userAddress,
-    cLat,
-    cLong,
-    clueId
+    // cLat,
+    // cLong,
+    // clueId
   );
   console.log("Positive Match Result:", result);
 
   // Test Lit clue verify function with negative match
-  const negativeResult = await decryptRunServerMode(
-    dataToEncryptHash,
-    ciphertext,
-    userAddress,
-    farLat,
-    farLong,
-    clueId
-  );
-  console.log("Negative Match Result:", negativeResult);
+  // const clueResult = await decryptRunServerMode(
+  //   "bb41eeeedb7789a3482cc74a1ac8d84effb2a508b753948130e3958c39004120",
+  //   "ptDRCbVUal2Y37ATZ7da3OSRb9OXLL08YQ2osDpIEMyOP9lFrGPf+bf1a4AfDWZZljZfjZ0d0EMZ9yvcgCcnCFaRycj70c8zQkI2bmGmAaQgNMFGV6+3PUWQ2uxnj1RLZcGZnjAhfKyvPNAkaZqkU+4C",
+  //   userAddress
 
-//   return result;
+  // );
+  // console.log("Clues Result:", clueResult);
 }
 
-run()
 
 app.post("/encrypt", async (req, res) => {
   const bodyData = req.body;
-  const userAddress = bodyData.userAddress;
+
+  if (!bodyData.userAddress || !bodyData.clues || !bodyData.answers) {
+    return res.status(400).json({ error: "Missing required fields: userAddress, clues, and answers" });
+  }
+
+  /**
+   * @typedef {Object} ClueData
+   * @property {number} id - Unique identifier for the clue
+   * @property {string} description - Description of the clue
+   */
+
+  /**
+   * @typedef {Object} AnswerData
+   * @property {number} id - Unique identifier for the answer
+   * @property {string} answer - The answer text
+   * @property {number} lat - Latitude coordinate
+   * @property {number} long - Longitude coordinate
+   */
+
+  if (!Array.isArray(bodyData.clues) || !Array.isArray(bodyData.answers)) {
+    return res.status(400).json({ error: "Clues and answers must be arrays" });
+  }
+
+  /** @type {ClueData[]} */
+  const clues = bodyData.clues;
+  /** @type {AnswerData[]} */
+  const answers = bodyData.answers;
+
+  // Validate clues
+  for (const clue of clues) {
+    if (!clue.id || !clue.description) {
+      return res.status(400).json({ 
+        error: "Each clue must have id and description fields"
+      });
+    }
+  }
+
+  // Validate answers
+  for (const answer of answers) {
+    if (!answer.id || !answer.answer || typeof answer.lat !== 'number' || typeof answer.long !== 'number') {
+      return res.status(400).json({
+        error: "Each answer must have id, answer, lat, and long fields"
+      });
+    }
+  }
+
+  // const userAddress = bodyData.userAddress;
   const [locations, cluesParsed] = parseJSON(bodyData.clues);
   console.log(JSON.stringify(locations), JSON.stringify(cluesParsed));
 
@@ -503,7 +545,7 @@ app.post("/encrypt", async (req, res) => {
     dataToEncryptHash: clue_dataToEncryptHash,
   } = await encryptRunServerMode(JSON.stringify(cluesParsed), userAddress);
 
-  //add to walrus
+  //add to pinata
   const combinedObjects = [
     {
       ciphertext: lat_lang_ciphertext,
@@ -557,17 +599,21 @@ app.post("/decrypt-clues", async (req, res) => {
   try {
     const bodyData = req.body;
     const clue_blobId = bodyData.clue_blobId;
-    const userAddress = bodyData.userAddress;
+    // const userAddress = bodyData.userAddress;
 
     const {
       ciphertext: clue_ciphertext,
       dataToEncryptHash: clue_dataToEncryptHash,
     } = await readObject(clue_blobId);
 
+    console.log("clue_dataToEncryptHash: ", clue_dataToEncryptHash);
+    console.log("clue_ciphertext: ", clue_ciphertext);
+
     const { response } = await decryptRunServerMode(
       clue_dataToEncryptHash,
       clue_ciphertext,
-      userAddress
+      userAddress,
+  
     );
     res.send({ decryptedData: JSON.parse(response) });
   } catch (error) {
@@ -613,10 +659,8 @@ app.post("/livestreams/stop", async (req, res) => {
   res.send({ message: "Streaming stopped" });
 });
 
-// app.listen(port, () => {
-//     console.log(`Server listening at http://localhost:${port}`);
-// });
+app.listen(port, () => {
+    console.log(`Server listening at http://localhost:${port}`);
+});
 
-// app.listen(port, () => {
-//     console.log(`Server listening at http://localhost:${port}`);
-// });
+// run().catch(console.error)

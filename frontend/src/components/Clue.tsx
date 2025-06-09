@@ -14,8 +14,21 @@ import { config, getTrueNetworkInstance } from "../../true-network/true.config";
 import { huntAttestationSchema } from "@/schemas/huntSchema";
 import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
 import { HuddleRoom } from "./HuddleRoom";
+import { useReadContract } from "wagmi";
+import { huntABI } from "../assets/hunt_abi";
+import { type Abi } from "viem";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
+
+// Add these constants at the top of the file, after imports
+const CONTRACT_ADDRESSES = {
+  moonbeam: import.meta.env.VITE_PUBLIC_MOONBEAM_CONTRACT_ADDRESS,
+  bnb: import.meta.env.VITE_PUBLIC_BNB_CONTRACT_ADDRESS,
+  base: import.meta.env.VITE_PUBLIC_BASE_CONTRACT_ADDRESS,
+} as const;
+
+// Add type assertion for the ABI
+const typedHuntABI = huntABI as Abi;
 
 export function Clue() {
   const { huntId, clueId } = useParams();
@@ -31,11 +44,16 @@ export function Clue() {
   >("idle");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
+  // Add this to get current network from localStorage
+  const currentNetwork = localStorage.getItem("current_network") || "base";
+  const contractAddress =
+    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES];
+
   useEffect(() => {
     setVerificationState("idle");
 
     if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
+      navigator.geolocation.getCurrentPosition( 
         ({ coords }) => {
           const { latitude, longitude } = coords;
           console.log(latitude, longitude);
@@ -53,13 +71,22 @@ export function Clue() {
     localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
   );
 
-  // Mock data - replace with API call
-  const huntData = {
-    title: "KhojNet Airdrop",
-    description: "Bringing the best realworld experiences onchain!",
-    totalClues: 10,
+  // Get hunt details from contract
+  const { data: huntDetails } = useReadContract({
+    address: contractAddress,
+    abi: typedHuntABI,
+    functionName: "getHunt",
+    args: [BigInt(huntId || 0)],
+  }) as { data: [string, string, bigint, bigint, bigint, string[], string, string] };
+
+  // Extract hunt details
+  const huntData = huntDetails ? {
+    title: huntDetails[0],
+    description: huntDetails[1],
+    totalClues: currentClueData?.length || 0,
     currentClue: parseInt(clueId || "1"),
-  };
+    answers_blobId: huntDetails[7]
+  } : null;
 
   const createHuntAttestation = async () => {
     try {
@@ -98,7 +125,7 @@ export function Clue() {
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!location) return;
+    if (!location || !huntData) return;
 
     setIsSubmitting(true);
     setVerificationState("verifying");
@@ -111,8 +138,7 @@ export function Clue() {
 
       let bodyContent = JSON.stringify({
         userAddress: "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
-
-        lat_lang_blobId: "LnmXBTX2OBNljpi2isip18U21C4dwSKmDIbUnHSqJMY",
+        lat_lang_blobId: huntData.answers_blobId,
         cLat: location.latitude,
         cLong: location.longitude,
         clueId: Number(clueId),
@@ -238,7 +264,7 @@ export function Clue() {
               </div>
             </div>
 
-            <h1 className="text-xl font-bold mb-2">{huntData.title}</h1>
+            <h1 className="text-xl font-bold mb-2">{huntData?.title}</h1>
           </div>
 
           <div className="prose max-w-none p-6 h-full">
