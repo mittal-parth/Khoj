@@ -41,8 +41,8 @@ interface AnswerData {
 }
 
 interface IPFSResponse {
-  lat_lang_blobId: string;
-  clue_blobId: string;
+  clues_blobId: string;
+  answers_blobId: string;
 }
 
 export function Create() {
@@ -406,8 +406,8 @@ export function Create() {
             {uploadedCIDs && (
               <div className="mt-4 p-3 bg-green-50 rounded-md">
                 <p className="text-sm font-medium text-green-800">IPFS Upload Complete</p>
-                <p className="text-xs text-green-600">Clues CID: {uploadedCIDs.lat_lang_blobId}</p>
-                <p className="text-xs text-green-600">Answers CID: {uploadedCIDs.clue_blobId}</p>
+                <p className="text-xs text-green-600">Clues CID: {uploadedCIDs.clues_blobId}</p>
+                <p className="text-xs text-green-600">Answers CID: {uploadedCIDs.answers_blobId}</p>
                 <p className="text-xs text-amber-600 mt-2">
                   Please copy these CIDs to the respective fields in the IPFS Configuration section
                 </p>

@@ -44,7 +44,7 @@ const port = process.env.PORT || 8000;
 const userAddress = "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397";
 const client = new LitNodeClient({
   litNetwork: LitNetwork.DatilDev,
-  debug: true,
+  debug: false,
 });
 
 console.log(process.env.PRIVATE_KEY)
@@ -531,6 +531,9 @@ app.post("/encrypt", async (req, res) => {
     long,
   }));
 
+  console.log("cluesParsed: ", cluesParsed);
+  console.log("answersParsed: ", answersParsed);
+
   const {
     ciphertext: clues_ciphertext,
     dataToEncryptHash: clues_dataToEncryptHash,
@@ -540,23 +543,16 @@ app.post("/encrypt", async (req, res) => {
     dataToEncryptHash: answers_dataToEncryptHash,
   } = await encryptRunServerMode(JSON.stringify(answersParsed), userAddress);
 
-  //add to pinata
-  const combinedObjects = [
-    {
-      ciphertext: clues_ciphertext,
-      dataToEncryptHash: clues_dataToEncryptHash,
-    },
-    {
-      ciphertext: answers_ciphertext,
-      dataToEncryptHash: answers_dataToEncryptHash,
-    },
-  ];
-
-  console.log(JSON.stringify(combinedObjects[0]));
 
   const [clues_blobId, answers_blobId] = await Promise.all([
-    storeString(JSON.stringify(combinedObjects[0])),
-    storeString(JSON.stringify(combinedObjects[1])),
+    storeString(JSON.stringify({
+      ciphertext : clues_ciphertext,
+      dataToEncryptHash : clues_dataToEncryptHash,
+    })),
+    storeString(JSON.stringify({
+      ciphertext : answers_ciphertext,
+      dataToEncryptHash : answers_dataToEncryptHash,
+    })),
   ]);
 
   res.send({ clues_blobId: clues_blobId, answers_blobId: answers_blobId });
@@ -566,14 +562,12 @@ app.post("/decrypt-ans", async (req, res) => {
   const curLat = bodyData.cLat;
   const curLong = bodyData.cLong;
   const clueId = bodyData.clueId;
-  const combinedObjectsBlobId = bodyData.answers_blobId;
 
-  console.log("combinedObjectsBlobId: ", combinedObjectsBlobId);
-
+ 
   const {
     ciphertext: answers_ciphertext,
     dataToEncryptHash: answers_dataToEncryptHash,
-  } = await readObject(combinedObjectsBlobId);
+  } = await readObject(bodyData.answers_blobId);
 
   console.log("userAddress: ", bodyData.userAddress);
   console.log("answers_dataToEncryptHash: ", answers_dataToEncryptHash);
