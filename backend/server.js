@@ -491,27 +491,14 @@ app.post("/encrypt", async (req, res) => {
     return res.status(400).json({ error: "Missing required fields: userAddress, clues, and answers" });
   }
 
-  /**
-   * @typedef {Object} ClueData
-   * @property {number} id - Unique identifier for the clue
-   * @property {string} description - Description of the clue
-   */
-
-  /**
-   * @typedef {Object} AnswerData
-   * @property {number} id - Unique identifier for the answer
-   * @property {string} answer - The answer text
-   * @property {number} lat - Latitude coordinate
-   * @property {number} long - Longitude coordinate
-   */
+  
 
   if (!Array.isArray(bodyData.clues) || !Array.isArray(bodyData.answers)) {
     return res.status(400).json({ error: "Clues and answers must be arrays" });
   }
 
-  /** @type {ClueData[]} */
+  
   const clues = bodyData.clues;
-  /** @type {AnswerData[]} */
   const answers = bodyData.answers;
 
   // Validate clues
@@ -533,59 +520,67 @@ app.post("/encrypt", async (req, res) => {
   }
 
   // const userAddress = bodyData.userAddress;
-  const [locations, cluesParsed] = parseJSON(bodyData.clues);
-  console.log(JSON.stringify(locations), JSON.stringify(cluesParsed));
+  const cluesParsed = clues.map(({ id, description }) => ({
+    id,
+    description,
+  }));
+  const answersParsed = answers.map(({ id, answer, lat, long }) => ({
+    id,
+    answer,
+    lat,
+    long,
+  }));
 
   const {
-    ciphertext: lat_lang_ciphertext,
-    dataToEncryptHash: lat_lang_dataToEncryptHash,
-  } = await encryptRunServerMode(JSON.stringify(locations), userAddress);
-  const {
-    ciphertext: clue_ciphertext,
-    dataToEncryptHash: clue_dataToEncryptHash,
+    ciphertext: clues_ciphertext,
+    dataToEncryptHash: clues_dataToEncryptHash,
   } = await encryptRunServerMode(JSON.stringify(cluesParsed), userAddress);
+  const {
+    ciphertext: answers_ciphertext,
+    dataToEncryptHash: answers_dataToEncryptHash,
+  } = await encryptRunServerMode(JSON.stringify(answersParsed), userAddress);
 
   //add to pinata
   const combinedObjects = [
     {
-      ciphertext: lat_lang_ciphertext,
-      dataToEncryptHash: lat_lang_dataToEncryptHash,
+      ciphertext: clues_ciphertext,
+      dataToEncryptHash: clues_dataToEncryptHash,
     },
     {
-      ciphertext: clue_ciphertext,
-      dataToEncryptHash: clue_dataToEncryptHash,
+      ciphertext: answers_ciphertext,
+      dataToEncryptHash: answers_dataToEncryptHash,
     },
   ];
 
   console.log(JSON.stringify(combinedObjects[0]));
 
-  const [lat_lang_blobId, clue_blobId] = await Promise.all([
+  const [clues_blobId, answers_blobId] = await Promise.all([
     storeString(JSON.stringify(combinedObjects[0])),
     storeString(JSON.stringify(combinedObjects[1])),
   ]);
 
-  res.send({ lat_lang_blobId: lat_lang_blobId, clue_blobId: clue_blobId });
+  res.send({ clues_blobId: clues_blobId, answers_blobId: answers_blobId });
 });
 app.post("/decrypt-ans", async (req, res) => {
   const bodyData = req.body;
   const curLat = bodyData.cLat;
   const curLong = bodyData.cLong;
   const clueId = bodyData.clueId;
-  const combinedObjectsBlobId = bodyData.lat_lang_blobId;
+  const combinedObjectsBlobId = bodyData.answers_blobId;
 
   console.log("combinedObjectsBlobId: ", combinedObjectsBlobId);
 
   const {
-    ciphertext: lat_lang_ciphertext,
-    dataToEncryptHash: lat_lang_dataToEncryptHash,
+    ciphertext: answers_ciphertext,
+    dataToEncryptHash: answers_dataToEncryptHash,
   } = await readObject(combinedObjectsBlobId);
 
   console.log("userAddress: ", bodyData.userAddress);
-  console.log("lat_lang_dataToEncryptHash: ", lat_lang_dataToEncryptHash);
+  console.log("answers_dataToEncryptHash: ", answers_dataToEncryptHash);
 
   const { response } = await decryptRunServerMode(
-    lat_lang_dataToEncryptHash,
-    lat_lang_ciphertext,
+    answers_dataToEncryptHash,
+    answers_ciphertext,
     bodyData.userAddress,
     curLat,
     curLong,
@@ -598,20 +593,20 @@ app.post("/decrypt-ans", async (req, res) => {
 app.post("/decrypt-clues", async (req, res) => {
   try {
     const bodyData = req.body;
-    const clue_blobId = bodyData.clue_blobId;
+    const clues_blobId = bodyData.clues_blobId;
     // const userAddress = bodyData.userAddress;
 
     const {
-      ciphertext: clue_ciphertext,
-      dataToEncryptHash: clue_dataToEncryptHash,
-    } = await readObject(clue_blobId);
+      ciphertext: clues_ciphertext,
+      dataToEncryptHash: clues_dataToEncryptHash,
+    } = await readObject(clues_blobId);
 
-    console.log("clue_dataToEncryptHash: ", clue_dataToEncryptHash);
-    console.log("clue_ciphertext: ", clue_ciphertext);
+    console.log("clues_dataToEncryptHash: ", clues_dataToEncryptHash);
+    console.log("clues_ciphertext: ", clues_ciphertext);
 
     const { response } = await decryptRunServerMode(
-      clue_dataToEncryptHash,
-      clue_ciphertext,
+      clues_dataToEncryptHash,
+      clues_ciphertext,
       userAddress,
   
     );

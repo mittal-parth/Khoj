@@ -20,6 +20,7 @@ interface Hunt {
   description: string;
   startTime: bigint;
   clues_blobId: string;
+  answers_blobId: string;
   // add other properties as needed
 }
 
@@ -58,7 +59,7 @@ export function Hunts() {
 
   const publicClient = usePublicClient();
 
-  const handleHuntStart = async (huntId: number, clue_blobid: string) => {
+  const handleHuntStart = async (huntId: number, clues_blobId: string, answers_blobId: string) => {
     if (!publicClient) {
       console.error("Public client not initialized");
       return;
@@ -77,7 +78,7 @@ export function Hunts() {
       return;
     }
 
-    console.log("Hunt ID:", huntId, clue_blobid);
+    console.log("Hunt ID:", huntId, clues_blobId, answers_blobId);
     let headersList = {
       Accept: "*/*",
       "Content-Type": "application/json",
@@ -85,7 +86,8 @@ export function Hunts() {
 
     let bodyContent = JSON.stringify({
       userAddress: "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
-      clue_blobId: clue_blobid,
+      clues_blobId: clues_blobId,
+      answers_blobId: answers_blobId,
     });
 
     //keep a delay of 5 seconds
@@ -249,7 +251,7 @@ export function Hunts() {
                     <Button
                       onClick={() => {
                         setCurrentHuntId(index);
-                        handleHuntStart(index, hunt.clues_blobId);
+                        handleHuntStart(index, hunt.clues_blobId, hunt.answers_blobId);
                       }}
                       disabled={
                         new Date(Number(BigInt(hunt.startTime))).getTime() > today 

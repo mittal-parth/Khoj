@@ -85,7 +85,7 @@ export function Clue() {
     description: huntDetails[1],
     totalClues: currentClueData?.length || 0,
     currentClue: parseInt(clueId || "1"),
-    answers_blobId: huntDetails[7]
+    answers_blobId: huntDetails[6]
   } : null;
 
   const createHuntAttestation = async () => {
@@ -129,7 +129,7 @@ export function Clue() {
 
     setIsSubmitting(true);
     setVerificationState("verifying");
-
+    console.log("huntData: ", huntDetails);
     try {
       let headersList = {
         Accept: "*/*",
@@ -138,11 +138,13 @@ export function Clue() {
 
       let bodyContent = JSON.stringify({
         userAddress: "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
-        lat_lang_blobId: huntData.answers_blobId,
+        answers_blobId: huntData.answers_blobId,
         cLat: location.latitude,
         cLong: location.longitude,
         clueId: Number(clueId),
       });
+
+      console.log(bodyContent)
 
       let response = await fetch(`${BACKEND_URL}/decrypt-ans`, {
         method: "POST",
