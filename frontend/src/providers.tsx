@@ -1,17 +1,11 @@
 import type { ReactNode } from "react";
 import { OnchainKitProvider } from "@coinbase/onchainkit";
-import { baseSepolia, moonbaseAlpha, bscTestnet } from "wagmi/chains";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 import { useWagmiConfig } from "./lib/wagmi";
+import { SUPPORTED_CHAINS } from "./lib/utils";
 
 const queryClient = new QueryClient();
-
-export const SUPPORTED_CHAINS = {
-  moonbeam: moonbaseAlpha,
-  bnb: bscTestnet,
-  base: baseSepolia,
-} as const;
 
 export function Providers(props: { children: ReactNode }) {
   const wagmiConfig = useWagmiConfig();

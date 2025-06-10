@@ -1,19 +1,32 @@
 import { FaEthereum } from "react-icons/fa";
-import { SiPolkadot } from "react-icons/si";
-import { SiBinance } from "react-icons/si";
-import { SiCoinbase } from "react-icons/si";
+import { SiPolkadot, SiCoinbase } from "react-icons/si";
 import { Link } from "react-router-dom";
 import WalletWrapper from "@/helpers/WalletWrapper";
-import { SUPPORTED_CHAINS } from "../providers";
+import { SUPPORTED_CHAINS } from "../lib/utils";
 import { useState, useEffect } from "react";
 
+// Mapping for user-friendly labels and icons
+const NETWORK_META: Record<string, { label: string; icon: JSX.Element }> = {
+  moonbeam: {
+    label: "Moonbeam",
+    icon: <SiPolkadot className="w-5 h-5 text-pink-600" />,
+  },
+  base: {
+    label: "Base",
+    icon: <SiCoinbase className="w-5 h-5 text-blue-500" />,
+  },
+};
+
 export function Navbar() {
-  const [currentNetwork, setCurrentNetwork] = useState<string>("base");
+  const [currentNetwork, setCurrentNetwork] = useState<string>(
+    Object.keys(SUPPORTED_CHAINS)[0]
+  );
 
   // Initialize from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("current_network");
-    if (stored) setCurrentNetwork(stored);
+    if (stored && SUPPORTED_CHAINS[stored as keyof typeof SUPPORTED_CHAINS])
+      setCurrentNetwork(stored);
   }, []);
 
   const handleNetworkChange = (network: string) => {
@@ -23,21 +36,15 @@ export function Navbar() {
     // Switch the network in the wallet
     const chainId =
       SUPPORTED_CHAINS[network as keyof typeof SUPPORTED_CHAINS].id;
-
     console.log(chainId);
   };
 
   const renderSelectedNetwork = () => {
-    switch (currentNetwork) {
-      case "moonbeam":
-        return <SiPolkadot className="w-5 h-5 text-pink-600" />;
-      case "bnb":
-        return <SiBinance className="w-5 h-5 text-yellow-400" />;
-      case "base":
-        return <SiCoinbase className="w-5 h-5 text-blue-500" />;
-      default:
-        return <SiCoinbase className="w-5 h-5 text-blue-500" />;
-    }
+    return (
+      NETWORK_META[currentNetwork]?.icon || (
+        <SiPolkadot className="w-5 h-5 text-blue-500" />
+      )
+    );
   };
 
   return (
@@ -61,7 +68,10 @@ export function Navbar() {
               <Link to="/profile" className="text-gray-700 hover:text-green">
                 Profile
               </Link>
-              <Link to="/hunt/create" className="text-gray-700 hover:text-green">
+              <Link
+                to="/hunt/create"
+                className="text-gray-700 hover:text-green"
+              >
                 Create Hunt
               </Link>
             </div>
@@ -78,9 +88,11 @@ export function Navbar() {
                   focus:ring-green/20 focus:border-green cursor-pointer"
                 style={{ textIndent: "-999px" }}
               >
-                <option value="moonbeam">Moonbeam</option>
-                <option value="bnb">BNB</option>
-                <option value="base">Base</option>
+                {Object.keys(SUPPORTED_CHAINS).map((key) => (
+                  <option key={key} value={key}>
+                    {NETWORK_META[key]?.label || key}
+                  </option>
+                ))}
               </select>
               <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
                 {renderSelectedNetwork()}

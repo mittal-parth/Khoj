@@ -14,7 +14,8 @@ import {
 } from "@coinbase/onchainkit/transaction";
 import { Button } from "./ui/button.tsx";
 import { useState } from "react";
-import { SUPPORTED_CHAINS } from "../providers.tsx";
+import { SUPPORTED_CHAINS, CONTRACT_ADDRESSES } from "../lib/utils";
+
 interface Hunt {
   name: string;
   description: string;
@@ -26,13 +27,6 @@ interface Hunt {
 
 // Add type assertion for the ABI
 const typedHuntABI = huntABI as Abi;
-
-// Add these constants at the top of the file, after imports
-const CONTRACT_ADDRESSES = {
-  moonbeam: import.meta.env.VITE_PUBLIC_MOONBEAM_CONTRACT_ADDRESS,
-  bnb: import.meta.env.VITE_PUBLIC_BNB_CONTRACT_ADDRESS,
-  base: import.meta.env.VITE_PUBLIC_BASE_CONTRACT_ADDRESS,
-} as const;
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 

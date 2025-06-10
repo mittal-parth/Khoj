@@ -7,16 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { CONTRACT_ADDRESSES } from "../lib/utils";
 
 // Add type assertion for the ABI
 const typedHuntABI = huntABI as Abi;
-
-// Contract addresses from environment variables
-const CONTRACT_ADDRESSES = {
-  moonbeam: import.meta.env.VITE_PUBLIC_MOONBEAM_CONTRACT_ADDRESS,
-  bnb: import.meta.env.VITE_PUBLIC_BNB_CONTRACT_ADDRESS,
-  base: import.meta.env.VITE_PUBLIC_BASE_CONTRACT_ADDRESS,
-} as const;
 
 const BACKEND_URL = "http://localhost:8000";
 
