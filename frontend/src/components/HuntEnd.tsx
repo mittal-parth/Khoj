@@ -4,15 +4,39 @@ import { BsArrowLeft, BsTrophy } from "react-icons/bs";
 import { FaCoins, FaRegClock, FaCheckCircle } from "react-icons/fa";
 import { Confetti } from "./ui/confetti";
 import { useEffect, useState } from "react";
+import { useReadContract } from "wagmi";
+import { huntABI } from "../assets/hunt_abi";
+import { type Abi } from "viem";
+
+const CONTRACT_ADDRESSES = {
+  moonbeam: import.meta.env.VITE_PUBLIC_MOONBEAM_CONTRACT_ADDRESS,
+  bnb: import.meta.env.VITE_PUBLIC_BNB_CONTRACT_ADDRESS,
+  base: import.meta.env.VITE_PUBLIC_BASE_CONTRACT_ADDRESS,
+} as const;
+
+const typedHuntABI = huntABI as Abi;
 
 export function HuntEnd() {
   const { huntId } = useParams();
   const navigate = useNavigate();
   const [progress, setProgress] = useState(0);
 
-  // Mock data - replace with API call
+  // Get current network and contract address
+  const currentNetwork = localStorage.getItem("current_network") || "base";
+  const contractAddress =
+    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES];
+
+  // Get hunt details from contract
+  const { data: huntDetails } = useReadContract({
+    address: contractAddress,
+    abi: typedHuntABI,
+    functionName: "getHunt",
+    args: [BigInt(huntId || 0)],
+  }) as { data: [string, string, bigint, bigint, bigint, string[], string, string] };
+
+  // Use dynamic title, static reward/description
   const huntData = {
-    title: "Ethereum Treasure Quest",
+    title: huntDetails ? huntDetails[0] : "...",
     totalReward: "0.45 ETH",
     description:
       "You've successfully completed all the challenges and found the treasure!",
