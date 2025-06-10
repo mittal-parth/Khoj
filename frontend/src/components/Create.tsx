@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { huntABI } from "../assets/hunt_abi";
 import { type Abi } from "viem";
@@ -201,18 +201,23 @@ export function Create() {
     });
     setCluesCID("");
     setAnswersCID("");
+    setUploadedCIDs(null);
   };
 
-  // Show error message if transaction fails
-  if (isError && error) {
-    toast.error(error.message);
-  }
+  // Handle error case
+  useEffect(() => {
+    if (isError && error) {
+      toast.error(error.message);
+    }
+  }, [isError, error]);
 
-  // Update success handler to use resetForm
-  if (isConfirmed) {
-    toast.success("Hunt created successfully!");
-    resetForm();
-  }
+  // Handle success case
+  useEffect(() => {
+    if (isConfirmed) {
+      toast.success("Hunt created successfully!");
+      resetForm();
+    }
+  }, [isConfirmed]);
 
   return (
     <div className="container mx-auto px-4 py-8">
