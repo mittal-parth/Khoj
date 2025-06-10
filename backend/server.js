@@ -47,7 +47,6 @@ const client = new LitNodeClient({
   debug: false,
 });
 
-console.log(process.env.PRIVATE_KEY)
 const walletWithCapacityCredit = new Wallet(
     process.env.PRIVATE_KEY
 );

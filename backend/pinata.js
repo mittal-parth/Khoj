@@ -20,8 +20,10 @@ export async function storeString(text) {
     const file = new File([blob], 'data.txt', { type: 'text/plain' });
 
     // Upload to Pinata using the SDK
+    console.log("pinata: Uploading to Pinata");
     const upload = await pinata.upload.public.file(file);
-    console.log('Store Response:', JSON.stringify(upload, null, 2));
+    console.log("pinata: Uploaded to Pinata");
+    // console.log('pinata: Store Response:', JSON.stringify(upload, null, 2));
     
     return upload.cid;
   } catch (error) {
@@ -38,10 +40,11 @@ export async function storeString(text) {
 export async function readObject(cid) {
   try {
     // Read from Pinata Gateway using the SDK
+    console.log("pinata: Reading from Pinata, CID: ", cid);
     const response = await pinata.gateways.public.get(cid);
-    console.log('File Content:', JSON.parse(response.data).ciphertext);
+    console.log("pinata: Done reading from Pinata");
 
-    return JSON.parse(response.data);
+    return response.data;
   } catch (error) {
     console.error('Error reading file:', error.response?.data || error.message);
     throw error;

@@ -173,8 +173,12 @@ export function Clue() {
             navigate(`/hunt/${huntId}/clue/${nextClueId}`);
           } else {
             // He has completed all clues
-            const score = await getUserScore();
-            localStorage.setItem("trust_score", score.toString());
+            try {
+              const score = await getUserScore();
+              localStorage.setItem("trust_score", score.toString());
+            } catch (error) {
+              console.error("Failed to get user score:", error);
+            }
             navigate(`/hunt/${huntId}/end`);
           }
         }, 2000);
