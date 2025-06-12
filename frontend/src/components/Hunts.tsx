@@ -32,8 +32,6 @@ const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
 export function Hunts() {
   const { address } = useAccount();
-  // const chainId = useChainId();
-  // console.log("chainId", chainId);
 
   const navigate = useNavigate();
   const [currentHuntId, setCurrentHuntId] = useState<number>(0);
@@ -49,7 +47,7 @@ export function Hunts() {
   const chainId =
     SUPPORTED_CHAINS[currentNetwork as keyof typeof SUPPORTED_CHAINS].id;
 
-  console.log(chainId);
+  console.log("chainId", chainId);
 
   const publicClient = usePublicClient();
 
@@ -218,7 +216,7 @@ export function Hunts() {
                         },
                       ]}
                       className=""
-                      chainId={84532}
+                      chainId={chainId}
                       onError={(error) => console.log(error)}
                       onSuccess={handleRegisterSuccess}
                     >

@@ -60,6 +60,7 @@ export function Create() {
 
   // Add this to get current network from localStorage
   const currentNetwork = localStorage.getItem("current_network") || "base";
+  console.log("Create: Current Network: ", currentNetwork);
   const contractAddress =
     CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES];
 
@@ -109,7 +110,7 @@ export function Create() {
       
       // Convert duration to seconds
       const durationInSeconds = parseInt(duration) * 3600; // Convert hours to seconds
-
+      console.log("Create: Contract Address: ", contractAddress);
       writeContract({
         address: contractAddress,
         abi: typedHuntABI,

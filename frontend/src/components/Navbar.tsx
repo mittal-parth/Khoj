@@ -15,6 +15,10 @@ const NETWORK_META: Record<string, { label: string; icon: JSX.Element }> = {
     label: "Base",
     icon: <SiCoinbase className="w-5 h-5 text-blue-500" />,
   },
+  assetHub: {
+    label: "Paseo AssetHub",
+    icon: <SiPolkadot className="w-5 h-5 text-pink-600" />,
+  },
 };
 
 export function Navbar() {
@@ -36,7 +40,7 @@ export function Navbar() {
     // Switch the network in the wallet
     const chainId =
       SUPPORTED_CHAINS[network as keyof typeof SUPPORTED_CHAINS].id;
-    console.log(chainId);
+    console.log("chainId", chainId);
   };
 
   const renderSelectedNetwork = () => {
