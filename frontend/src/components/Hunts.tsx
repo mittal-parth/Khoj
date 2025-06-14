@@ -20,9 +20,10 @@ interface Hunt {
   name: string;
   description: string;
   startTime: bigint;
+  duration: bigint;
+  participantCount: bigint;
   clues_blobId: string;
   answers_blobId: string;
-  // add other properties as needed
 }
 
 // Add type assertion for the ABI
@@ -30,72 +31,106 @@ const typedHuntABI = huntABI as Abi;
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
+// Type guard to ensure address is a valid hex string
+function isValidHexAddress(address: string): address is `0x${string}` {
+  return /^0x[0-9a-fA-F]{40}$/.test(address);
+}
+
 export function Hunts() {
   const { address } = useAccount();
-
   const navigate = useNavigate();
   const [currentHuntId, setCurrentHuntId] = useState<number>(0);
   const [isRegistered, setIsRegistered] = useState(false);
   const { fetchRiddles, isLoading } = useClaudeRiddles(currentHuntId);
+  const publicClient = usePublicClient();
 
   // Add this to get current network from localStorage
-  const currentNetwork = localStorage.getItem("current_network") || "base";
-  const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES];
+  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
+  const rawContractAddress =
+    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
+    "0x0000000000000000000000000000000000000000";
+
+  // Call hooks at the top level
+  const { data: hunts = [], error: huntsError } = useReadContract({
+    address: rawContractAddress as `0x${string}`,
+    abi: typedHuntABI,
+    functionName: "getAllHunts",
+    args: [],
+  }) as { data: Hunt[]; error: Error | null };
+
+  const { data: nftContractAddress } = useReadContract({
+    address: rawContractAddress as `0x${string}`,
+    abi: typedHuntABI,
+    functionName: "nftContract",
+    args: [],
+  });
+
+  if (!isValidHexAddress(rawContractAddress)) {
+    toast.error("Invalid contract address format");
+    return null;
+  }
+
+  const contractAddress = rawContractAddress as `0x${string}`;
+
+  if (contractAddress === "0x0000000000000000000000000000000000000000") {
+    toast.error("Contract address not found for the selected network");
+    return null;
+  }
 
   //get the token getTokenId
   const chainId =
     SUPPORTED_CHAINS[currentNetwork as keyof typeof SUPPORTED_CHAINS].id;
 
-  console.log("chainId", chainId);
+  console.log("Hunts: chainId", chainId);
+  console.log("Hunts: contractAddress", contractAddress);
+  console.log("NFT Contract Address:", nftContractAddress);
 
-  const publicClient = usePublicClient();
-
-  const handleHuntStart = async (huntId: number, clues_blobId: string, answers_blobId: string) => {
+  const handleHuntStart = async (
+    huntId: number,
+    clues_blobId: string,
+    answers_blobId: string
+  ) => {
     if (!publicClient) {
       console.error("Public client not initialized");
       return;
     }
-    
+
     const tokenId = await publicClient.readContract({
       address: contractAddress,
       abi: huntABI,
       functionName: "getTokenId",
-      args: [huntId, address],
-      // chainId: chainId,
+      args: [BigInt(huntId), address],
     });
 
     if (tokenId === 0n) {
-      toast.error("You are not eligible for this hunt. Please register or check the requirements.");
+      toast.error(
+        "You are not eligible for this hunt. Please register or check the requirements."
+      );
       return;
     }
 
     console.log("Hunt ID:", huntId, clues_blobId, answers_blobId);
-    let headersList = {
+    const headersList = {
       Accept: "*/*",
       "Content-Type": "application/json",
     };
 
-    let bodyContent = JSON.stringify({
+    const bodyContent = JSON.stringify({
       userAddress: "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
       clues_blobId: clues_blobId,
       answers_blobId: answers_blobId,
     });
 
-    //keep a delay of 5 seconds
-    // await new Promise(resolve => setTimeout(resolve, 20000));
-
-    let response = await fetch(`${BACKEND_URL}/decrypt-clues`, {
+    const response = await fetch(`${BACKEND_URL}/decrypt-clues`, {
       method: "POST",
       body: bodyContent,
       headers: headersList,
     });
 
-    let data = await response.text();
+    const data = await response.text();
     const clues = JSON.parse(data);
 
     console.log("Clues: ", clues);
-    // localStorage.setItem("clues", JSON.stringify(clues));
 
     await fetchRiddles(clues, huntId.toString());
     navigate(`/hunt/${huntId}/clue/1`);
@@ -106,15 +141,33 @@ export function Hunts() {
     setIsRegistered(true);
   };
 
-  console.log(contractAddress);
-  const { data: hunts = [] } = useReadContract({
-    address: contractAddress,
-    abi: typedHuntABI,
-    functionName: "getAllHunts",
-    args: [],
-  }) as { data: Hunt[] };
+  // Add more detailed logging
+  console.log("Contract Debug:", {
+    contractAddress,
+    chainId,
+    currentNetwork,
+    huntsError,
+    hunts,
+    abi: typedHuntABI.find(
+      (item) => "name" in item && item.name === "getAllHunts"
+    ),
+  });
 
-  console.log(hunts);
+  if (huntsError) {
+    console.error("Error fetching hunts:", huntsError);
+    toast.error("Failed to fetch hunts. Please check your connection.");
+  }
+
+  console.log("Debug Info:", {
+    currentNetwork,
+    contractAddress,
+    chainId,
+    address,
+    hunts,
+    huntsError,
+  });
+
+  console.log("Hunts: hunts", hunts);
 
   function formatDate(date: number) {
     const dateObj = new Date(date);
@@ -125,12 +178,10 @@ export function Hunts() {
     return Number(`${year}${month}${day}`);
   }
 
-  let today = formatDate(Date.now());
+  const today = formatDate(Date.now());
 
   console.log("today", today);
   console.log("reg", isRegistered);
-
-  // console.log(hunts && hunts[5] ? (new Date(Number(BigInt(hunts[5].startTime))).getTime()) : null)
 
   // Array of background colors and icons to rotate through
   const bgColors = ["bg-green", "bg-orange", "bg-yellow", "bg-pink", "bg-red"];
@@ -148,8 +199,6 @@ export function Hunts() {
       </h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {hunts.map((hunt: Hunt, index: number) => {
-
-
           return (
             <div
               key={index}
@@ -241,15 +290,17 @@ export function Hunts() {
                     </Transaction>
 
                     <Button
-                      onClick={() => {
-                        setCurrentHuntId(index);
-                        handleHuntStart(index, hunt.clues_blobId, hunt.answers_blobId);
-                      }}
-                      disabled={
-                        new Date(Number(BigInt(hunt.startTime))).getTime() > today 
+                      onClick={() =>
+                        handleHuntStart(
+                          index,
+                          hunt.clues_blobId,
+                          hunt.answers_blobId
+                        )
                       }
+                      className="w-full py-1.5 text-sm font-medium rounded-md bg-green/40 border border-black text-black hover:bg-green/90 transition-colors duration-300"
+                      disabled={isLoading}
                     >
-                      Start
+                      Start Hunt
                     </Button>
                   </div>
                 </div>

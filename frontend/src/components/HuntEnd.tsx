@@ -8,8 +8,14 @@ import { useReadContract } from "wagmi";
 import { huntABI } from "../assets/hunt_abi";
 import { type Abi } from "viem";
 import { CONTRACT_ADDRESSES } from "../lib/utils";
+import { toast } from "sonner";
 
 const typedHuntABI = huntABI as Abi;
+
+// Type guard to ensure address is a valid hex string
+function isValidHexAddress(address: string): address is `0x${string}` {
+  return /^0x[0-9a-fA-F]{40}$/.test(address);
+}
 
 export function HuntEnd() {
   const { huntId } = useParams();
@@ -17,24 +23,19 @@ export function HuntEnd() {
   const [progress, setProgress] = useState(0);
 
   // Get current network and contract address
-  const currentNetwork = localStorage.getItem("current_network") || "base";
+  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
   const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES];
+    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
+    "0x0000000000000000000000000000000000000000";
 
   // Get hunt details from contract
   const { data: huntDetails } = useReadContract({
-    address: contractAddress,
+    address: contractAddress as `0x${string}`,
     abi: typedHuntABI,
     functionName: "getHunt",
     args: [BigInt(huntId || 0)],
-  }) as { data: [string, string, bigint, bigint, bigint, string[], string, string] };
-
-  // Use dynamic title, static reward/description
-  const huntData = {
-    title: huntDetails ? huntDetails[0] : "...",
-    totalReward: "0.45 ETH",
-    description:
-      "You've successfully completed all the challenges and found the treasure!",
+  }) as {
+    data: [string, string, bigint, bigint, bigint, string[], string, string];
   };
 
   const trustScore = localStorage.getItem("trust_score") || "6.5";
@@ -47,6 +48,19 @@ export function HuntEnd() {
     }, 100);
     return () => clearTimeout(timer);
   }, [score]);
+
+  if (!isValidHexAddress(contractAddress)) {
+    toast.error("Invalid contract address format");
+    return null;
+  }
+
+  // Use dynamic title, static reward/description
+  const huntData = {
+    title: huntDetails ? huntDetails[0] : "...",
+    totalReward: "0.45 ETH",
+    description:
+      "You've successfully completed all the challenges and found the treasure!",
+  };
 
   const handleClaim = async () => {
     // Add claim logic here

@@ -3,9 +3,7 @@ import { connectorsForWallets } from "@rainbow-me/rainbowkit";
 import { coinbaseWallet } from "@rainbow-me/rainbowkit/wallets";
 import { useMemo } from "react";
 import { http, createConfig } from "wagmi";
-import { baseSepolia } from "wagmi/chains";
-import { moonbaseAlpha } from "wagmi/chains";
-import { opBNBTestnet } from "wagmi/chains";
+import { paseoAssetHub } from "./utils";
 
 export function useWagmiConfig() {
   const projectId = "03a874ead074383e90ef9c7198c513d9";
@@ -30,15 +28,15 @@ export function useWagmiConfig() {
     );
 
     const wagmiConfig = createConfig({
-      chains: [baseSepolia, moonbaseAlpha, opBNBTestnet],
+      chains: [paseoAssetHub],
       // turn off injected provider discovery
       multiInjectedProviderDiscovery: false,
       connectors,
       ssr: true,
       transports: {
-        [baseSepolia.id]: http(),
-        [moonbaseAlpha.id]: http(),
-        [opBNBTestnet.id]: http(),
+        [paseoAssetHub.id]: http(
+          "https://testnet-passet-hub-eth-rpc.polkadot.io/"
+        ),
       },
     });
 

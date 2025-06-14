@@ -1,5 +1,10 @@
 import { useState, useEffect } from "react";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import {
+  useAccount,
+  useWriteContract,
+  useWaitForTransactionReceipt,
+  useSwitchChain,
+} from "wagmi";
 import { huntABI } from "../assets/hunt_abi";
 import { type Abi } from "viem";
 import { toast } from "sonner";
@@ -7,12 +12,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { CONTRACT_ADDRESSES } from "../lib/utils";
+import {
+  CONTRACT_ADDRESSES,
+  SUPPORTED_CHAINS,
+  paseoAssetHub,
+} from "../lib/utils";
 
 // Add type assertion for the ABI
 const typedHuntABI = huntABI as Abi;
 
 const BACKEND_URL = "http://localhost:8000";
+
+// Type guard to ensure address is a valid hex string
+function isValidHexAddress(address: string): address is `0x${string}` {
+  return /^0x[0-9a-fA-F]{40}$/.test(address);
+}
 
 interface Clue {
   id: number;
@@ -41,6 +55,7 @@ interface IPFSResponse {
 
 export function Create() {
   const { address } = useAccount();
+  const { switchChain } = useSwitchChain();
   const [huntName, setHuntName] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -59,17 +74,50 @@ export function Create() {
   const [answersCID, setAnswersCID] = useState("");
 
   // Add this to get current network from localStorage
-  const currentNetwork = localStorage.getItem("current_network") || "base";
+  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
   console.log("Create: Current Network: ", currentNetwork);
   const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES];
+    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
+    "0x0000000000000000000000000000000000000000";
 
-  const { writeContract, isError, error, isPending, data: hash } = useWriteContract();
+  // Get chain ID for the current network
+  const chainId =
+    SUPPORTED_CHAINS[currentNetwork as keyof typeof SUPPORTED_CHAINS].id;
+  console.log("Create: Chain ID: ", chainId);
+
+  const {
+    writeContract,
+    isError,
+    error,
+    isPending,
+    data: hash,
+  } = useWriteContract();
 
   // Wait for transaction receipt
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-  });
+  const { isLoading: isConfirming, isSuccess: isConfirmed } =
+    useWaitForTransactionReceipt({
+      hash,
+    });
+
+  // Handle error case
+  useEffect(() => {
+    if (isError && error) {
+      toast.error(error.message);
+    }
+  }, [isError, error]);
+
+  // Handle success case
+  useEffect(() => {
+    if (isConfirmed) {
+      toast.success("Hunt created successfully!");
+      resetForm();
+    }
+  }, [isConfirmed]);
+
+  if (!isValidHexAddress(contractAddress)) {
+    toast.error("Invalid contract address format");
+    return null;
+  }
 
   const handleAddClue = () => {
     if (
@@ -107,10 +155,57 @@ export function Create() {
     try {
       // Convert date to YYYYMMDD format
       const formattedDate = startDate.split("-").join("");
-      
+
       // Convert duration to seconds
       const durationInSeconds = parseInt(duration) * 3600; // Convert hours to seconds
       console.log("Create: Contract Address: ", contractAddress);
+      console.log("Create: Chain ID: ", chainId);
+
+      // Try to add and switch to AssetHub network
+      try {
+        console.log("Adding AssetHub network...");
+        await window.ethereum.request({
+          method: "wallet_addEthereumChain",
+          params: [
+            {
+              chainId: "0x19191926", // 420420422 in hex
+              chainName: "PAssetHub - Contracts Testnet",
+              nativeCurrency: {
+                name: "Pas Tokens",
+                symbol: "PAS",
+                decimals: 18,
+              },
+              rpcUrls: ["https://testnet-passet-hub-eth-rpc.polkadot.io/"],
+              blockExplorerUrls: [
+                "https://blockscout-passet-hub.parity-testnet.parity.io/",
+              ],
+            },
+          ],
+        });
+
+        // Wait for chain to be added
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // Now try to switch to the chain
+        console.log("Switching to AssetHub network...");
+        await window.ethereum.request({
+          method: "wallet_switchEthereumChain",
+          params: [{ chainId: "0x19191926" }], // 420420422 in hex
+        });
+
+        // Wait for network switch to complete
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      } catch (switchError: any) {
+        console.error("Failed to switch network:", switchError);
+        if (switchError.code === 4001) {
+          toast.error("Please switch to Asset Hub network in your wallet");
+        } else {
+          toast.error("Failed to add or switch to Asset Hub network");
+        }
+        return;
+      }
+
+      // Proceed with transaction
       writeContract({
         address: contractAddress,
         abi: typedHuntABI,
@@ -123,8 +218,8 @@ export function Create() {
           answersCID,
           BigInt(durationInSeconds),
         ],
+        chainId: 420420422, // Explicitly set AssetHub chain ID
       });
-
     } catch (err) {
       console.error("Error creating hunt:", err);
       toast.error("Failed to create hunt");
@@ -146,12 +241,14 @@ export function Create() {
         description,
       }));
 
-      const answersData: AnswerData[] = clues.map(({ id, answer, lat, long }) => ({
-        id,
-        answer,
-        lat,
-        long,
-      }));
+      const answersData: AnswerData[] = clues.map(
+        ({ id, answer, lat, long }) => ({
+          id,
+          answer,
+          lat,
+          long,
+        })
+      );
 
       const response = await fetch(`${BACKEND_URL}/encrypt`, {
         method: "POST",
@@ -171,7 +268,9 @@ export function Create() {
 
       const data = await response.json();
       setUploadedCIDs(data);
-      toast.success("Successfully uploaded to IPFS! Please copy the CIDs below to the CID input fields.");
+      toast.success(
+        "Successfully uploaded to IPFS! Please copy the CIDs below to the CID input fields."
+      );
     } catch (err) {
       console.error("Error uploading to IPFS:", err);
       toast.error("Failed to upload to IPFS");
@@ -199,21 +298,6 @@ export function Create() {
     setUploadedCIDs(null);
   };
 
-  // Handle error case
-  useEffect(() => {
-    if (isError && error) {
-      toast.error(error.message);
-    }
-  }, [isError, error]);
-
-  // Handle success case
-  useEffect(() => {
-    if (isConfirmed) {
-      toast.success("Hunt created successfully!");
-      resetForm();
-    }
-  }, [isConfirmed]);
-
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Create New Hunt</h1>
@@ -234,7 +318,7 @@ export function Create() {
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              value={description} 
+              value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter hunt description"
             />
@@ -263,7 +347,7 @@ export function Create() {
 
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold mb-4">IPFS Configuration</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <Label htmlFor="cluesCID">Clues CID</Label>
@@ -389,27 +473,29 @@ export function Create() {
           <div className="space-y-2">
             <h3 className="font-semibold">Added Clues:</h3>
             {clues.map((clue) => (
-              <div
-                key={clue.id}
-                className="p-3 bg-gray-100 rounded-md"
-              >
+              <div key={clue.id} className="p-3 bg-gray-100 rounded-md">
                 <p className="font-medium">Clue {clue.id}</p>
                 <p className="text-sm text-gray-600">{clue.description}</p>
                 <p className="text-xs text-gray-500">
                   Location: {clue.lat}, {clue.long}
                 </p>
-                <p className="text-xs text-gray-500">
-                  Answer: {clue.answer}
-                </p>
+                <p className="text-xs text-gray-500">Answer: {clue.answer}</p>
               </div>
             ))}
             {uploadedCIDs && (
               <div className="mt-4 p-3 bg-green-50 rounded-md">
-                <p className="text-sm font-medium text-green-800">IPFS Upload Complete</p>
-                <p className="text-xs text-green-600">Clues CID: {uploadedCIDs.clues_blobId}</p>
-                <p className="text-xs text-green-600">Answers CID: {uploadedCIDs.answers_blobId}</p>
+                <p className="text-sm font-medium text-green-800">
+                  IPFS Upload Complete
+                </p>
+                <p className="text-xs text-green-600">
+                  Clues CID: {uploadedCIDs.clues_blobId}
+                </p>
+                <p className="text-xs text-green-600">
+                  Answers CID: {uploadedCIDs.answers_blobId}
+                </p>
                 <p className="text-xs text-amber-600 mt-2">
-                  Please copy these CIDs to the respective fields in the IPFS Configuration section
+                  Please copy these CIDs to the respective fields in the IPFS
+                  Configuration section
                 </p>
               </div>
             )}

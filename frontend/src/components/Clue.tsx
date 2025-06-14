@@ -18,11 +18,17 @@ import { useReadContract } from "wagmi";
 import { huntABI } from "../assets/hunt_abi";
 import { type Abi } from "viem";
 import { CONTRACT_ADDRESSES } from "../lib/utils";
+import { toast } from "sonner";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
 // Add type assertion for the ABI
 const typedHuntABI = huntABI as Abi;
+
+// Type guard to ensure address is a valid hex string
+function isValidHexAddress(address: string): address is `0x${string}` {
+  return /^0x[0-9a-fA-F]{40}$/.test(address);
+}
 
 export function Clue() {
   const { huntId, clueId } = useParams();
@@ -39,15 +45,16 @@ export function Clue() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   // Add this to get current network from localStorage
-  const currentNetwork = localStorage.getItem("current_network") || "base";
+  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
   const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES];
+    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
+    "0x0000000000000000000000000000000000000000";
 
   useEffect(() => {
     setVerificationState("idle");
 
     if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition( 
+      navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
           const { latitude, longitude } = coords;
           console.log(latitude, longitude);
@@ -67,20 +74,29 @@ export function Clue() {
 
   // Get hunt details from contract
   const { data: huntDetails } = useReadContract({
-    address: contractAddress,
+    address: contractAddress as `0x${string}`,
     abi: typedHuntABI,
     functionName: "getHunt",
     args: [BigInt(huntId || 0)],
-  }) as { data: [string, string, bigint, bigint, bigint, string[], string, string] };
+  }) as {
+    data: [string, string, bigint, bigint, bigint, string[], string, string];
+  };
+
+  if (!isValidHexAddress(contractAddress)) {
+    toast.error("Invalid contract address format");
+    return null;
+  }
 
   // Extract hunt details
-  const huntData = huntDetails ? {
-    title: huntDetails[0],
-    description: huntDetails[1],
-    totalClues: currentClueData?.length || 0,
-    currentClue: parseInt(clueId || "1"),
-    answers_blobId: huntDetails[6]
-  } : null;
+  const huntData = huntDetails
+    ? {
+        title: huntDetails[0],
+        description: huntDetails[1],
+        totalClues: currentClueData?.length || 0,
+        currentClue: parseInt(clueId || "1"),
+        answers_blobId: huntDetails[6],
+      }
+    : null;
 
   const createHuntAttestation = async () => {
     try {
@@ -125,12 +141,12 @@ export function Clue() {
     setVerificationState("verifying");
     console.log("huntData: ", huntDetails);
     try {
-      let headersList = {
+      const headersList = {
         Accept: "*/*",
         "Content-Type": "application/json",
       };
 
-      let bodyContent = JSON.stringify({
+      const bodyContent = JSON.stringify({
         userAddress: "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
         answers_blobId: huntData.answers_blobId,
         cLat: location.latitude,
@@ -138,20 +154,20 @@ export function Clue() {
         clueId: Number(clueId),
       });
 
-      console.log(bodyContent)
+      console.log(bodyContent);
 
-      let response = await fetch(`${BACKEND_URL}/decrypt-ans`, {
+      const response = await fetch(`${BACKEND_URL}/decrypt-ans`, {
         method: "POST",
         body: bodyContent,
         headers: headersList,
       });
 
-      let data = await response.json();
+      const data = await response.json();
       console.log(data);
 
       const isCorrect = data.isClose;
 
-      if (isCorrect == 'true') {
+      if (isCorrect == "true") {
         // Create attestation when clue is solved
         await createHuntAttestation();
 
