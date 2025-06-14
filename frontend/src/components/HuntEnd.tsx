@@ -4,13 +4,13 @@ import { BsArrowLeft, BsTrophy } from "react-icons/bs";
 import { FaCoins, FaRegClock, FaCheckCircle } from "react-icons/fa";
 import { Confetti } from "./ui/confetti";
 import { useEffect, useState } from "react";
-import { useReadContract } from "wagmi";
+import { useReadContract } from "thirdweb/react";
+import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi";
-import { type Abi } from "viem";
 import { CONTRACT_ADDRESSES } from "../lib/utils";
 import { toast } from "sonner";
-
-const typedHuntABI = huntABI as Abi;
+import { client } from "../lib/client";
+import { paseoAssetHub } from "../lib/chains";
 
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
@@ -28,15 +28,20 @@ export function HuntEnd() {
     CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
     "0x0000000000000000000000000000000000000000";
 
+  // Create thirdweb contract instance
+  const contract = getContract({
+    client,
+    chain: paseoAssetHub,
+    address: contractAddress as `0x${string}`,
+    abi: huntABI,
+  });
+
   // Get hunt details from contract
   const { data: huntDetails } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: typedHuntABI,
-    functionName: "getHunt",
-    args: [BigInt(huntId || 0)],
-  }) as {
-    data: [string, string, bigint, bigint, bigint, string[], string, string];
-  };
+    contract,
+    method: "getHunt",
+    params: [BigInt(huntId || 0)],
+  });
 
   const trustScore = localStorage.getItem("trust_score") || "6.5";
   const score = parseInt(trustScore);

@@ -2,19 +2,18 @@ import { TbLadder, TbChessKnight } from "react-icons/tb";
 import { FaChess, FaDice } from "react-icons/fa";
 import { BsFillCalendarDateFill } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
-import { useAccount, useReadContract, usePublicClient } from "wagmi";
+import { useActiveAccount, useReadContract } from "thirdweb/react";
+import { getContract, readContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi.ts";
-import { type Abi } from "viem";
 import { toast } from "sonner";
 
 import { useClaudeRiddles } from "@/hooks/useClaudeRiddles";
-import {
-  Transaction,
-  TransactionButton,
-} from "@coinbase/onchainkit/transaction";
+import { TransactionButton } from "./TransactionButton";
 import { Button } from "./ui/button.tsx";
 import { useState } from "react";
 import { SUPPORTED_CHAINS, CONTRACT_ADDRESSES } from "../lib/utils";
+import { client } from "../lib/client";
+import { paseoAssetHub } from "../lib/chains";
 
 interface Hunt {
   name: string;
@@ -26,9 +25,6 @@ interface Hunt {
   answers_blobId: string;
 }
 
-// Add type assertion for the ABI
-const typedHuntABI = huntABI as Abi;
-
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
 // Type guard to ensure address is a valid hex string
@@ -37,33 +33,18 @@ function isValidHexAddress(address: string): address is `0x${string}` {
 }
 
 export function Hunts() {
-  const { address } = useAccount();
+  const account = useActiveAccount();
+  const address = account?.address;
   const navigate = useNavigate();
   const [currentHuntId, setCurrentHuntId] = useState<number>(0);
   const [isRegistered, setIsRegistered] = useState(false);
   const { fetchRiddles, isLoading } = useClaudeRiddles(currentHuntId);
-  const publicClient = usePublicClient();
 
   // Add this to get current network from localStorage
   const currentNetwork = localStorage.getItem("current_network") || "assetHub";
   const rawContractAddress =
     CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
     "0x0000000000000000000000000000000000000000";
-
-  // Call hooks at the top level
-  const { data: hunts = [], error: huntsError } = useReadContract({
-    address: rawContractAddress as `0x${string}`,
-    abi: typedHuntABI,
-    functionName: "getAllHunts",
-    args: [],
-  }) as { data: Hunt[]; error: Error | null };
-
-  const { data: nftContractAddress } = useReadContract({
-    address: rawContractAddress as `0x${string}`,
-    abi: typedHuntABI,
-    functionName: "nftContract",
-    args: [],
-  });
 
   if (!isValidHexAddress(rawContractAddress)) {
     toast.error("Invalid contract address format");
@@ -76,6 +57,27 @@ export function Hunts() {
     toast.error("Contract address not found for the selected network");
     return null;
   }
+
+  // Create thirdweb contract instance
+  const contract = getContract({
+    client,
+    chain: paseoAssetHub,
+    address: contractAddress,
+    abi: huntABI,
+  });
+
+  // Call hooks at the top level
+  const { data: hunts = [], error: huntsError } = useReadContract({
+    contract,
+    method: "getAllHunts",
+    params: [],
+  });
+
+  const { data: nftContractAddress } = useReadContract({
+    contract,
+    method: "nftContract",
+    params: [],
+  });
 
   //get the token getTokenId
   const chainId =
@@ -90,50 +92,56 @@ export function Hunts() {
     clues_blobId: string,
     answers_blobId: string
   ) => {
-    if (!publicClient) {
-      console.error("Public client not initialized");
+    if (!address) {
+      toast.error("Please connect your wallet first");
       return;
     }
 
-    const tokenId = await publicClient.readContract({
-      address: contractAddress,
-      abi: huntABI,
-      functionName: "getTokenId",
-      args: [BigInt(huntId), address],
-    });
+    setCurrentHuntId(huntId);
 
-    if (tokenId === 0n) {
-      toast.error(
-        "You are not eligible for this hunt. Please register or check the requirements."
-      );
-      return;
+    try {
+      const tokenId = await readContract({
+        contract,
+        method: "getTokenId",
+        params: [BigInt(huntId), address],
+      });
+
+      if (tokenId === 0n) {
+        toast.error(
+          "You are not eligible for this hunt. Please register or check the requirements."
+        );
+        return;
+      }
+
+      console.log("Hunt ID:", huntId, clues_blobId, answers_blobId);
+      const headersList = {
+        Accept: "*/*",
+        "Content-Type": "application/json",
+      };
+
+      const bodyContent = JSON.stringify({
+        userAddress: "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
+        clues_blobId: clues_blobId,
+        answers_blobId: answers_blobId,
+      });
+
+      const response = await fetch(`${BACKEND_URL}/decrypt-clues`, {
+        method: "POST",
+        body: bodyContent,
+        headers: headersList,
+      });
+
+      const data = await response.text();
+      const clues = JSON.parse(data);
+
+      console.log("Clues: ", clues);
+
+      await fetchRiddles(clues, huntId.toString());
+      navigate(`/hunt/${huntId}/clue/1`);
+    } catch (error) {
+      console.error("Error reading contract:", error);
+      toast.error("Failed to check hunt eligibility");
     }
-
-    console.log("Hunt ID:", huntId, clues_blobId, answers_blobId);
-    const headersList = {
-      Accept: "*/*",
-      "Content-Type": "application/json",
-    };
-
-    const bodyContent = JSON.stringify({
-      userAddress: "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
-      clues_blobId: clues_blobId,
-      answers_blobId: answers_blobId,
-    });
-
-    const response = await fetch(`${BACKEND_URL}/decrypt-clues`, {
-      method: "POST",
-      body: bodyContent,
-      headers: headersList,
-    });
-
-    const data = await response.text();
-    const clues = JSON.parse(data);
-
-    console.log("Clues: ", clues);
-
-    await fetchRiddles(clues, huntId.toString());
-    navigate(`/hunt/${huntId}/clue/1`);
   };
 
   const handleRegisterSuccess = (data: any) => {
@@ -148,9 +156,6 @@ export function Hunts() {
     currentNetwork,
     huntsError,
     hunts,
-    abi: typedHuntABI.find(
-      (item) => "name" in item && item.name === "getAllHunts"
-    ),
   });
 
   if (huntsError) {
@@ -251,43 +256,35 @@ export function Hunts() {
                   </div>
 
                   <div className="flex flex-row gap-2">
-                    <Transaction
-                      calls={[
-                        {
-                          address: contractAddress,
-                          abi: typedHuntABI,
-                          functionName: "registerForHunt",
-                          args: [
-                            index,
-                            address,
-                            "https://ethunt.vercel.app/metadata.json",
-                          ],
-                        },
+                    <TransactionButton
+                      contractAddress={contractAddress}
+                      abi={huntABI}
+                      functionName="registerForHunt"
+                      args={[
+                        index,
+                        address || "0x0000000000000000000000000000000000000000",
+                        "https://ethunt.vercel.app/metadata.json",
                       ]}
-                      className=""
-                      chainId={chainId}
+                      text={
+                        new Date(Number(BigInt(hunt.startTime))).getTime() >
+                        today
+                          ? "Coming Soon"
+                          : "Register"
+                      }
+                      className={`w-full py-1.5 text-sm font-medium rounded-md ${
+                        new Date(Number(hunt.startTime)).getTime() <= today
+                          ? "bg-yellow/40 border border-black text-black hover:bg-orange/90 "
+                          : "bg-gray-300 cursor-not-allowed text-gray-500"
+                      } transition-colors duration-300`}
+                      disabled={
+                        !address ||
+                        isLoading ||
+                        new Date(Number(BigInt(hunt.startTime))).getTime() >
+                          today
+                      }
                       onError={(error) => console.log(error)}
                       onSuccess={handleRegisterSuccess}
-                    >
-                      <TransactionButton
-                        text={
-                          new Date(Number(BigInt(hunt.startTime))).getTime() >
-                          today
-                            ? "Coming Soon"
-                            : "Register"
-                        }
-                        className={`w-full py-1.5 text-sm font-medium rounded-md ${
-                          new Date(Number(hunt.startTime)).getTime() <= today
-                            ? "bg-yellow/40 border border-black text-black hover:bg-orange/90 "
-                            : "bg-gray-300 cursor-not-allowed text-gray-500"
-                        } transition-colors duration-300`}
-                        disabled={
-                          isLoading ||
-                          new Date(Number(BigInt(hunt.startTime))).getTime() >
-                            today
-                        }
-                      />
-                    </Transaction>
+                    />
 
                     <Button
                       onClick={() =>

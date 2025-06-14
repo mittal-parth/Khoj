@@ -1,25 +1,17 @@
 import { useState, useEffect } from "react";
-import {
-  useAccount,
-  useWriteContract,
-  useWaitForTransactionReceipt,
-  useSwitchChain,
-} from "wagmi";
+import { useActiveAccount } from "thirdweb/react";
 import { huntABI } from "../assets/hunt_abi";
-import { type Abi } from "viem";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { TransactionButton } from "./TransactionButton";
 import {
   CONTRACT_ADDRESSES,
   SUPPORTED_CHAINS,
   paseoAssetHub,
 } from "../lib/utils";
-
-// Add type assertion for the ABI
-const typedHuntABI = huntABI as Abi;
 
 const BACKEND_URL = "http://localhost:8000";
 
@@ -54,8 +46,9 @@ interface IPFSResponse {
 }
 
 export function Create() {
-  const { address } = useAccount();
-  const { switchChain } = useSwitchChain();
+  const account = useActiveAccount();
+  const address = account?.address;
+
   const [huntName, setHuntName] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -85,35 +78,6 @@ export function Create() {
     SUPPORTED_CHAINS[currentNetwork as keyof typeof SUPPORTED_CHAINS].id;
   console.log("Create: Chain ID: ", chainId);
 
-  const {
-    writeContract,
-    isError,
-    error,
-    isPending,
-    data: hash,
-  } = useWriteContract();
-
-  // Wait for transaction receipt
-  const { isLoading: isConfirming, isSuccess: isConfirmed } =
-    useWaitForTransactionReceipt({
-      hash,
-    });
-
-  // Handle error case
-  useEffect(() => {
-    if (isError && error) {
-      toast.error(error.message);
-    }
-  }, [isError, error]);
-
-  // Handle success case
-  useEffect(() => {
-    if (isConfirmed) {
-      toast.success("Hunt created successfully!");
-      resetForm();
-    }
-  }, [isConfirmed]);
-
   if (!isValidHexAddress(contractAddress)) {
     toast.error("Invalid contract address format");
     return null;
@@ -141,89 +105,41 @@ export function Create() {
     }
   };
 
-  const handleCreateHunt = async () => {
-    if (!huntName || !description || !startDate || !duration) {
-      toast.error("Please fill in all required fields");
-      return;
+  const getTransactionArgs = () => {
+    if (
+      !huntName ||
+      !description ||
+      !startDate ||
+      !duration ||
+      !cluesCID ||
+      !answersCID
+    ) {
+      return null;
     }
 
-    if (!cluesCID || !answersCID) {
-      toast.error("Please provide both CIDs");
-      return;
-    }
+    // Convert date to YYYYMMDD format
+    const formattedDate = startDate.split("-").join("");
+    // Convert duration to seconds
+    const durationInSeconds = parseInt(duration) * 3600; // Convert hours to seconds
 
-    try {
-      // Convert date to YYYYMMDD format
-      const formattedDate = startDate.split("-").join("");
+    return [
+      huntName,
+      description,
+      BigInt(formattedDate),
+      cluesCID,
+      answersCID,
+      BigInt(durationInSeconds),
+    ];
+  };
 
-      // Convert duration to seconds
-      const durationInSeconds = parseInt(duration) * 3600; // Convert hours to seconds
-      console.log("Create: Contract Address: ", contractAddress);
-      console.log("Create: Chain ID: ", chainId);
+  const handleTransactionSuccess = (data: any) => {
+    toast.success("Hunt created successfully!");
+    resetForm();
+  };
 
-      // Try to add and switch to AssetHub network
-      try {
-        console.log("Adding AssetHub network...");
-        await window.ethereum.request({
-          method: "wallet_addEthereumChain",
-          params: [
-            {
-              chainId: "0x19191926", // 420420422 in hex
-              chainName: "PAssetHub - Contracts Testnet",
-              nativeCurrency: {
-                name: "Pas Tokens",
-                symbol: "PAS",
-                decimals: 18,
-              },
-              rpcUrls: ["https://testnet-passet-hub-eth-rpc.polkadot.io/"],
-              blockExplorerUrls: [
-                "https://blockscout-passet-hub.parity-testnet.parity.io/",
-              ],
-            },
-          ],
-        });
-
-        // Wait for chain to be added
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        // Now try to switch to the chain
-        console.log("Switching to AssetHub network...");
-        await window.ethereum.request({
-          method: "wallet_switchEthereumChain",
-          params: [{ chainId: "0x19191926" }], // 420420422 in hex
-        });
-
-        // Wait for network switch to complete
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-      } catch (switchError: any) {
-        console.error("Failed to switch network:", switchError);
-        if (switchError.code === 4001) {
-          toast.error("Please switch to Asset Hub network in your wallet");
-        } else {
-          toast.error("Failed to add or switch to Asset Hub network");
-        }
-        return;
-      }
-
-      // Proceed with transaction
-      writeContract({
-        address: contractAddress,
-        abi: typedHuntABI,
-        functionName: "createHunt",
-        args: [
-          huntName,
-          description,
-          BigInt(formattedDate),
-          cluesCID,
-          answersCID,
-          BigInt(durationInSeconds),
-        ],
-        chainId: 420420422, // Explicitly set AssetHub chain ID
-      });
-    } catch (err) {
-      console.error("Error creating hunt:", err);
-      toast.error("Failed to create hunt");
-    }
+  const handleTransactionError = (error: any) => {
+    console.error("Error creating hunt:", error);
+    toast.error(error.message || "Failed to create hunt");
   };
 
   const uploadToIPFS = async () => {
@@ -298,6 +214,9 @@ export function Create() {
     setUploadedCIDs(null);
   };
 
+  const transactionArgs = getTransactionArgs();
+  const canCreateHunt = transactionArgs !== null && account;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Create New Hunt</h1>
@@ -371,13 +290,27 @@ export function Create() {
             </div>
           </div>
 
-          <Button
-            onClick={handleCreateHunt}
-            disabled={isPending || isConfirming || !cluesCID || !answersCID}
-            className="w-full bg-yellow/40 border border-black text-black hover:bg-orange/90 py-2 rounded-md font-medium"
-          >
-            {isPending || isConfirming ? "Creating Hunt..." : "Create Hunt"}
-          </Button>
+          {canCreateHunt ? (
+            <TransactionButton
+              contractAddress={contractAddress}
+              abi={huntABI}
+              functionName="createHunt"
+              args={transactionArgs}
+              text="Create Hunt"
+              className="w-full bg-yellow/40 border border-black text-black hover:bg-orange/90 py-2 rounded-md font-medium"
+              onSuccess={handleTransactionSuccess}
+              onError={handleTransactionError}
+            />
+          ) : (
+            <Button
+              disabled
+              className="w-full bg-gray-300 text-gray-500 py-2 rounded-md font-medium"
+            >
+              {!account
+                ? "Connect Wallet to Create Hunt"
+                : "Fill in all fields to create hunt"}
+            </Button>
+          )}
         </div>
 
         <div className="space-y-6">

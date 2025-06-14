@@ -14,16 +14,15 @@ import { config, getTrueNetworkInstance } from "../../true-network/true.config";
 import { huntAttestationSchema } from "@/schemas/huntSchema";
 import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
 import { HuddleRoom } from "./HuddleRoom";
-import { useReadContract } from "wagmi";
+import { useReadContract } from "thirdweb/react";
+import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi";
-import { type Abi } from "viem";
 import { CONTRACT_ADDRESSES } from "../lib/utils";
 import { toast } from "sonner";
+import { client } from "../lib/client";
+import { paseoAssetHub } from "../lib/chains";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
-
-// Add type assertion for the ABI
-const typedHuntABI = huntABI as Abi;
 
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
@@ -50,6 +49,21 @@ export function Clue() {
     CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
     "0x0000000000000000000000000000000000000000";
 
+  // Create thirdweb contract instance
+  const contract = getContract({
+    client,
+    chain: paseoAssetHub,
+    address: contractAddress as `0x${string}`,
+    abi: huntABI,
+  });
+
+  // Get hunt details from contract
+  const { data: huntDetails } = useReadContract({
+    contract,
+    method: "getHunt",
+    params: [BigInt(huntId || 0)],
+  });
+
   useEffect(() => {
     setVerificationState("idle");
 
@@ -67,25 +81,15 @@ export function Clue() {
     }
   }, [clueId]);
 
-  const currentClue = parseInt(clueId || "0");
-  const currentClueData = JSON.parse(
-    localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
-  );
-
-  // Get hunt details from contract
-  const { data: huntDetails } = useReadContract({
-    address: contractAddress as `0x${string}`,
-    abi: typedHuntABI,
-    functionName: "getHunt",
-    args: [BigInt(huntId || 0)],
-  }) as {
-    data: [string, string, bigint, bigint, bigint, string[], string, string];
-  };
-
   if (!isValidHexAddress(contractAddress)) {
     toast.error("Invalid contract address format");
     return null;
   }
+
+  const currentClue = parseInt(clueId || "0");
+  const currentClueData = JSON.parse(
+    localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
+  );
 
   // Extract hunt details
   const huntData = huntDetails
