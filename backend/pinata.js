@@ -1,11 +1,11 @@
-import { PinataSDK } from 'pinata';
-import dotenv from 'dotenv';
+import { PinataSDK } from "pinata";
+import dotenv from "dotenv";
 
 dotenv.config();
 
 const pinata = new PinataSDK({
   pinataJwt: process.env.PINATA_JWT,
-  pinataGateway: process.env.PINATA_GATEWAY || "https://gateway.pinata.cloud"
+  pinataGateway: process.env.PINATA_GATEWAY || "https://gateway.pinata.cloud",
 });
 
 /**
@@ -16,18 +16,18 @@ const pinata = new PinataSDK({
 export async function storeString(text) {
   try {
     // Create a Blob from the text
-    const blob = new Blob([text], { type: 'text/plain' });
-    const file = new File([blob], 'data.txt', { type: 'text/plain' });
+    const blob = new Blob([text], { type: "text/plain" });
+    const file = new File([blob], "data.txt", { type: "text/plain" });
 
     // Upload to Pinata using the SDK
     console.log("pinata: Uploading to Pinata");
     const upload = await pinata.upload.public.file(file);
     console.log("pinata: Uploaded to Pinata");
     // console.log('pinata: Store Response:', JSON.stringify(upload, null, 2));
-    
+
     return upload.cid;
   } catch (error) {
-    console.error('Error storing file:', error.response?.data || error.message);
+    console.error("Error storing file:", error.response?.data || error.message);
     throw error;
   }
 }
@@ -46,13 +46,13 @@ export async function readObject(cid) {
 
     return response.data;
   } catch (error) {
-    console.error('Error reading file:', error.response?.data || error.message);
+    console.error("Error reading file:", error.response?.data || error.message);
     throw error;
   }
-} 
-
-async function run() {
-  await storeString("test")
 }
 
-run()
+async function run() {
+  await storeString("test");
+}
+
+run();

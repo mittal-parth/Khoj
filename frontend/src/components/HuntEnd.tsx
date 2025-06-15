@@ -62,7 +62,7 @@ export function HuntEnd() {
   // Use dynamic title, static reward/description
   const huntData = {
     title: huntDetails ? huntDetails[0] : "...",
-    totalReward: "0.45 ETH",
+    totalReward: "Swags!! 🎁",
     description:
       "You've successfully completed all the challenges and found the treasure!",
   };

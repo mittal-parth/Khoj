@@ -98,7 +98,7 @@ export function Clue() {
         description: huntDetails[1],
         totalClues: currentClueData?.length || 0,
         currentClue: parseInt(clueId || "1"),
-        answers_blobId: huntDetails[6],
+        answers_blobId: huntDetails[7],
       }
     : null;
 
@@ -144,21 +144,34 @@ export function Clue() {
     setIsSubmitting(true);
     setVerificationState("verifying");
     console.log("huntData: ", huntDetails);
+    console.log("=== DEBUGGING REQUEST ===");
+    console.log("Current location state:", location);
+    console.log("Location type:", typeof location);
+    console.log("Location keys:", Object.keys(location));
+    console.log("huntData:", huntData);
+    console.log("huntData.answers_blobId:", huntData.answers_blobId);
+    console.log("clueId param:", clueId);
+    console.log("Number(clueId):", Number(clueId));
+
     try {
       const headersList = {
         Accept: "*/*",
         "Content-Type": "application/json",
       };
 
-      const bodyContent = JSON.stringify({
+      const requestBody = {
         userAddress: "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
         answers_blobId: huntData.answers_blobId,
         cLat: location.latitude,
         cLong: location.longitude,
         clueId: Number(clueId),
-      });
+      };
 
-      console.log(bodyContent);
+      console.log("Request body object:", requestBody);
+      console.log("Request body object keys:", Object.keys(requestBody));
+
+      const bodyContent = JSON.stringify(requestBody);
+      console.log("Stringified body content:", bodyContent);
 
       const response = await fetch(`${BACKEND_URL}/decrypt-ans`, {
         method: "POST",
@@ -166,8 +179,16 @@ export function Clue() {
         headers: headersList,
       });
 
+      console.log("Response status:", response.status);
+      console.log("Response headers:", response.headers);
+
       const data = await response.json();
-      console.log(data);
+      console.log("=== BACKEND RESPONSE ===");
+      console.log("Full response data:", data);
+      console.log("Response data type:", typeof data);
+      console.log("Response data keys:", Object.keys(data));
+      console.log("data.isClose:", data.isClose);
+      console.log("data.isClose type:", typeof data.isClose);
 
       const isCorrect = data.isClose;
 
