@@ -70,6 +70,16 @@ export function Clue() {
   useEffect(() => {
     setVerificationState("idle");
 
+    // Progress validation: prevent skipping ahead
+    const progressKey = `hunt_progress_${huntId}`;
+    let progress = JSON.parse(localStorage.getItem(progressKey) || "[]");
+    // Only allow access to the next unsolved clue or any previous clue
+    const allowedClue = (progress.length || 0) + 1;
+    if (currentClue > allowedClue) {
+      navigate(`/hunt/${huntId}/clue/${allowedClue}`);
+      return;
+    }
+
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
@@ -82,7 +92,7 @@ export function Clue() {
         }
       );
     }
-  }, [clueId]);
+  }, [clueId, huntId, navigate]);
 
   if (!isValidHexAddress(contractAddress)) {
     toast.error("Invalid contract address format");
@@ -198,6 +208,13 @@ export function Clue() {
       const isCorrect = data.isClose;
 
       if (isCorrect == "true") {
+        // Update progress in localStorage
+        const progressKey = `hunt_progress_${huntId}`;
+        let progress = JSON.parse(localStorage.getItem(progressKey) || "[]");
+        if (!progress.includes(currentClue)) {
+          progress.push(currentClue);
+          localStorage.setItem(progressKey, JSON.stringify(progress));
+        }
         // Create attestation when clue is solved
         await createHuntAttestation();
 
