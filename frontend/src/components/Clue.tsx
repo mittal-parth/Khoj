@@ -14,7 +14,7 @@ import { config, getTrueNetworkInstance } from "../../true-network/true.config";
 import { huntAttestationSchema } from "@/schemas/huntSchema";
 import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
 import { HuddleRoom } from "./HuddleRoom";
-import { useReadContract } from "thirdweb/react";
+import { useReadContract, useActiveAccount } from "thirdweb/react";
 import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi";
 import { CONTRACT_ADDRESSES } from "../lib/utils";
@@ -64,6 +64,9 @@ export function Clue() {
     params: [BigInt(huntId || 0)],
   });
 
+  const account = useActiveAccount();
+  const userWallet = account?.address;
+
   useEffect(() => {
     setVerificationState("idle");
 
@@ -105,17 +108,17 @@ export function Clue() {
   const createHuntAttestation = async () => {
     try {
       const api = await getTrueNetworkInstance();
-
-      // TODO: Change to wallet address
-      const userWallet = "0x9dfa242c8E10d16796174214797BC5b9893ab517";
-
+      if (!userWallet) {
+        toast.error("Wallet not connected");
+        setIsSubmitting(false);
+        return;
+      }
       const output = await huntAttestationSchema.attest(api, userWallet, {
         huntId: parseInt(huntId || "0"),
         timestamp: Math.floor(Date.now() / 1000), // Current timestamp in seconds
         clueNumber: parseInt(clueId || "0"),
         numberOfTries: attempts,
       });
-
       console.log("Attestation created:", output);
       await api.network.disconnect();
     } catch (error) {
