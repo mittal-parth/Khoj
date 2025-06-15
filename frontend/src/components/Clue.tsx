@@ -129,7 +129,9 @@ export function Clue() {
 
   const getUserScore = async () => {
     const api = await getTrueNetworkInstance();
-    const userWallet = "0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97";
+    if (!userWallet) {
+      throw new Error("Wallet not connected");
+    }
     const score = await runAlgo(
       api.network,
       config.issuer.hash,

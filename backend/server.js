@@ -16,7 +16,6 @@ import {
 import { LitNetwork } from "@lit-protocol/constants";
 import dotenv from "dotenv";
 import cors from "cors";
-import { parseJSON } from "./data_transform.js";
 
 import { readObject, storeString } from "./pinata.js";
 import {
@@ -25,8 +24,7 @@ import {
   startStreaming,
   stopStreaming,
 } from "./huddle.js";
-// import haversineDistance from './haversine-distance.js';
-const MAX_DISTANCE_IN_METERS = 50;
+const MAX_DISTANCE_IN_METERS = parseFloat(process.env.MAX_DISTANCE_IN_METERS) || 60;
 
 const corsOptions = {
   origin: "*", // Adjust this to your frontend's origin
@@ -51,7 +49,7 @@ const walletWithCapacityCredit = new Wallet(process.env.PRIVATE_KEY);
 
 const authSig = await (async () => {
   const toSign = await createSiweMessageWithRecaps({
-    uri: "http://localhost",
+    uri: process.env.HOST || "http://localhost",
     expiration: new Date(Date.now() + 1000 * 60 * 60).toISOString(), // 24 hours
     walletAddress: walletWithCapacityCredit.address,
     nonce: await client.getLatestBlockhash(),
@@ -257,7 +255,6 @@ export class Lit {
       const sin = Math.sin;
       const sqrt = Math.sqrt;
       const PI = Math.PI;
-      const MAX_DISTANCE_IN_METERS = 50;
 
       // equatorial mean radius of Earth (in meters)
       const R = 6378137;
@@ -349,6 +346,7 @@ export class Lit {
         cLat: cLat,
         cLong: cLong,
         haversineDistance: MAX_DISTANCE_IN_METERS,
+        MAX_DISTANCE_IN_METERS: MAX_DISTANCE_IN_METERS,
       },
     });
     console.log("result from action execution:", res);
@@ -669,7 +667,7 @@ app.post("/livestreams/stop", async (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`Server listening at http://localhost:${port}`);
+  console.log(`Server listening at ${(process.env.HOST || "http://localhost")}:${port}`);
 });
 
 // run().catch(console.error)

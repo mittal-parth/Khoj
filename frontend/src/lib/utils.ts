@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { defineChain } from "viem";
-import { baseSepolia, moonbaseAlpha } from "wagmi/chains";
+import { baseSepolia } from "wagmi/chains";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

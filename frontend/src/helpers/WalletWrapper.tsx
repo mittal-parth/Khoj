@@ -1,4 +1,4 @@
-import { ConnectButton, useActiveAccount } from "thirdweb/react";
+import { ConnectButton } from "thirdweb/react";
 import { client } from "../lib/client";
 import { paseoAssetHub } from "../lib/chains";
 

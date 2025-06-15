@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { huntABI } from "../assets/hunt_abi";
 import { toast } from "sonner";
@@ -7,13 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { TransactionButton } from "./TransactionButton";
-import {
-  CONTRACT_ADDRESSES,
-  SUPPORTED_CHAINS,
-  paseoAssetHub,
-} from "../lib/utils";
+import { CONTRACT_ADDRESSES, SUPPORTED_CHAINS } from "../lib/utils";
 
-const BACKEND_URL = "http://localhost:8000";
+const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
@@ -132,7 +128,7 @@ export function Create() {
     ];
   };
 
-  const handleTransactionSuccess = (data: any) => {
+  const handleTransactionSuccess = () => {
     toast.success("Hunt created successfully!");
     resetForm();
   };
