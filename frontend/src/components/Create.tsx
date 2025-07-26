@@ -144,7 +144,7 @@ export function Create() {
       const response = await fetch(`${BACKEND_URL}/health`);
       if (response.ok) {
         const data = await response.json();
-        console.log("Backend health check response:", data);
+        console.log("Backend health check response:", BACKEND_URL, data);
         setHealthCheckStatus("✅ Backend is healthy");
         toast.success("Backend is working!");
       } else {

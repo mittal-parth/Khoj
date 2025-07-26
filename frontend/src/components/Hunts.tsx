@@ -48,6 +48,9 @@ export function Hunts() {
   );
   const { fetchRiddles, isLoading } = useClaudeRiddles(currentHuntId);
 
+  // Feature flag for hunt filtering - controlled by environment variable
+  const enableHuntFiltering = import.meta.env.VITE_ENABLE_HUNT_FILTERING === 'true';
+
   // Add this to get current network from localStorage
   const currentNetwork = localStorage.getItem("current_network") || "assetHub";
   const rawContractAddress =
@@ -84,10 +87,30 @@ export function Hunts() {
     params: [],
   });
 
+  // Process hunts based on feature flag
+  const processedHunts = useMemo(() => {
+    if (!enableHuntFiltering) {
+      return hunts;
+    }
+
+    // Filter out hunts with 'Test' or 'hello' in name or description (case insensitive)
+    // Also filter out hunts with descriptions smaller than 5 characters
+    const filteredHunts = hunts.filter((hunt: Hunt) => {
+      const nameMatch = hunt.name.toLowerCase().includes('test') || hunt.name.toLowerCase().includes('hello');
+      const descriptionMatch = hunt.description.toLowerCase().includes('test') || hunt.description.toLowerCase().includes('hello');
+      const descriptionTooShort = hunt.description.length < 5;
+      
+      return !nameMatch && !descriptionMatch && !descriptionTooShort;
+    });
+
+    // Return only the last 5 hunts
+    return filteredHunts.slice(-5);
+  }, [hunts, enableHuntFiltering]);
+
   // Check registration status for all hunts when component loads or address changes
   useEffect(() => {
     const checkRegistrationStatus = async () => {
-      if (!address || !hunts.length || isCheckingRegistrations || !contract)
+      if (!address || !processedHunts.length || isCheckingRegistrations || !contract)
         return;
 
       setIsCheckingRegistrations(true);
@@ -95,19 +118,24 @@ export function Hunts() {
 
       try {
         // Check registration status for each hunt
-        const promises = hunts.map(async (_, i) => {
+        // Note: We need to map back to original hunt indices for contract calls
+        const promises = processedHunts.map(async (_, processedIndex) => {
           try {
+            // Find the original index of this hunt in the full hunts array
+            const originalIndex = hunts.findIndex(hunt => hunt === processedHunts[processedIndex]);
+            
             const tokenId = await readContract({
               contract,
               method: "getTokenId",
-              params: [BigInt(i), address],
+              params: [BigInt(originalIndex), address],
             });
 
             // If tokenId > 0, user is registered for this hunt
-            return { index: i, isRegistered: tokenId > 0n };
+            // Store using the processedIndex for UI consistency
+            return { index: processedIndex, isRegistered: tokenId > 0n };
           } catch (error) {
-            console.error(`Error checking registration for hunt ${i}:`, error);
-            return { index: i, isRegistered: false };
+            console.error(`Error checking registration for hunt ${processedIndex}:`, error);
+            return { index: processedIndex, isRegistered: false };
           }
         });
 
@@ -125,7 +153,7 @@ export function Hunts() {
     };
 
     checkRegistrationStatus();
-  }, [address, hunts.length, contract]); // Added contract back since it's now memoized properly
+  }, [address, processedHunts.length, contract, hunts]); // Added hunts dependency for mapping
 
   // Early returns after all hooks
   if (!isValidHexAddress(rawContractAddress)) {
@@ -153,7 +181,8 @@ export function Hunts() {
   console.log("NFT Contract Address:", nftContractAddress);
 
   const handleHuntStart = async (
-    huntId: number,
+    processedIndex: number,
+    originalIndex: number,
     clues_blobId: string,
     answers_blobId: string
   ) => {
@@ -163,14 +192,14 @@ export function Hunts() {
     }
 
     // Set this hunt as starting
-    setStartingHunts((prev) => ({ ...prev, [huntId]: true }));
-    setCurrentHuntId(huntId);
+    setStartingHunts((prev) => ({ ...prev, [processedIndex]: true }));
+    setCurrentHuntId(originalIndex);
 
     try {
       const tokenId = await readContract({
         contract,
         method: "getTokenId",
-        params: [BigInt(huntId), address],
+        params: [BigInt(originalIndex), address],
       });
 
       if (tokenId === 0n) {
@@ -180,7 +209,7 @@ export function Hunts() {
         return;
       }
 
-      console.log("Hunt ID:", huntId, clues_blobId, answers_blobId);
+      console.log("Hunt ID:", originalIndex, clues_blobId, answers_blobId);
       const headersList = {
         Accept: "*/*",
         "Content-Type": "application/json",
@@ -203,14 +232,14 @@ export function Hunts() {
 
       console.log("Clues: ", clues);
 
-      await fetchRiddles(clues, huntId.toString());
-      navigate(`/hunt/${huntId}/clue/1`);
+      await fetchRiddles(clues, originalIndex.toString());
+      navigate(`/hunt/${originalIndex}/clue/1`);
     } catch (error) {
       console.error("Error reading contract:", error);
       toast.error("Failed to check hunt eligibility");
     } finally {
       // Remove this hunt from starting state
-      setStartingHunts((prev) => ({ ...prev, [huntId]: false }));
+      setStartingHunts((prev) => ({ ...prev, [processedIndex]: false }));
     }
   };
 
@@ -316,8 +345,10 @@ export function Hunts() {
         Hunts
       </h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {hunts.map((hunt: Hunt, index: number) => {
+        {processedHunts.map((hunt: Hunt, index: number) => {
           const buttonConfig = getButtonConfig(hunt, index);
+          // Find the original index for contract interactions
+          const originalIndex = hunts.findIndex(h => h === hunt);
 
           return (
             <div
@@ -377,7 +408,7 @@ export function Hunts() {
                       abi={huntABI}
                       functionName="registerForHunt"
                       args={[
-                        index,
+                        originalIndex,
                         address || "0x0000000000000000000000000000000000000000",
                         "https://ethunt.vercel.app/metadata.json",
                       ]}
@@ -398,6 +429,7 @@ export function Hunts() {
                         if (buttonConfig.action === "start") {
                           handleHuntStart(
                             index,
+                            originalIndex,
                             hunt.clues_blobId,
                             hunt.answers_blobId
                           );

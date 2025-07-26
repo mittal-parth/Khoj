@@ -37,6 +37,6 @@ export const paseoAssetHub = defineChain({
 
 export const SUPPORTED_CHAINS = {
   // moonbeam: moonbaseAlpha,
-  base: baseSepolia,
+  // base: baseSepolia,
   assetHub: paseoAssetHub,
 };
