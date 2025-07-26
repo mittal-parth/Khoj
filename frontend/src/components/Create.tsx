@@ -61,6 +61,7 @@ export function Create() {
   const [uploadedCIDs, setUploadedCIDs] = useState<IPFSResponse | null>(null);
   const [cluesCID, setCluesCID] = useState("");
   const [answersCID, setAnswersCID] = useState("");
+  const [healthCheckStatus, setHealthCheckStatus] = useState<string | null>(null);
 
   // Add this to get current network from localStorage
   const currentNetwork = localStorage.getItem("current_network") || "assetHub";
@@ -136,6 +137,23 @@ export function Create() {
   const handleTransactionError = (error: any) => {
     console.error("Error creating hunt:", error);
     toast.error(error.message || "Failed to create hunt");
+  };
+
+  const testBackendHealth = async () => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/health`);
+      if (response.ok) {
+        const data = await response.json();
+        setHealthCheckStatus("✅ Backend is healthy");
+        toast.success("Backend is working!");
+      } else {
+        setHealthCheckStatus(`❌ Backend error: ${response.status}`);
+        toast.error(`Backend error: ${response.status}`);
+      }
+    } catch (error) {
+      setHealthCheckStatus("❌ Backend unreachable");
+      toast.error("Backend is unreachable");
+    }
   };
 
   const uploadToIPFS = async () => {
@@ -216,6 +234,18 @@ export function Create() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Create New Hunt</h1>
+
+      {/* Simple Backend Health Check */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-md">
+        <div className="flex items-center gap-4">
+          <Button onClick={testBackendHealth} variant="outline" size="sm">
+            Test Backend
+          </Button>
+          {healthCheckStatus && (
+            <span className="text-sm">{healthCheckStatus}</span>
+          )}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">

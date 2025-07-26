@@ -31,18 +31,25 @@ const corsOptions = {
   optionsSuccessStatus: 200,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  preflightContinue: false,
 };
 
 dotenv.config();
 
 const app = express();
 
-// Debug CORS
+// Debug CORS and requests
 app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path} - Origin: ${req.get('Origin')}`);
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  console.log(`Origin: ${req.get('Origin')}`);
+  console.log(`User-Agent: ${req.get('User-Agent')}`);
+  console.log(`Headers:`, req.headers);
   next();
 });
+
+// Add explicit preflight handler
+app.options('*', cors(corsOptions));
 
 app.use(cors(corsOptions)); // Single CORS configuration
 app.use(express.json());
