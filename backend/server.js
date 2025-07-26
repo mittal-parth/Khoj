@@ -27,16 +27,25 @@ import {
 const MAX_DISTANCE_IN_METERS = parseFloat(process.env.MAX_DISTANCE_IN_METERS) || 60;
 
 const corsOptions = {
-  origin: "*", // Adjust this to your frontend's origin
+  origin: "*", // Temporarily allow all origins for debugging
   optionsSuccessStatus: 200,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
 };
 
 dotenv.config();
 
 const app = express();
-app.use(cors()); // Add this line to enable CORS for all routes
+
+// Debug CORS
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - Origin: ${req.get('Origin')}`);
+  next();
+});
+
+app.use(cors(corsOptions)); // Single CORS configuration
 app.use(express.json());
-app.use(cors(corsOptions));
 
 const port = process.env.PORT || 8000;
 const userAddress = "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397";
@@ -664,6 +673,11 @@ app.post("/livestreams/stop", async (req, res) => {
   console.log("Backend bodyData: ", bodyData);
   await stopStreaming(bodyData.roomId);
   res.send({ message: "Streaming stopped" });
+});
+
+// Add health check endpoint for Docker
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
 app.listen(port, () => {
