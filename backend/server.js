@@ -1,4 +1,26 @@
 import express from "express";
+// Import our patch for Lit Protocol
+import { getWebCrypto } from './lit-protocol-patch.js';
+
+// Make sure crypto is available in the global scope
+if (typeof global.crypto === 'undefined' || !global.crypto.subtle) {
+  const webCrypto = getWebCrypto();
+  // Use Object.defineProperty to avoid errors with getters
+  if (!global.crypto) {
+    Object.defineProperty(global, 'crypto', {
+      value: webCrypto,
+      writable: false,
+      configurable: false
+    });
+  } else if (!global.crypto.subtle) {
+    // Just add the subtle property if missing
+    Object.defineProperty(global.crypto, 'subtle', {
+      value: webCrypto.subtle,
+      writable: false,
+      configurable: false
+    });
+  }
+}
 
 import {
   encryptString,
@@ -65,7 +87,7 @@ const walletWithCapacityCredit = new Wallet(process.env.PRIVATE_KEY);
 
 const authSig = await (async () => {
   const toSign = await createSiweMessageWithRecaps({
-    uri: process.env.HOST || "http://localhost",
+    uri: `http://${process.env.HOST === '0.0.0.0' ? 'localhost' : (process.env.HOST || 'localhost')}:${process.env.PORT || 8000}`,
     expiration: new Date(Date.now() + 1000 * 60 * 60).toISOString(), // 24 hours
     walletAddress: walletWithCapacityCredit.address,
     nonce: await client.getLatestBlockhash(),
@@ -594,10 +616,13 @@ app.post("/decrypt-ans", async (req, res) => {
   console.log("Request body:", JSON.stringify(bodyData, null, 2));
   console.log("answers_blobId:", bodyData.answers_blobId);
 
+  const content = await readObject(bodyData.answers_blobId);
+  const parsedContent = JSON.parse(content);
+
   const {
     ciphertext: answers_ciphertext,
     dataToEncryptHash: answers_dataToEncryptHash,
-  } = await readObject(bodyData.answers_blobId);
+  } = parsedContent;
 
   console.log("Data read from answers_blobId:");
   console.log("answers_ciphertext:", answers_ciphertext);
@@ -625,10 +650,13 @@ app.post("/decrypt-clues", async (req, res) => {
     const clues_blobId = bodyData.clues_blobId;
     // const userAddress = bodyData.userAddress;
 
+    const content = await readObject(clues_blobId);
+    const parsedContent = JSON.parse(content);
+
     const {
       ciphertext: clues_ciphertext,
       dataToEncryptHash: clues_dataToEncryptHash,
-    } = await readObject(clues_blobId);
+    } = parsedContent;
 
     console.log("clues_dataToEncryptHash: ", clues_dataToEncryptHash);
     console.log("clues_ciphertext: ", clues_ciphertext);
