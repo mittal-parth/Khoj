@@ -616,13 +616,13 @@ app.post("/decrypt-ans", async (req, res) => {
   console.log("Request body:", JSON.stringify(bodyData, null, 2));
   console.log("answers_blobId:", bodyData.answers_blobId);
 
-  const content = await readObject(bodyData.answers_blobId);
-  const parsedContent = JSON.parse(content);
-
+  const answersData = await readObject(bodyData.answers_blobId);
+  const parsedAnswersData = typeof answersData === 'string' ? JSON.parse(answersData) : answersData;
+  
   const {
     ciphertext: answers_ciphertext,
     dataToEncryptHash: answers_dataToEncryptHash,
-  } = parsedContent;
+  } = parsedAnswersData;
 
   console.log("Data read from answers_blobId:");
   console.log("answers_ciphertext:", answers_ciphertext);
@@ -650,13 +650,13 @@ app.post("/decrypt-clues", async (req, res) => {
     const clues_blobId = bodyData.clues_blobId;
     // const userAddress = bodyData.userAddress;
 
-    const content = await readObject(clues_blobId);
-    const parsedContent = JSON.parse(content);
-
+    const cluesData = await readObject(clues_blobId);
+    const parsedCluesData = typeof cluesData === 'string' ? JSON.parse(cluesData) : cluesData;
+    
     const {
       ciphertext: clues_ciphertext,
       dataToEncryptHash: clues_dataToEncryptHash,
-    } = parsedContent;
+    } = parsedCluesData;
 
     console.log("clues_dataToEncryptHash: ", clues_dataToEncryptHash);
     console.log("clues_ciphertext: ", clues_ciphertext);
