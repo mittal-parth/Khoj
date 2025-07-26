@@ -49,17 +49,24 @@ import {
 const MAX_DISTANCE_IN_METERS = parseFloat(process.env.MAX_DISTANCE_IN_METERS) || 60;
 
 const corsOptions = {
-  origin: ["https://khoj-app.vercel.app", "http://localhost:3000"], // Frontend origins
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  origin: "*", // Temporarily allow all origins for debugging
+  optionsSuccessStatus: 200,
   credentials: true,
-  optionsSuccessStatus: 200
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
 };
 
 dotenv.config();
 
 const app = express();
-app.use(cors(corsOptions)); // Apply CORS with specific options
+
+// Debug CORS
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path} - Origin: ${req.get('Origin')}`);
+  next();
+});
+
+app.use(cors(corsOptions)); // Single CORS configuration
 app.use(express.json());
 
 const port = process.env.PORT || 8000;
@@ -694,6 +701,11 @@ app.post("/livestreams/stop", async (req, res) => {
   console.log("Backend bodyData: ", bodyData);
   await stopStreaming(bodyData.roomId);
   res.send({ message: "Streaming stopped" });
+});
+
+// Add health check endpoint for Docker
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
 app.listen(port, () => {
