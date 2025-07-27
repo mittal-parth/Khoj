@@ -1,18 +1,20 @@
-import { useState, useEffect } from "react";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useState } from "react";
+import { useActiveAccount } from "thirdweb/react";
 import { huntABI } from "../assets/hunt_abi";
-import { type Abi } from "viem";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { CONTRACT_ADDRESSES } from "../lib/utils";
+import { TransactionButton } from "./TransactionButton";
+import { CONTRACT_ADDRESSES, SUPPORTED_CHAINS } from "../lib/utils";
 
-// Add type assertion for the ABI
-const typedHuntABI = huntABI as Abi;
+const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
-const BACKEND_URL = "http://localhost:8000";
+// Type guard to ensure address is a valid hex string
+function isValidHexAddress(address: string): address is `0x${string}` {
+  return /^0x[0-9a-fA-F]{40}$/.test(address);
+}
 
 interface Clue {
   id: number;
@@ -40,7 +42,9 @@ interface IPFSResponse {
 }
 
 export function Create() {
-  const { address } = useAccount();
+  const account = useActiveAccount();
+  const address = account?.address;
+
   const [huntName, setHuntName] = useState("");
   const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -57,18 +61,24 @@ export function Create() {
   const [uploadedCIDs, setUploadedCIDs] = useState<IPFSResponse | null>(null);
   const [cluesCID, setCluesCID] = useState("");
   const [answersCID, setAnswersCID] = useState("");
+  const [healthCheckStatus, setHealthCheckStatus] = useState<string | null>(null);
 
   // Add this to get current network from localStorage
-  const currentNetwork = localStorage.getItem("current_network") || "base";
+  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
+  console.log("Create: Current Network: ", currentNetwork);
   const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES];
+    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
+    "0x0000000000000000000000000000000000000000";
 
-  const { writeContract, isError, error, isPending, data: hash } = useWriteContract();
+  // Get chain ID for the current network
+  const chainId =
+    SUPPORTED_CHAINS[currentNetwork as keyof typeof SUPPORTED_CHAINS].id;
+  console.log("Create: Chain ID: ", chainId);
 
-  // Wait for transaction receipt
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-  });
+  if (!isValidHexAddress(contractAddress)) {
+    toast.error("Invalid contract address format");
+    return null;
+  }
 
   const handleAddClue = () => {
     if (
@@ -92,41 +102,58 @@ export function Create() {
     }
   };
 
-  const handleCreateHunt = async () => {
-    if (!huntName || !description || !startDate || !duration) {
-      toast.error("Please fill in all required fields");
-      return;
+  const getTransactionArgs = () => {
+    if (
+      !huntName ||
+      !description ||
+      !startDate ||
+      !duration ||
+      !cluesCID ||
+      !answersCID
+    ) {
+      return null;
     }
 
-    if (!cluesCID || !answersCID) {
-      toast.error("Please provide both CIDs");
-      return;
-    }
+    // Convert date to YYYYMMDD format
+    const formattedDate = startDate.split("-").join("");
+    // Convert duration to seconds
+    const durationInSeconds = parseInt(duration) * 3600; // Convert hours to seconds
 
+    return [
+      huntName,
+      description,
+      BigInt(formattedDate),
+      cluesCID,
+      answersCID,
+      BigInt(durationInSeconds),
+    ];
+  };
+
+  const handleTransactionSuccess = () => {
+    toast.success("Hunt created successfully!");
+    resetForm();
+  };
+
+  const handleTransactionError = (error: any) => {
+    console.error("Error creating hunt:", error);
+    toast.error(error.message || "Failed to create hunt");
+  };
+
+  const testBackendHealth = async () => {
     try {
-      // Convert date to YYYYMMDD format
-      const formattedDate = startDate.split("-").join("");
-      
-      // Convert duration to seconds
-      const durationInSeconds = parseInt(duration) * 3600; // Convert hours to seconds
-
-      writeContract({
-        address: contractAddress,
-        abi: typedHuntABI,
-        functionName: "createHunt",
-        args: [
-          huntName,
-          description,
-          BigInt(formattedDate),
-          cluesCID,
-          answersCID,
-          BigInt(durationInSeconds),
-        ],
-      });
-
-    } catch (err) {
-      console.error("Error creating hunt:", err);
-      toast.error("Failed to create hunt");
+      const response = await fetch(`${BACKEND_URL}/health`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Backend health check response:", BACKEND_URL, data);
+        setHealthCheckStatus("✅ Backend is healthy");
+        toast.success("Backend is working!");
+      } else {
+        setHealthCheckStatus(`❌ Backend error: ${response.status}`);
+        toast.error(`Backend error: ${response.status}`);
+      }
+    } catch (error) {
+      setHealthCheckStatus("❌ Backend unreachable");
+      toast.error("Backend is unreachable");
     }
   };
 
@@ -145,12 +172,14 @@ export function Create() {
         description,
       }));
 
-      const answersData: AnswerData[] = clues.map(({ id, answer, lat, long }) => ({
-        id,
-        answer,
-        lat,
-        long,
-      }));
+      const answersData: AnswerData[] = clues.map(
+        ({ id, answer, lat, long }) => ({
+          id,
+          answer,
+          lat,
+          long,
+        })
+      );
 
       const response = await fetch(`${BACKEND_URL}/encrypt`, {
         method: "POST",
@@ -170,7 +199,9 @@ export function Create() {
 
       const data = await response.json();
       setUploadedCIDs(data);
-      toast.success("Successfully uploaded to IPFS! Please copy the CIDs below to the CID input fields.");
+      toast.success(
+        "Successfully uploaded to IPFS! Please copy the CIDs below to the CID input fields."
+      );
     } catch (err) {
       console.error("Error uploading to IPFS:", err);
       toast.error("Failed to upload to IPFS");
@@ -198,24 +229,24 @@ export function Create() {
     setUploadedCIDs(null);
   };
 
-  // Handle error case
-  useEffect(() => {
-    if (isError && error) {
-      toast.error(error.message);
-    }
-  }, [isError, error]);
-
-  // Handle success case
-  useEffect(() => {
-    if (isConfirmed) {
-      toast.success("Hunt created successfully!");
-      resetForm();
-    }
-  }, [isConfirmed]);
+  const transactionArgs = getTransactionArgs();
+  const canCreateHunt = transactionArgs !== null && account;
 
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-8">Create New Hunt</h1>
+
+      {/* Simple Backend Health Check */}
+      <div className="mb-6 p-4 bg-gray-50 rounded-md">
+        <div className="flex items-center gap-4">
+          <Button onClick={testBackendHealth} variant="outline" size="sm">
+            Test Backend
+          </Button>
+          {healthCheckStatus && (
+            <span className="text-sm">{healthCheckStatus}</span>
+          )}
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div className="space-y-6">
@@ -233,7 +264,7 @@ export function Create() {
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              value={description} 
+              value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Enter hunt description"
             />
@@ -262,7 +293,7 @@ export function Create() {
 
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold mb-4">IPFS Configuration</h3>
-            
+
             <div className="space-y-4">
               <div>
                 <Label htmlFor="cluesCID">Clues CID</Label>
@@ -286,13 +317,27 @@ export function Create() {
             </div>
           </div>
 
-          <Button
-            onClick={handleCreateHunt}
-            disabled={isPending || isConfirming || !cluesCID || !answersCID}
-            className="w-full bg-yellow/40 border border-black text-black hover:bg-orange/90 py-2 rounded-md font-medium"
-          >
-            {isPending || isConfirming ? "Creating Hunt..." : "Create Hunt"}
-          </Button>
+          {canCreateHunt ? (
+            <TransactionButton
+              contractAddress={contractAddress}
+              abi={huntABI}
+              functionName="createHunt"
+              args={transactionArgs}
+              text="Create Hunt"
+              className="w-full bg-yellow/40 border border-black text-black hover:bg-orange/90 py-2 rounded-md font-medium"
+              onSuccess={handleTransactionSuccess}
+              onError={handleTransactionError}
+            />
+          ) : (
+            <Button
+              disabled
+              className="w-full bg-gray-300 text-gray-500 py-2 rounded-md font-medium"
+            >
+              {!account
+                ? "Connect Wallet to Create Hunt"
+                : "Fill in all fields to create hunt"}
+            </Button>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -388,27 +433,29 @@ export function Create() {
           <div className="space-y-2">
             <h3 className="font-semibold">Added Clues:</h3>
             {clues.map((clue) => (
-              <div
-                key={clue.id}
-                className="p-3 bg-gray-100 rounded-md"
-              >
+              <div key={clue.id} className="p-3 bg-gray-100 rounded-md">
                 <p className="font-medium">Clue {clue.id}</p>
                 <p className="text-sm text-gray-600">{clue.description}</p>
                 <p className="text-xs text-gray-500">
                   Location: {clue.lat}, {clue.long}
                 </p>
-                <p className="text-xs text-gray-500">
-                  Answer: {clue.answer}
-                </p>
+                <p className="text-xs text-gray-500">Answer: {clue.answer}</p>
               </div>
             ))}
             {uploadedCIDs && (
               <div className="mt-4 p-3 bg-green-50 rounded-md">
-                <p className="text-sm font-medium text-green-800">IPFS Upload Complete</p>
-                <p className="text-xs text-green-600">Clues CID: {uploadedCIDs.clues_blobId}</p>
-                <p className="text-xs text-green-600">Answers CID: {uploadedCIDs.answers_blobId}</p>
+                <p className="text-sm font-medium text-green-800">
+                  IPFS Upload Complete
+                </p>
+                <p className="text-xs text-green-600">
+                  Clues CID: {uploadedCIDs.clues_blobId}
+                </p>
+                <p className="text-xs text-green-600">
+                  Answers CID: {uploadedCIDs.answers_blobId}
+                </p>
                 <p className="text-xs text-amber-600 mt-2">
-                  Please copy these CIDs to the respective fields in the IPFS Configuration section
+                  Please copy these CIDs to the respective fields in the IPFS
+                  Configuration section
                 </p>
               </div>
             )}

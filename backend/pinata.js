@@ -1,11 +1,11 @@
-import { PinataSDK } from 'pinata';
-import dotenv from 'dotenv';
+import { PinataSDK } from "pinata";
+import dotenv from "dotenv";
 
 dotenv.config();
 
 const pinata = new PinataSDK({
   pinataJwt: process.env.PINATA_JWT,
-  pinataGateway: process.env.PINATA_GATEWAY || "https://gateway.pinata.cloud"
+  pinataGateway: process.env.PINATA_GATEWAY || "https://jade-bitter-duck-676.mypinata.cloud",
 });
 
 /**
@@ -15,19 +15,14 @@ const pinata = new PinataSDK({
  */
 export async function storeString(text) {
   try {
-    // Create a Blob from the text
-    const blob = new Blob([text], { type: 'text/plain' });
-    const file = new File([blob], 'data.txt', { type: 'text/plain' });
-
-    // Upload to Pinata using the SDK
+    // Upload text as JSON to Pinata (Node.js compatible)
     console.log("pinata: Uploading to Pinata");
-    const upload = await pinata.upload.public.file(file);
-    console.log("pinata: Uploaded to Pinata");
-    // console.log('pinata: Store Response:', JSON.stringify(upload, null, 2));
-    
+    const upload = await pinata.upload.public.json({ content: text });
+    console.log("pinata: Uploaded to Pinata, CID: ", upload.cid);
+
     return upload.cid;
   } catch (error) {
-    console.error('Error storing file:', error.response?.data || error.message);
+    console.error("Error storing file:", error.response?.data || error.message);
     throw error;
   }
 }
@@ -35,24 +30,24 @@ export async function storeString(text) {
 /**
  * Reads an object from IPFS via Pinata gateway
  * @param {string} cid - The CID of the content to read
- * @returns {Promise<any>} The content of the file
+ * @returns {Promise<string>} The content of the file
  */
 export async function readObject(cid) {
   try {
     // Read from Pinata Gateway using the SDK
     console.log("pinata: Reading from Pinata, CID: ", cid);
     const response = await pinata.gateways.public.get(cid);
-    console.log("pinata: Done reading from Pinata");
+    console.log("pinata: Done reading from Pinata, response: ", response.data.content);
 
+    // Extract content from JSON structure
+    if (response.data && typeof response.data === 'object' && response.data.content) {
+      return response.data.content;
+    }
+    
+    // Fallback: return raw data if not in expected JSON format
     return response.data;
   } catch (error) {
-    console.error('Error reading file:', error.response?.data || error.message);
+    console.error("Error reading file:", error.response?.data || error.message);
     throw error;
   }
-} 
-
-async function run() {
-  await storeString("test")
 }
-
-run()

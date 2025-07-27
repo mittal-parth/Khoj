@@ -14,15 +14,20 @@ import { config, getTrueNetworkInstance } from "../../true-network/true.config";
 import { huntAttestationSchema } from "@/schemas/huntSchema";
 import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
 import { HuddleRoom } from "./HuddleRoom";
-import { useReadContract } from "wagmi";
+import { useReadContract, useActiveAccount } from "thirdweb/react";
+import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi";
-import { type Abi } from "viem";
 import { CONTRACT_ADDRESSES } from "../lib/utils";
+import { toast } from "sonner";
+import { client } from "../lib/client";
+import { paseoAssetHub } from "../lib/chains";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
-// Add type assertion for the ABI
-const typedHuntABI = huntABI as Abi;
+// Type guard to ensure address is a valid hex string
+function isValidHexAddress(address: string): address is `0x${string}` {
+  return /^0x[0-9a-fA-F]{40}$/.test(address);
+}
 
 export function Clue() {
   const { huntId, clueId } = useParams();
@@ -39,15 +44,44 @@ export function Clue() {
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
   // Add this to get current network from localStorage
-  const currentNetwork = localStorage.getItem("current_network") || "base";
+  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
   const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES];
+    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
+    "0x0000000000000000000000000000000000000000";
+
+  // Create thirdweb contract instance
+  const contract = getContract({
+    client,
+    chain: paseoAssetHub,
+    address: contractAddress as `0x${string}`,
+    abi: huntABI,
+  });
+
+  // Get hunt details from contract
+  const { data: huntDetails } = useReadContract({
+    contract,
+    method: "getHunt",
+    params: [BigInt(huntId || 0)],
+  });
+
+  const account = useActiveAccount();
+  const userWallet = account?.address;
 
   useEffect(() => {
     setVerificationState("idle");
 
+    // Progress validation: prevent skipping ahead
+    const progressKey = `hunt_progress_${huntId}`;
+    let progress = JSON.parse(localStorage.getItem(progressKey) || "[]");
+    // Only allow access to the next unsolved clue or any previous clue
+    const allowedClue = (progress.length || 0) + 1;
+    if (currentClue > allowedClue) {
+      navigate(`/hunt/${huntId}/clue/${allowedClue}`);
+      return;
+    }
+
     if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition( 
+      navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
           const { latitude, longitude } = coords;
           console.log(latitude, longitude);
@@ -58,44 +92,43 @@ export function Clue() {
         }
       );
     }
-  }, [clueId]);
+  }, [clueId, huntId, navigate]);
+
+  if (!isValidHexAddress(contractAddress)) {
+    toast.error("Invalid contract address format");
+    return null;
+  }
 
   const currentClue = parseInt(clueId || "0");
   const currentClueData = JSON.parse(
     localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
   );
 
-  // Get hunt details from contract
-  const { data: huntDetails } = useReadContract({
-    address: contractAddress,
-    abi: typedHuntABI,
-    functionName: "getHunt",
-    args: [BigInt(huntId || 0)],
-  }) as { data: [string, string, bigint, bigint, bigint, string[], string, string] };
-
   // Extract hunt details
-  const huntData = huntDetails ? {
-    title: huntDetails[0],
-    description: huntDetails[1],
-    totalClues: currentClueData?.length || 0,
-    currentClue: parseInt(clueId || "1"),
-    answers_blobId: huntDetails[6]
-  } : null;
+  const huntData = huntDetails
+    ? {
+        title: huntDetails[0],
+        description: huntDetails[1],
+        totalClues: currentClueData?.length || 0,
+        currentClue: parseInt(clueId || "1"),
+        answers_blobId: huntDetails[7],
+      }
+    : null;
 
   const createHuntAttestation = async () => {
     try {
       const api = await getTrueNetworkInstance();
-
-      // TODO: Change to wallet address
-      const userWallet = "0x9dfa242c8E10d16796174214797BC5b9893ab517";
-
+      if (!userWallet) {
+        toast.error("Wallet not connected");
+        setIsSubmitting(false);
+        return;
+      }
       const output = await huntAttestationSchema.attest(api, userWallet, {
         huntId: parseInt(huntId || "0"),
         timestamp: Math.floor(Date.now() / 1000), // Current timestamp in seconds
         clueNumber: parseInt(clueId || "0"),
         numberOfTries: attempts,
       });
-
       console.log("Attestation created:", output);
       await api.network.disconnect();
     } catch (error) {
@@ -106,7 +139,9 @@ export function Clue() {
 
   const getUserScore = async () => {
     const api = await getTrueNetworkInstance();
-    const userWallet = "0x4838B106FCe9647Bdf1E7877BF73cE8B0BAD5f97";
+    if (!userWallet) {
+      throw new Error("Wallet not connected");
+    }
     const score = await runAlgo(
       api.network,
       config.issuer.hash,
@@ -124,34 +159,62 @@ export function Clue() {
     setIsSubmitting(true);
     setVerificationState("verifying");
     console.log("huntData: ", huntDetails);
+    console.log("=== DEBUGGING REQUEST ===");
+    console.log("Current location state:", location);
+    console.log("Location type:", typeof location);
+    console.log("Location keys:", Object.keys(location));
+    console.log("huntData:", huntData);
+    console.log("huntData.answers_blobId:", huntData.answers_blobId);
+    console.log("clueId param:", clueId);
+    console.log("Number(clueId):", Number(clueId));
+
     try {
-      let headersList = {
+      const headersList = {
         Accept: "*/*",
         "Content-Type": "application/json",
       };
 
-      let bodyContent = JSON.stringify({
+      const requestBody = {
         userAddress: "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
         answers_blobId: huntData.answers_blobId,
         cLat: location.latitude,
         cLong: location.longitude,
         clueId: Number(clueId),
-      });
+      };
 
-      console.log(bodyContent)
+      console.log("Request body object:", requestBody);
+      console.log("Request body object keys:", Object.keys(requestBody));
 
-      let response = await fetch(`${BACKEND_URL}/decrypt-ans`, {
+      const bodyContent = JSON.stringify(requestBody);
+      console.log("Stringified body content:", bodyContent);
+
+      const response = await fetch(`${BACKEND_URL}/decrypt-ans`, {
         method: "POST",
         body: bodyContent,
         headers: headersList,
       });
 
-      let data = await response.json();
-      console.log(data);
+      console.log("Response status:", response.status);
+      console.log("Response headers:", response.headers);
+
+      const data = await response.json();
+      console.log("=== BACKEND RESPONSE ===");
+      console.log("Full response data:", data);
+      console.log("Response data type:", typeof data);
+      console.log("Response data keys:", Object.keys(data));
+      console.log("data.isClose:", data.isClose);
+      console.log("data.isClose type:", typeof data.isClose);
 
       const isCorrect = data.isClose;
 
-      if (isCorrect == 'true') {
+      if (isCorrect == "true") {
+        // Update progress in localStorage
+        const progressKey = `hunt_progress_${huntId}`;
+        let progress = JSON.parse(localStorage.getItem(progressKey) || "[]");
+        if (!progress.includes(currentClue)) {
+          progress.push(currentClue);
+          localStorage.setItem(progressKey, JSON.stringify(progress));
+        }
         // Create attestation when clue is solved
         await createHuntAttestation();
 

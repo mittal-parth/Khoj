@@ -4,12 +4,18 @@ import { BsArrowLeft, BsTrophy } from "react-icons/bs";
 import { FaCoins, FaRegClock, FaCheckCircle } from "react-icons/fa";
 import { Confetti } from "./ui/confetti";
 import { useEffect, useState } from "react";
-import { useReadContract } from "wagmi";
+import { useReadContract } from "thirdweb/react";
+import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi";
-import { type Abi } from "viem";
 import { CONTRACT_ADDRESSES } from "../lib/utils";
+import { toast } from "sonner";
+import { client } from "../lib/client";
+import { paseoAssetHub } from "../lib/chains";
 
-const typedHuntABI = huntABI as Abi;
+// Type guard to ensure address is a valid hex string
+function isValidHexAddress(address: string): address is `0x${string}` {
+  return /^0x[0-9a-fA-F]{40}$/.test(address);
+}
 
 export function HuntEnd() {
   const { huntId } = useParams();
@@ -17,25 +23,25 @@ export function HuntEnd() {
   const [progress, setProgress] = useState(0);
 
   // Get current network and contract address
-  const currentNetwork = localStorage.getItem("current_network") || "base";
+  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
   const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES];
+    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
+    "0x0000000000000000000000000000000000000000";
+
+  // Create thirdweb contract instance
+  const contract = getContract({
+    client,
+    chain: paseoAssetHub,
+    address: contractAddress as `0x${string}`,
+    abi: huntABI,
+  });
 
   // Get hunt details from contract
   const { data: huntDetails } = useReadContract({
-    address: contractAddress,
-    abi: typedHuntABI,
-    functionName: "getHunt",
-    args: [BigInt(huntId || 0)],
-  }) as { data: [string, string, bigint, bigint, bigint, string[], string, string] };
-
-  // Use dynamic title, static reward/description
-  const huntData = {
-    title: huntDetails ? huntDetails[0] : "...",
-    totalReward: "0.45 ETH",
-    description:
-      "You've successfully completed all the challenges and found the treasure!",
-  };
+    contract,
+    method: "getHunt",
+    params: [BigInt(huntId || 0)],
+  });
 
   const trustScore = localStorage.getItem("trust_score") || "6.5";
   const score = parseInt(trustScore);
@@ -47,6 +53,19 @@ export function HuntEnd() {
     }, 100);
     return () => clearTimeout(timer);
   }, [score]);
+
+  if (!isValidHexAddress(contractAddress)) {
+    toast.error("Invalid contract address format");
+    return null;
+  }
+
+  // Use dynamic title, static reward/description
+  const huntData = {
+    title: huntDetails ? huntDetails[0] : "...",
+    totalReward: "Swags!! 🎁",
+    description:
+      "You've successfully completed all the challenges and found the treasure!",
+  };
 
   const handleClaim = async () => {
     // Add claim logic here

@@ -1,6 +1,5 @@
 import { Navbar } from "./components/Navbar";
 import "./App.css";
-import "@coinbase/onchainkit/styles.css";
 import { BrowserRouter, Routes, Route } from "react-router";
 import { Hunts } from "./components/Hunts";
 import { Clue } from "./components/Clue";
@@ -9,6 +8,7 @@ import { HuntEnd } from "./components/HuntEnd";
 import { Footer } from "./components/Footer";
 import { About } from "./components/About";
 import { Create } from "./components/Create";
+import ThirdwebExample from "./components/ThirdwebExample";
 
 function App() {
   return (
@@ -22,6 +22,7 @@ function App() {
           <Route path="/profile" element={<Rewards />} />
           <Route path="/about" element={<About />} />
           <Route path="/hunt/create" element={<Create />} />
+          <Route path="/thirdweb-example" element={<ThirdwebExample />} />
         </Routes>
         <div className="md:hidden">
           <Footer />
