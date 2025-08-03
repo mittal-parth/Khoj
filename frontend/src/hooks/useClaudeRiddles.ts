@@ -1,11 +1,14 @@
 import { useState } from "react";
 import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenAI, Type } from "@google/genai";
 
 export interface Riddle {
   riddle: string;
   answer: string;
   hint: string;
 }
+
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_PUBLIC_GEMINI_API_KEY });
 
 export function useClaudeRiddles(huntId: any) {
   const [riddles, setRiddles] = useState<Riddle[] | null>(() => {
@@ -29,7 +32,6 @@ export function useClaudeRiddles(huntId: any) {
       // const huntData = await response.json();
 
       //   localStorage.clear();
-      console.log(clues.decryptedData);
       const huntData = {
         locations: clues.decryptedData.map(
           (location: any) => location.description
@@ -37,13 +39,11 @@ export function useClaudeRiddles(huntId: any) {
         themes: ["Tech", "web3", "easy"],
       };
 
-      console.log(huntData);
-
       // 2. Generate riddles using Claude
-      const anthropic = new Anthropic({
-        apiKey: import.meta.env.VITE_PUBLIC_NEXT_PUBLIC_ANTHROPIC_API_KEY,
-        dangerouslyAllowBrowser: true,
-      });
+      // const anthropic = new Anthropic({
+      //   apiKey: import.meta.env.VITE_PUBLIC_NEXT_PUBLIC_ANTHROPIC_API_KEY,
+      //   dangerouslyAllowBrowser: true,
+      // });
 
       const prompt = `You are riddlemaker who generates json responses.Generate a treasure hunt with ${
         huntData.locations.length
@@ -63,13 +63,36 @@ export function useClaudeRiddles(huntId: any) {
         }
       ]`;
 
-      const aiResponse = await anthropic.messages.create({
-        model: "claude-3-haiku-20240307",
-        max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }],
+      const aiResponse = await ai.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents:
+          prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                riddle: {
+                  type: Type.STRING,
+                },
+                hint: {
+                  type: Type.STRING,
+                },
+              },
+              propertyOrdering: ["riddle", "hint"],
+            },
+          },
+        },
       });
+    
 
-      console.log(aiResponse);
+      // const aiResponse = await anthropic.messages.create({
+      //   model: "claude-3-haiku-20240307",
+      //   max_tokens: 1000,
+      //   messages: [{ role: "user", content: prompt }],
+      // });
 
       const extractJSON = (text: string) => {
         const jsonMatch = text.match(/\[.*\]/s);
@@ -77,12 +100,9 @@ export function useClaudeRiddles(huntId: any) {
       };
 
       // Add type assertion or check to handle the content type
-      if ("text" in aiResponse.content[0]) {
-        const content = aiResponse.content[0].text;
-        const parsedRiddles = extractJSON(content);
-
-        console.log(content);
-        console.log(parsedRiddles);
+      if (aiResponse.text) {
+        const content = aiResponse.text;
+        const parsedRiddles = JSON.parse(content);
 
         // Store riddles with hunt ID
         const storageKey = `hunt_riddles_${huntId}`;
