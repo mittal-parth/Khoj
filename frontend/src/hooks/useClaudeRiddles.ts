@@ -1,5 +1,4 @@
 import { useState } from "react";
-import Anthropic from "@anthropic-ai/sdk";
 import { GoogleGenAI, Type } from "@google/genai";
 
 export interface Riddle {
@@ -93,11 +92,6 @@ export function useClaudeRiddles(huntId: any) {
       //   max_tokens: 1000,
       //   messages: [{ role: "user", content: prompt }],
       // });
-
-      const extractJSON = (text: string) => {
-        const jsonMatch = text.match(/\[.*\]/s);
-        return jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-      };
 
       // Add type assertion or check to handle the content type
       if (aiResponse.text) {
