@@ -7,7 +7,7 @@ import { getContract, readContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi.ts";
 import { toast } from "sonner";
 
-import { useClaudeRiddles } from "@/hooks/useClaudeRiddles";
+import { useGenerateRiddles } from "@/hooks/useGenerateRiddles.ts";
 import { TransactionButton } from "./TransactionButton";
 import { Button } from "./ui/button.tsx";
 import { useState, useEffect, useMemo } from "react";
@@ -46,7 +46,7 @@ export function Hunts() {
   const [startingHunts, setStartingHunts] = useState<Record<number, boolean>>(
     {}
   );
-  const { fetchRiddles, isLoading } = useClaudeRiddles(currentHuntId);
+  const { fetchRiddles, isLoading } = useGenerateRiddles(currentHuntId);
 
   // Feature flag for hunt filtering - controlled by environment variable
   const enableHuntFiltering = import.meta.env.VITE_ENABLE_HUNT_FILTERING === 'true';

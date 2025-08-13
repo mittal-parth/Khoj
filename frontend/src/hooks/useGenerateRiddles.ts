@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { GoogleGenAI, Type } from "@google/genai";
+import { GEMENI_MODEL } from "@/constants";
 
 export interface Riddle {
   riddle: string;
@@ -9,7 +10,7 @@ export interface Riddle {
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_PUBLIC_GEMINI_API_KEY });
 
-export function useClaudeRiddles(huntId: any) {
+export function useGenerateRiddles(huntId: any) {
   const [riddles, setRiddles] = useState<Riddle[] | null>(() => {
     // Initialize from localStorage if available
     const stored = localStorage.getItem(`hunt_riddles_${huntId}`);
@@ -44,26 +45,17 @@ export function useClaudeRiddles(huntId: any) {
       //   dangerouslyAllowBrowser: true,
       // });
 
-      const prompt = `You are riddlemaker who generates json responses.Generate a treasure hunt with ${
-        huntData.locations.length
-      } riddles in strict JSON format. 
-      Each riddle should lead to one of these locations: ${huntData.locations.join(
-        ", "
-      )}.
-      The riddles should incorporate these themes: ${huntData.themes.join(
-        ", "
-      )}.
-
-      Return the response in this exact JSON format, make sure you dont include names of locationns in the riddles:
-      [
-        {
-          "riddle": "Cryptic riddle text describing the location",
-          "hint": "A subtle hint that helps but doesn't give away the answer"
-        }
-      ]`;
+      const prompt = `You are a riddle generator creating a JSON array of treasure hunt riddles.
+          Rules:
+          1. You will create exactly ${huntData.locations.length} riddles.
+          2. Each riddle should lead to one of these locations: ${huntData.locations.join(", ")}.
+          3. Each riddle must incorporate the following themes: ${huntData.themes.join(", ")}.
+          4. Do not include the actual location names in the riddle text.
+          5. Provide a subtle hint for each riddle that aids the solver but does not directly reveal the answer.
+          6. Output only valid JSON in this exact structure (no extra text, no explanations):`;
 
       const aiResponse = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: GEMENI_MODEL,
         contents:
           prompt,
         config: {
