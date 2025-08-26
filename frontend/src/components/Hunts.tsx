@@ -402,7 +402,7 @@ export function Hunts() {
                   </div>
 
                   {/* Single button that changes based on state */}
-                  {buttonConfig.action === "register" ? (
+                  {/* {buttonConfig.action === "register" ? (
                     <TransactionButton
                       contractAddress={contractAddress}
                       abi={huntABI}
@@ -446,7 +446,15 @@ export function Hunts() {
                         ? "Checking..."
                         : buttonConfig.text}
                     </Button>
-                  )}
+                  )} */}
+                  <Button
+                    onClick={() => {
+                      navigate(`/hunt/${originalIndex}`);
+                    }}
+                    className={`w-full py-1.5 text-sm font-medium rounded-md ${buttonConfig.className} transition-colors duration-300`}
+                  >
+                    Open
+                  </Button>
                 </div>
               </div>
             </div>
