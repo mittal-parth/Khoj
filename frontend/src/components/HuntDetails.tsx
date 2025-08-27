@@ -21,7 +21,7 @@ import { paseoAssetHub } from "../lib/chains";
 import QRCode from "react-qr-code";
 import QrScanner from "qr-scanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { generateInviteHash, encodeInviteToBase58, calculateInviteExpiry } from "../helpers/inviteUtils";
+import { generateInviteHash, encodeInviteToBase58, calculateInviteExpiry, decodeBase58Invite } from "../helpers/inviteUtils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Type guard to ensure address is a valid hex string
@@ -67,8 +67,10 @@ export function HuntDetails() {
           // Handle successful scan
           const scannedCode = result.data;
           if (scannedCode && scannedCode.trim() !== '') {
-            setScanResult(scannedCode);
-            setTeamCode(scannedCode); // Set the team code to the scanned value
+            const inviteData = decodeBase58Invite(scannedCode);
+            setScanResult(inviteData.teamId);
+            setTeamCode(inviteData.teamId);
+            setInviteCode(inviteData.teamId);
             scanner.stop();
             setHasCamera(false); // Hide camera after successful scan
             toast.success("QR code scanned successfully!");
