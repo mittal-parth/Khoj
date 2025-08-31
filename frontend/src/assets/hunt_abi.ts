@@ -193,6 +193,50 @@ export const huntABI = [
     type: "event",
   },
   {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "teamId",
+        type: "uint256",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "owner",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "maxMembers",
+        type: "uint256",
+      },
+    ],
+    name: "TeamCreated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "teamId",
+        type: "uint256",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "member",
+        type: "address",
+      },
+    ],
+    name: "TeamJoined",
+    type: "event",
+  },
+  {
     inputs: [
       {
         internalType: "uint256",
@@ -201,15 +245,34 @@ export const huntABI = [
       },
       {
         internalType: "address",
-        name: "_recipient",
+        name: "winner",
         type: "address",
       },
     ],
-    name: "registerForHunt",
+    name: "createHunt",
     outputs: [
       {
         internalType: "uint256",
         name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_huntId",
+        type: "uint256",
+      },
+    ],
+    name: "createTeam",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "teamId",
         type: "uint256",
       },
     ],
@@ -388,49 +451,47 @@ export const huntABI = [
     inputs: [
       {
         internalType: "uint256",
-        name: "",
+        name: "_teamId",
         type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "_member",
+        type: "address",
       },
     ],
-    name: "hunts",
+    name: "isTeamMember",
     outputs: [
       {
-        internalType: "string",
-        name: "name",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "description",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "startsAt",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "clues_blobId",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "answers_blobId",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "duration",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "noOfParticipants",
-        type: "uint256",
+        internalType: "bool",
+        name: "",
+        type: "bool",
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_teamId",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "_expiry",
+        type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "_signature",
+        type: "bytes",
+      },
+    ],
+    name: "joinWithInvite",
+    outputs: [],
+    stateMutability: "nonpayable",
     type: "function",
   },
   {
@@ -444,6 +505,35 @@ export const huntABI = [
       },
     ],
     stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_huntId",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "_recipient",
+        type: "address",
+      },
+      {
+        internalType: "string",
+        name: "_tokenURI",
+        type: "string",
+      },
+    ],
+    name: "registerForHunt",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
     type: "function",
   },
 ] as const;

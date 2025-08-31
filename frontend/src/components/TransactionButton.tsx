@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useActiveAccount, useSendTransaction } from "thirdweb/react";
 import { prepareContractCall } from "thirdweb";
 import { client } from "../lib/client";
-import { paseoAssetHub } from "../lib/chains";
+import { paseoAssetHub, baseSepolia } from "../lib/chains";
 import { Button } from "./ui/button";
 
 interface TransactionButtonProps {
@@ -45,7 +45,7 @@ export function TransactionButton({
         contract: {
           address: contractAddress as `0x${string}`,
           abi,
-          chain: paseoAssetHub,
+          chain: baseSepolia,
           client,
         },
         method: functionName,

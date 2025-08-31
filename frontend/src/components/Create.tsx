@@ -92,9 +92,17 @@ export function Create() {
   const chainId =
     SUPPORTED_CHAINS[currentNetwork as keyof typeof SUPPORTED_CHAINS].id;
   console.log("Create: Chain ID: ", chainId);
+  console.log("Create: Contract Address: ", contractAddress);
+  console.log("Create: All Contract Addresses: ", CONTRACT_ADDRESSES);
 
   if (!isValidHexAddress(contractAddress)) {
     toast.error("Invalid contract address format");
+    return null;
+  }
+
+  // Check if contract address is the zero address (not deployed)
+  if (contractAddress === "0x0000000000000000000000000000000000000000") {
+    toast.error("Contract not deployed - check environment variables");
     return null;
   }
 
@@ -133,15 +141,31 @@ export function Create() {
       return null;
     }
 
-    // Convert date to YYYYMMDD format
-    const formattedDate = startDate.split("-").join("");
+    // Convert date to Unix timestamp
+    const startTimestamp = Math.floor(new Date(startDate).getTime() / 1000);
     // Convert duration to seconds
     const durationInSeconds = parseInt(duration) * 3600; // Convert hours to seconds
 
-    return [
+    // Validate parameters
+    if (huntName.length === 0 || description.length === 0) {
+      toast.error("Hunt name and description cannot be empty");
+      return null;
+    }
+    
+    if (cluesCID.length === 0 || answersCID.length === 0) {
+      toast.error("Both CIDs must be provided");
+      return null;
+    }
+    
+    if (durationInSeconds <= 0) {
+      toast.error("Duration must be greater than 0");
+      return null;
+    }
+
+    const args = [
       huntName,
       description,
-      BigInt(formattedDate),
+      startTimestamp,
       cluesCID,
       answersCID,
       BigInt(durationInSeconds),
@@ -150,6 +174,11 @@ export function Create() {
       theme, // theme
       `ipfs://${nftMetadataCID}`, // nftMetadataURI
     ];
+
+    console.log("Transaction args:", args);
+    console.log("Start timestamp:", startTimestamp, "Current time:", Math.floor(Date.now() / 1000));
+    
+    return args;
   };
 
   const handleTransactionSuccess = () => {
@@ -159,7 +188,17 @@ export function Create() {
 
   const handleTransactionError = (error: any) => {
     console.error("Error creating hunt:", error);
-    toast.error(error.message || "Failed to create hunt");
+    console.error("Full error object:", JSON.stringify(error, null, 2));
+    
+    // Try to extract more detailed error information
+    if (error?.cause?.data) {
+      console.error("Error data:", error.cause.data);
+    }
+    if (error?.reason) {
+      console.error("Error reason:", error.reason);
+    }
+    
+    toast.error(error.message || error.reason || "Failed to create hunt");
   };
 
   const testBackendHealth = async () => {

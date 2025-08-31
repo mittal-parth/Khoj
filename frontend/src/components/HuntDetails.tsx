@@ -11,18 +11,18 @@ import {
 import { TbCalendarClock } from "react-icons/tb";
 import { GiSandsOfTime } from "react-icons/gi";
 import { HuddleRoom } from "./HuddleRoom";
-import { useReadContract, useActiveAccount } from "thirdweb/react";
-import { getContract } from "thirdweb";
-import { huntABI } from "../assets/hunt_abi";
+import { useReadContract, useActiveAccount, useSendTransaction } from "thirdweb/react";
+import { getContract, prepareContractCall } from "thirdweb";
 import { CONTRACT_ADDRESSES } from "../lib/utils";
 import { toast } from "sonner";
 import { client } from "../lib/client";
-import { paseoAssetHub } from "../lib/chains";
+import { baseSepolia, paseoAssetHub } from "../lib/chains";
 import QRCode from "react-qr-code";
 import QrScanner from "qr-scanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { generateInviteHash, encodeInviteToBase58, calculateInviteExpiry, decodeBase58Invite } from "../helpers/inviteUtils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { huntABI } from "../assets/hunt_abi.ts";
 
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
@@ -35,7 +35,7 @@ export function HuntDetails() {
   // Team status state
   
   // Team management state
-  const [teamCode, setTeamCode] = useState<string>("abc"); // Default team code
+  const [teamCode, setTeamCode] = useState<string>(""); // Default team code
   const [activeTab, setActiveTab] = useState<"create" | "join" | "invite">("create");
   const [hasCamera, setHasCamera] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
@@ -50,6 +50,10 @@ export function HuntDetails() {
   
   // QR scanner instance
   const [qrScanner, setQrScanner] = useState<QrScanner | null>(null);
+
+  const account = useActiveAccount();
+  const userWallet = account?.address;
+  const { mutate: sendTransaction } = useSendTransaction();
   
   // Function to start the QR scanner
   const startScanner = async () => {
@@ -125,7 +129,7 @@ export function HuntDetails() {
   // Create thirdweb contract instance
   const contract = getContract({
     client,
-    chain: paseoAssetHub,
+    chain: currentNetwork === "base" ? baseSepolia : paseoAssetHub,
     address: contractAddress as `0x${string}`,
     abi: huntABI,
   });
@@ -137,8 +141,28 @@ export function HuntDetails() {
     params: [BigInt(huntId || 0)],
   });
 
-  const account = useActiveAccount();
-  const userWallet = account?.address;
+  const { data: teamDetails, error: teamError } = useReadContract({
+    contract,
+    method: "getTeam",
+    params: [BigInt(huntId || 0)],
+  });
+
+  // Log team error to understand why it's undefined
+  if (teamError) {
+    console.log("Team error:", teamError.message);
+  }
+
+  console.log(teamError)
+
+  const teamData = teamDetails
+  ? {
+      teamId: teamDetails[0],
+      owner: teamDetails[1],
+      maxTeamSize: teamDetails[2],
+      memberCount: teamDetails[3],
+      membersList: teamDetails[4],
+    }
+  : null;
 
   if (!isValidHexAddress(contractAddress)) {
     toast.error("Invalid contract address format");
@@ -167,10 +191,10 @@ export function HuntDetails() {
   
   // Generate a new team code when the dialog is opened
   useEffect(() => {
-    if (activeTab === 'create') {
-      setTeamCode(generateTeamCode());
+    if (activeTab === 'create' && teamData?.teamId) {
+      setTeamCode(teamData.teamId.toString());
     }
-  }, [activeTab]);
+  }, [activeTab, teamData, teamDetails]);
 
   // Generate multi-use invite code
   const generateMultiUseInvite = async () => {
@@ -181,7 +205,52 @@ export function HuntDetails() {
     
     try {
       setIsGeneratingInvite(true);
-      
+
+      const transaction = prepareContractCall({
+              contract: {
+                address: contractAddress as `0x${string}`,
+                abi: huntABI,
+                chain: baseSepolia,
+                client,
+              },
+              method: "createTeam",
+              params: [BigInt(huntId || 0)],
+            });
+
+      // Execute the transaction and get the result
+      sendTransaction(transaction, {
+        onSuccess: (result) => {
+          console.log("Transaction successful:", result);
+          // The result contains transaction hash and receipt
+          // For createTeam, you might want to get the teamId from events
+          toast.success("Team created successfully!");
+          
+          // Continue with invite generation after successful team creation
+          generateInviteAfterTeamCreation();
+        },
+        onError: (error) => {
+          console.error("Transaction failed:", error);
+          toast.error("Failed to create team");
+          setIsGeneratingInvite(false);
+        }
+      });
+
+    } catch (error) {
+      console.error("Error preparing transaction:", error);
+      toast.error("Failed to prepare transaction");
+      setIsGeneratingInvite(false);
+    }
+  };
+
+  // Separate function to handle invite generation after team creation
+  const generateInviteAfterTeamCreation = async () => {
+
+    if (!account || !huntData || teamCode != "") {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    try {
       // Calculate expiry time (hunt start + 1 hour)
       const huntStartTime = Number(huntData.startsAt);
       const expiryTime = calculateInviteExpiry(huntStartTime);

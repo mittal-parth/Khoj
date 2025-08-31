@@ -13,7 +13,7 @@ import { Button } from "./ui/button.tsx";
 import { useState, useEffect, useMemo } from "react";
 import { SUPPORTED_CHAINS, CONTRACT_ADDRESSES } from "../lib/utils";
 import { client } from "../lib/client";
-import { paseoAssetHub } from "../lib/chains";
+import { paseoAssetHub, baseSepolia } from "../lib/chains";
 
 interface Hunt {
   name: string;
@@ -57,6 +57,9 @@ export function Hunts() {
     CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
     "0x0000000000000000000000000000000000000000";
 
+  // Get the appropriate chain based on current network
+  const currentChain = currentNetwork === "base" ? baseSepolia : paseoAssetHub;
+
   // Memoize the contract instance to prevent recreation on every render
   const contract = useMemo(() => {
     if (!isValidHexAddress(rawContractAddress)) {
@@ -68,11 +71,11 @@ export function Hunts() {
     }
     return getContract({
       client,
-      chain: paseoAssetHub,
+      chain: currentChain,
       address: contractAddress,
       abi: huntABI,
     });
-  }, [rawContractAddress]);
+  }, [rawContractAddress, currentChain]);
 
   // Call hooks at the top level
   const { data: hunts = [], error: huntsError } = useReadContract({
