@@ -63,10 +63,6 @@ const app = express();
 
 // Debug CORS and requests
 app.use((req, res, next) => {
-  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
-  console.log(`Origin: ${req.get('Origin')}`);
-  console.log(`User-Agent: ${req.get('User-Agent')}`);
-  console.log(`Headers:`, req.headers);
   next();
 });
 

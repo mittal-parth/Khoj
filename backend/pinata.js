@@ -5,7 +5,7 @@ dotenv.config();
 
 const pinata = new PinataSDK({
   pinataJwt: process.env.PINATA_JWT,
-  pinataGateway: process.env.PINATA_GATEWAY || "https://jade-bitter-duck-676.mypinata.cloud",
+  pinataGateway: process.env.PINATA_GATEWAY,
 });
 
 /**
