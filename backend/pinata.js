@@ -28,6 +28,30 @@ export async function storeString(text) {
 }
 
 /**
+ * Stores a file (like an image) on IPFS via Pinata
+ * @param {Buffer} fileBuffer - The file buffer to store
+ * @param {string} fileName - The name of the file
+ * @param {string} mimeType - The MIME type of the file
+ * @returns {Promise<string>} The CID of the stored file
+ */
+export async function storeFile(fileBuffer, fileName, mimeType) {
+  try {
+    console.log("pinata: Uploading file to Pinata:", fileName);
+    
+    // Create a File object from buffer (Node.js compatible)
+    const file = new File([fileBuffer], fileName, { type: mimeType });
+    
+    const upload = await pinata.upload.public.file(file);
+    console.log("pinata: File uploaded to Pinata, CID: ", upload.cid);
+
+    return upload.cid;
+  } catch (error) {
+    console.error("Error storing file:", error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/**
  * Reads an object from IPFS via Pinata gateway
  * @param {string} cid - The CID of the content to read
  * @returns {Promise<string>} The content of the file
