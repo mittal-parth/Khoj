@@ -1,5 +1,5 @@
 import { defineChain } from "thirdweb";
-
+  
 export const paseoAssetHub = defineChain({
   id: 420420422,
   name: "PAssetHub - Contracts Testnet",

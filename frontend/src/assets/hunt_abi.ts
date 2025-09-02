@@ -49,6 +49,26 @@ export const huntABI = [
         name: "_duration",
         type: "uint256",
       },
+      {
+        internalType: "bool",
+        name: "_teamsEnabled",
+        type: "bool",
+      },
+      {
+        internalType: "uint256",
+        name: "_maxTeamSize",
+        type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "_theme",
+        type: "string",
+      },
+      {
+        internalType: "string",
+        name: "_nftMetadataURI",
+        type: "string",
+      },
     ],
     name: "createHunt",
     outputs: [
@@ -184,11 +204,6 @@ export const huntABI = [
         name: "_recipient",
         type: "address",
       },
-      {
-        internalType: "string",
-        name: "_tokenURI",
-        type: "string",
-      },
     ],
     name: "registerForHunt",
     outputs: [
@@ -240,6 +255,26 @@ export const huntABI = [
           {
             internalType: "string",
             name: "answers_blobId",
+            type: "string",
+          },
+          {
+            internalType: "bool",
+            name: "teamsEnabled",
+            type: "bool",
+          },
+          {
+            internalType: "uint256",
+            name: "maxTeamSize",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "theme",
+            type: "string",
+          },
+          {
+            internalType: "string",
+            name: "nftMetadataURI",
             type: "string",
           },
         ],
@@ -299,6 +334,26 @@ export const huntABI = [
       {
         internalType: "string",
         name: "answers_blobId",
+        type: "string",
+      },
+      {
+        internalType: "bool",
+        name: "teamsEnabled",
+        type: "bool",
+      },
+      {
+        internalType: "uint256",
+        name: "maxTeamSize",
+        type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "theme",
+        type: "string",
+      },
+      {
+        internalType: "string",
+        name: "nftMetadataURI",
         type: "string",
       },
     ],
