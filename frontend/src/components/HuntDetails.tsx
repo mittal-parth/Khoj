@@ -54,6 +54,90 @@ export function HuntDetails() {
   const account = useActiveAccount();
   const userWallet = account?.address;
   const { mutate: sendTransaction } = useSendTransaction();
+
+  // Add this to get current network from localStorage
+  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
+  const contractAddress =
+    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
+    "0x0000000000000000000000000000000000000000";
+
+  if (!isValidHexAddress(contractAddress)) {
+    toast.error("Invalid contract address format");
+    return null;
+  }
+
+  const contract = getContract({
+    client,
+    chain: currentNetwork === "base" ? baseSepolia : paseoAssetHub,
+    address: contractAddress as `0x${string}`,
+    abi: huntABI,
+  });
+
+  // Get hunt details from contract
+  const { data: huntDetails } = useReadContract({
+    contract,
+    method: "getHunt",
+    params: [BigInt(huntId || 0)],
+  });
+
+  const { data: teamDetails, error: teamError } = useReadContract({
+    contract,
+    method: "getTeam",
+    params: [BigInt(huntId || 0), userWallet || "0x0000000000000000000000000000000000000000"],
+  });
+
+  // Log what would be msg.sender in the contract call
+  console.log("Frontend wallet address (would be msg.sender):", userWallet);
+  console.log("Contract call from:", account?.address);
+
+  const teamData = teamDetails
+  ? {
+      teamId: teamDetails[0] as bigint,
+      owner: teamDetails[1] as string,
+      maxTeamSize: teamDetails[2] as bigint,
+      memberCount: teamDetails[3] as bigint,
+      membersList: teamDetails[4] as string[],
+    }
+  : null;
+
+  // Extract hunt details
+  const huntData = huntDetails
+    ? {
+        title: huntDetails[0],
+        description: huntDetails[1],
+        startsAt: huntDetails[2],
+        duration: huntDetails[3],
+      }
+    : null;
+
+  const joinTeam = (signature: string) => {
+
+    const huntStartTime = Number(huntData?.startsAt);
+    const expiryTime = calculateInviteExpiry(huntStartTime);
+
+    const transaction = prepareContractCall({
+      contract: {
+        address: contractAddress as `0x${string}`,
+        abi: huntABI,
+        chain: baseSepolia,
+        client,
+      },
+      method: "joinWithInvite",
+      params: [BigInt(teamCode || 0), BigInt(expiryTime), signature as `0x${string}`],
+    });
+
+    // Execute the transaction and get the result
+    sendTransaction(transaction, {
+      onSuccess: (result) => {
+        console.log("Transaction successful:", result);
+        toast.success("Team created successfully!");
+      },
+      onError: (error) => {
+        console.error("Transaction failed:", error);
+        toast.error("Failed to create team");
+      }
+    });
+  }
   
   // Function to start the QR scanner
   const startScanner = async () => {
@@ -78,6 +162,9 @@ export function HuntDetails() {
             scanner.stop();
             setHasCamera(false); // Hide camera after successful scan
             toast.success("QR code scanned successfully!");
+
+            joinTeam(inviteData.signature);
+
           } else {
             toast.error("Invalid QR code detected. Please try again.");
           }
@@ -120,64 +207,10 @@ export function HuntDetails() {
     };
   }, [qrScanner]);
 
-  // Add this to get current network from localStorage
-  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
-  const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
-    "0x0000000000000000000000000000000000000000";
-
-  // Create thirdweb contract instance
-  const contract = getContract({
-    client,
-    chain: currentNetwork === "base" ? baseSepolia : paseoAssetHub,
-    address: contractAddress as `0x${string}`,
-    abi: huntABI,
-  });
-
-  // Get hunt details from contract
-  const { data: huntDetails } = useReadContract({
-    contract,
-    method: "getHunt",
-    params: [BigInt(huntId || 0)],
-  });
-
-  const { data: teamDetails, error: teamError } = useReadContract({
-    contract,
-    method: "getTeam",
-    params: [BigInt(huntId || 0)],
-  });
-
   // Log team error to understand why it's undefined
   if (teamError) {
     console.log("Team error:", teamError.message);
   }
-
-  console.log(teamError)
-
-  const teamData = teamDetails
-  ? {
-      teamId: teamDetails[0],
-      owner: teamDetails[1],
-      maxTeamSize: teamDetails[2],
-      memberCount: teamDetails[3],
-      membersList: teamDetails[4],
-    }
-  : null;
-
-  if (!isValidHexAddress(contractAddress)) {
-    toast.error("Invalid contract address format");
-    return null;
-  }
-
-  // Extract hunt details
-  const huntData = huntDetails
-    ? {
-        title: huntDetails[0],
-        description: huntDetails[1],
-        startsAt: huntDetails[2],
-        duration: huntDetails[3],
-      }
-    : null;
 
   // Function to generate a random team code
   const generateTeamCode = (): string => {
@@ -207,15 +240,15 @@ export function HuntDetails() {
       setIsGeneratingInvite(true);
 
       const transaction = prepareContractCall({
-              contract: {
-                address: contractAddress as `0x${string}`,
-                abi: huntABI,
-                chain: baseSepolia,
-                client,
-              },
-              method: "createTeam",
-              params: [BigInt(huntId || 0)],
-            });
+        contract: {
+          address: contractAddress as `0x${string}`,
+          abi: huntABI,
+          chain: baseSepolia,
+          client,
+        },
+        method: "createTeam",
+        params: [BigInt(huntId || 0)],
+      });
 
       // Execute the transaction and get the result
       sendTransaction(transaction, {
@@ -226,7 +259,7 @@ export function HuntDetails() {
           toast.success("Team created successfully!");
           
           // Continue with invite generation after successful team creation
-          generateInviteAfterTeamCreation();
+          // generateInviteAfterTeamCreation();
         },
         onError: (error) => {
           console.error("Transaction failed:", error);
@@ -288,9 +321,9 @@ export function HuntDetails() {
   return (
     <div className="min-h-screen bg-gray-50 pt-20 px-4 mb-[90px]">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] md:h-[calc(100vh-180px)] relative flex flex-col">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] justify-between relative flex flex-col">
           <div className="bg-green p-6 text-white absolute top-0 w-full">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between">
               <Button
                 onClick={() => navigate("/")}
                 variant="ghost"
@@ -305,20 +338,24 @@ export function HuntDetails() {
           {huntData && (
             <div className="mt-28 px-6">
               {/* <h1 className="text-xl font-semibold mb-2">Hunt Information</h1> */}
-              <h1 className="text-xl text-gray-800 mb-2 font-semibold">title of the hunt</h1>
-              <p className="text-gray-600 font-base mb-4">Heyyy, this is the description of the hunt</p>
+              <h1 className="text-xl text-gray-800 mb-2 font-semibold">{huntData.title}</h1>
+              <p className="text-gray-600 font-base mb-4">{huntData.description}</p>
               <div className="flex gap-5 items-center"> 
-              <p className="text-gray-600 mb-4 flex items-center"><TbCalendarClock className="mr-2 w-5 h-5" /><span>28th Aug 2025, 7:30 PM</span></p>
+              <p className="text-gray-600 mb-4 flex items-center"><TbCalendarClock className="mr-2 w-5 h-5" /><span>{new Date(Number(huntData.startsAt) * 1000).toLocaleString()}</span></p>
               <p className="text-gray-600 mb-4 flex items-center"><GiSandsOfTime className="mr-2 stroke-[20px] w-5 h-5" /><span>{huntData.duration.toString()} min</span></p>
                 </div> 
               
               <div className="mt-6">
                 <h2 className="text-lg font-medium mb-4">Team Management</h2>
-                <Tabs defaultValue="create" onValueChange={(value) => setActiveTab(value as "create" | "join" | "invite")}>
-                  <TabsList className="grid w-full grid-cols-2 mb-4">
-                    <TabsTrigger value="create">Create</TabsTrigger>
-                    <TabsTrigger value="join">Join Team</TabsTrigger>
-                  </TabsList>
+                
+                {/* Conditional rendering based on team data */}
+                {!teamData ? (
+                  // Show tabs when user is not in a team
+                  <Tabs defaultValue="create" onValueChange={(value) => setActiveTab(value as "create" | "join" | "invite")}>
+                    <TabsList className="grid w-full grid-cols-2 mb-4">
+                      <TabsTrigger value="create">Create</TabsTrigger>
+                      <TabsTrigger value="join">Join Team</TabsTrigger>
+                    </TabsList>
                   
                   {/* Create Team Tab */}
                   {/* <TabsContent value="create" className="mt-4">
@@ -437,10 +474,55 @@ export function HuntDetails() {
                     </div>
                   </TabsContent>
                 </Tabs>
+                ) : (
+                  // Show team data when user is in a team
+                  <div className="border-t-2 border-gray-200 pt-4">
+                    <h3 className="text-lg font-semibold mb-4">Your Team</h3>
+                    <div className="space-y-3">
+                        {/* <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Team ID:</span>
+                          <span className="font-medium">{teamData?.teamId?.toString() || 'N/A'}</span>
+                        </div> */}
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Members:</span>
+                          <span className="font-medium">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxTeamSize?.toString() || '0'}</span>
+                        </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Team Owner:</span>
+                        <span className="font-medium text-sm">{teamData?.owner ? `${teamData.owner.slice(0, 6)}...${teamData.owner.slice(-4)}` : 'Unknown'}</span>
+                      </div>
+                      <div className="mt-4">
+                        <span className="text-gray-600 block mb-2">Team Members:</span>
+                        <div className="flex gap-3 flex-wrap">
+                          {(teamData?.membersList || []).map((member, index) => (
+                            <div key={index} className="flex flex-col items-center gap-3">
+                                <img 
+                                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${member}`}
+                                  alt="Member Avatar"
+                                  className={`w-12 h-12 rounded-full p-1 bg-slate-200 ${member === teamData?.owner ? "border-2 border-slate-800" : ""}`}
+                                />
+                              <div className="flex-1">
+                                <span className="text-xs font-medium text-gray-500">
+                                  {member ? `${member.slice(0, 4)}...${member.slice(-4)}` : 'Unknown Member'}
+                                </span>
+                                {/* {member === "0x1234567890abcdef1234567890abcdef12345678" && (
+                                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Owner</span>
+                                  )} */}
+                              </div>
+                            </div>
+                          ))}
+                          {(!teamData?.membersList || teamData.membersList.length === 0) && (
+                            <div className="text-sm text-gray-500 italic">No members found</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
-          <div className="mt-8 border-t pt-6 p-6 flex flex-col w-full absolute bottom-0">
+          <div className="mt-8 border-t pt-6 p-6 flex flex-col w-full">
             <div className="flex items-center justify-between mb-4"></div>
 
             <Button

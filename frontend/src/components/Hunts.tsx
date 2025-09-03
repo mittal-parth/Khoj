@@ -456,7 +456,7 @@ export function Hunts() {
                     }}
                     className={`w-full py-1.5 text-sm font-medium rounded-md ${buttonConfig.className} transition-colors duration-300`}
                   >
-                    Open
+                    Register
                   </Button>
                 </div>
               </div>
