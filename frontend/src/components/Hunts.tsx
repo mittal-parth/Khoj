@@ -313,7 +313,7 @@ export function Hunts() {
 
   const handleRegisterSuccess = (data: any, huntIndex: number) => {
     console.log("Register success: ", data);
-    toast.success("Entry pass acquired! You can now participate in this hunt.");
+    toast.success("Successfully registered for hunt!");
 
     // Update registration status for this specific hunt
     setHuntRegistrations((prev) => ({
@@ -389,7 +389,7 @@ export function Hunts() {
 
     if (!isRegistered) {
       return {
-        text: "Get Entry Pass",
+        text: "Register",
         disabled: false,
         className:
           "bg-yellow/70 border border-black text-white font-semibold hover:bg-yellow-600 hover:border-yellow-700 shadow-md hover:shadow-lg transform hover:scale-[1.02]",
@@ -436,57 +436,33 @@ export function Hunts() {
           border-[3px]"
             >
               <div
-                className={`w-1/4 flex flex-col items-center justify-center ${
+                className={`w-1/4 flex items-center justify-center ${
                   bgColors[index % bgColors.length]
-                } relative`}
+                }`}
               >
-                {/* Entry Pass Badge */}
-                <div className="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs font-bold px-1.5 py-0.5 rounded-full border border-black shadow-sm">
-                  ENTRY
-                </div>
-                
                 {loadingImages[index] ? (
-                  <div className="w-12 h-12 bg-gray-300 rounded-lg animate-pulse flex items-center justify-center border-2 border-white shadow-lg">
+                  <div className="w-10 h-10 bg-gray-300 rounded animate-pulse flex items-center justify-center">
                     <span className="text-xs text-gray-600">...</span>
                   </div>
                 ) : nftImages[index] ? (
-                  <div className="relative">
-                    <img
-                      src={nftImages[index]}
-                      alt={`${hunt.name} Entry Pass`}
-                      className="w-12 h-12 object-cover rounded-lg border-2 border-white shadow-lg hover:shadow-xl transition-shadow duration-300"
-                      onError={(e) => {
-                        // Fallback to icon if image fails to load
-                        e.currentTarget.style.display = 'none';
-                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                      }}
-                    />
-                    {/* NFT Badge */}
-                    <div className="absolute -bottom-1 -right-1 bg-green-500 text-white text-xs font-bold px-1 py-0.5 rounded-full border border-white shadow-sm">
-                      NFT
-                    </div>
-                  </div>
+                  <img
+                    src={nftImages[index]}
+                    alt={`${hunt.name} NFT`}
+                    className="size-full object-cover rounded"
+                    onError={(e) => {
+                      // Fallback to icon if image fails to load
+                      e.currentTarget.style.display = 'none';
+                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                    }}
+                  />
                 ) : null}
-                
                 {/* Fallback icon - hidden by default, shown if no NFT image or if image fails */}
-                <div className={`${nftImages[index] ? 'hidden' : ''} flex flex-col items-center`}>
-                  <div className="w-12 h-12 bg-gray-200 rounded-lg border-2 border-white shadow-lg flex items-center justify-center">
-                    {icons[index % icons.length]}
-                  </div>
-                  <div className="mt-1 bg-gray-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full border border-white shadow-sm">
-                    NO PASS
-                  </div>
-                </div>
-                
-                {/* Entry requirement text */}
-                <div className="mt-2 text-center">
-                  <p className="text-xs text-white font-semibold drop-shadow-lg">
-                    {nftImages[index] ? 'Entry Pass' : 'No Entry Pass'}
-                  </p>
+                <div className={`${nftImages[index] ? 'hidden' : ''}`}>
+                  {icons[index % icons.length]}
                 </div>
               </div>
 
-              <div className="w-3/4 p-5 flex flex-col justify-between">
+              <div className="w-3/4 p-5 flex flex-col justify-between ">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-800 mb-2 h-[32px] overflow-hidden">
                     {hunt.name}
