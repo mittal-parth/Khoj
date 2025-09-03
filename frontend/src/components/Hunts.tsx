@@ -436,19 +436,19 @@ export function Hunts() {
           border-[3px]"
             >
               <div
-                className={`w-1/4 flex items-center justify-center ${
+                className={`w-3/4 h-full flex items-center justify-center ${
                   bgColors[index % bgColors.length]
                 }`}
               >
                 {loadingImages[index] ? (
-                  <div className="w-10 h-10 bg-gray-300 rounded animate-pulse flex items-center justify-center">
+                  <div className="w-16 h-16 bg-gray-300 rounded-lg animate-pulse flex items-center justify-center">
                     <span className="text-xs text-gray-600">...</span>
                   </div>
                 ) : nftImages[index] ? (
                   <img
                     src={nftImages[index]}
                     alt={`${hunt.name} NFT`}
-                    className="size-full object-cover rounded"
+                    className="size-full object-cover rounded-lg border-2 border-white shadow-lg"
                     onError={(e) => {
                       // Fallback to icon if image fails to load
                       e.currentTarget.style.display = 'none';
@@ -457,7 +457,7 @@ export function Hunts() {
                   />
                 ) : null}
                 {/* Fallback icon - hidden by default, shown if no NFT image or if image fails */}
-                <div className={`${nftImages[index] ? 'hidden' : ''}`}>
+                <div className={`${nftImages[index] ? 'hidden' : ''} w-16 h-16 bg-white/20 rounded-lg border-2 border-white shadow-lg flex items-center justify-center`}>
                   {icons[index % icons.length]}
                 </div>
               </div>
