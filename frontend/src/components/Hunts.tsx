@@ -23,6 +23,7 @@ interface Hunt {
   participantCount: bigint;
   clues_blobId: string;
   answers_blobId: string;
+  nftMetadataURI: string;
 }
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
@@ -46,6 +47,10 @@ export function Hunts() {
   const [startingHunts, setStartingHunts] = useState<Record<number, boolean>>(
     {}
   );
+  // Track NFT images for each hunt
+  const [nftImages, setNftImages] = useState<Record<number, string>>({});
+  const [loadingImages, setLoadingImages] = useState<Record<number, boolean>>({});
+
   const { fetchRiddles, isLoading } = useGenerateRiddles(currentHuntId);
 
   // Feature flag for hunt filtering - controlled by environment variable
@@ -86,6 +91,57 @@ export function Hunts() {
     method: "nftContract",
     params: [],
   });
+
+  // Function to convert IPFS URL to HTTP URL
+  const getImageUrl = (imageUrl: string) => {
+    if (!imageUrl) return null;
+    
+    // If it's already an HTTP URL, return as is
+    if (imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+    
+    // If it's an IPFS URL, convert to HTTP
+    if (imageUrl.startsWith('ipfs://')) {
+      const cid = imageUrl.replace('ipfs://', '');
+      return `https://${import.meta.env.VITE_PUBLIC_IPFS_GATEWAY || 'gateway.pinata.cloud'}/ipfs/${cid}`;
+    }
+    
+    return imageUrl;
+  };
+
+  // Function to fetch NFT metadata and extract image URL
+  const fetchNFTImage = async (hunt: Hunt, index: number) => {
+    if (!hunt.nftMetadataURI || loadingImages[index] || nftImages[index]) return;
+    
+    setLoadingImages(prev => ({ ...prev, [index]: true }));
+    
+    try {
+      // Handle IPFS URLs
+      let metadataUrl = hunt.nftMetadataURI;
+      if (metadataUrl.startsWith('ipfs://')) {
+        const cid = metadataUrl.replace('ipfs://', '');
+        metadataUrl = `https://${import.meta.env.VITE_PUBLIC_IPFS_GATEWAY || 'gateway.pinata.cloud'}/ipfs/${cid}`;
+      }
+      
+      const response = await fetch(metadataUrl);
+      if (!response.ok) throw new Error('Failed to fetch metadata');
+      
+      const metadata = await response.json();
+      
+      // Extract image from content.image field
+      if (metadata.content && metadata.content.image) {
+        const imageUrl = getImageUrl(metadata.content.image);
+        if (imageUrl) {
+          setNftImages(prev => ({ ...prev, [index]: imageUrl }));
+        }
+      }
+    } catch (error) {
+      console.error(`Error fetching NFT image for hunt ${index}:`, error);
+    } finally {
+      setLoadingImages(prev => ({ ...prev, [index]: false }));
+    }
+  };
 
   // Process hunts based on feature flag
   const processedHunts = useMemo(() => {
@@ -154,6 +210,17 @@ export function Hunts() {
 
     checkRegistrationStatus();
   }, [address, processedHunts.length, contract, hunts]); // Added hunts dependency for mapping
+
+  // Fetch NFT images when hunts are loaded
+  useEffect(() => {
+    processedHunts.forEach((hunt, index) => {
+      if (hunt.nftMetadataURI && !nftImages[index] && !loadingImages[index]) {
+        fetchNFTImage(hunt, index);
+      }
+    });
+  }, [processedHunts]);
+
+
 
   // Early returns after all hooks
   if (!isValidHexAddress(rawContractAddress)) {
@@ -246,7 +313,7 @@ export function Hunts() {
 
   const handleRegisterSuccess = (data: any, huntIndex: number) => {
     console.log("Register success: ", data);
-    toast.success("Successfully registered for hunt!");
+    toast.success("Entry pass acquired! You can now participate in this hunt.");
 
     // Update registration status for this specific hunt
     setHuntRegistrations((prev) => ({
@@ -322,7 +389,7 @@ export function Hunts() {
 
     if (!isRegistered) {
       return {
-        text: "Register",
+        text: "Get Entry Pass",
         disabled: false,
         className:
           "bg-yellow/70 border border-black text-white font-semibold hover:bg-yellow-600 hover:border-yellow-700 shadow-md hover:shadow-lg transform hover:scale-[1.02]",
@@ -369,11 +436,54 @@ export function Hunts() {
           border-[3px]"
             >
               <div
-                className={`w-1/4 flex items-center justify-center ${
+                className={`w-1/4 flex flex-col items-center justify-center ${
                   bgColors[index % bgColors.length]
-                }`}
+                } relative`}
               >
-                {icons[index % icons.length]}
+                {/* Entry Pass Badge */}
+                <div className="absolute -top-1 -right-1 bg-yellow-400 text-black text-xs font-bold px-1.5 py-0.5 rounded-full border border-black shadow-sm">
+                  ENTRY
+                </div>
+                
+                {loadingImages[index] ? (
+                  <div className="w-12 h-12 bg-gray-300 rounded-lg animate-pulse flex items-center justify-center border-2 border-white shadow-lg">
+                    <span className="text-xs text-gray-600">...</span>
+                  </div>
+                ) : nftImages[index] ? (
+                  <div className="relative">
+                    <img
+                      src={nftImages[index]}
+                      alt={`${hunt.name} Entry Pass`}
+                      className="w-12 h-12 object-cover rounded-lg border-2 border-white shadow-lg hover:shadow-xl transition-shadow duration-300"
+                      onError={(e) => {
+                        // Fallback to icon if image fails to load
+                        e.currentTarget.style.display = 'none';
+                        e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                      }}
+                    />
+                    {/* NFT Badge */}
+                    <div className="absolute -bottom-1 -right-1 bg-green-500 text-white text-xs font-bold px-1 py-0.5 rounded-full border border-white shadow-sm">
+                      NFT
+                    </div>
+                  </div>
+                ) : null}
+                
+                {/* Fallback icon - hidden by default, shown if no NFT image or if image fails */}
+                <div className={`${nftImages[index] ? 'hidden' : ''} flex flex-col items-center`}>
+                  <div className="w-12 h-12 bg-gray-200 rounded-lg border-2 border-white shadow-lg flex items-center justify-center">
+                    {icons[index % icons.length]}
+                  </div>
+                  <div className="mt-1 bg-gray-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full border border-white shadow-sm">
+                    NO PASS
+                  </div>
+                </div>
+                
+                {/* Entry requirement text */}
+                <div className="mt-2 text-center">
+                  <p className="text-xs text-white font-semibold drop-shadow-lg">
+                    {nftImages[index] ? 'Entry Pass' : 'No Entry Pass'}
+                  </p>
+                </div>
               </div>
 
               <div className="w-3/4 p-5 flex flex-col justify-between">
