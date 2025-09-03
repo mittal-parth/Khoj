@@ -23,7 +23,6 @@ interface Hunt {
   participantCount: bigint;
   clues_blobId: string;
   answers_blobId: string;
-  nftMetadataURI: string;
 }
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
@@ -47,10 +46,6 @@ export function Hunts() {
   const [startingHunts, setStartingHunts] = useState<Record<number, boolean>>(
     {}
   );
-  // Track NFT images for each hunt
-  const [nftImages, setNftImages] = useState<Record<number, string>>({});
-  const [loadingImages, setLoadingImages] = useState<Record<number, boolean>>({});
-
   const { fetchRiddles, isLoading } = useGenerateRiddles(currentHuntId);
 
   // Feature flag for hunt filtering - controlled by environment variable
@@ -91,57 +86,6 @@ export function Hunts() {
     method: "nftContract",
     params: [],
   });
-
-  // Function to convert IPFS URL to HTTP URL
-  const getImageUrl = (imageUrl: string) => {
-    if (!imageUrl) return null;
-    
-    // If it's already an HTTP URL, return as is
-    if (imageUrl.startsWith('http')) {
-      return imageUrl;
-    }
-    
-    // If it's an IPFS URL, convert to HTTP
-    if (imageUrl.startsWith('ipfs://')) {
-      const cid = imageUrl.replace('ipfs://', '');
-      return `https://${import.meta.env.VITE_PUBLIC_IPFS_GATEWAY || 'gateway.pinata.cloud'}/ipfs/${cid}`;
-    }
-    
-    return imageUrl;
-  };
-
-  // Function to fetch NFT metadata and extract image URL
-  const fetchNFTImage = async (hunt: Hunt, index: number) => {
-    if (!hunt.nftMetadataURI || loadingImages[index] || nftImages[index]) return;
-    
-    setLoadingImages(prev => ({ ...prev, [index]: true }));
-    
-    try {
-      // Handle IPFS URLs
-      let metadataUrl = hunt.nftMetadataURI;
-      if (metadataUrl.startsWith('ipfs://')) {
-        const cid = metadataUrl.replace('ipfs://', '');
-        metadataUrl = `https://${import.meta.env.VITE_PUBLIC_IPFS_GATEWAY || 'gateway.pinata.cloud'}/ipfs/${cid}`;
-      }
-      
-      const response = await fetch(metadataUrl);
-      if (!response.ok) throw new Error('Failed to fetch metadata');
-      
-      const metadata = await response.json();
-      
-      // Extract image from content.image field
-      if (metadata.content && metadata.content.image) {
-        const imageUrl = getImageUrl(metadata.content.image);
-        if (imageUrl) {
-          setNftImages(prev => ({ ...prev, [index]: imageUrl }));
-        }
-      }
-    } catch (error) {
-      console.error(`Error fetching NFT image for hunt ${index}:`, error);
-    } finally {
-      setLoadingImages(prev => ({ ...prev, [index]: false }));
-    }
-  };
 
   // Process hunts based on feature flag
   const processedHunts = useMemo(() => {
@@ -210,17 +154,6 @@ export function Hunts() {
 
     checkRegistrationStatus();
   }, [address, processedHunts.length, contract, hunts]); // Added hunts dependency for mapping
-
-  // Fetch NFT images when hunts are loaded
-  useEffect(() => {
-    processedHunts.forEach((hunt, index) => {
-      if (hunt.nftMetadataURI && !nftImages[index] && !loadingImages[index]) {
-        fetchNFTImage(hunt, index);
-      }
-    });
-  }, [processedHunts]);
-
-
 
   // Early returns after all hooks
   if (!isValidHexAddress(rawContractAddress)) {
@@ -436,33 +369,14 @@ export function Hunts() {
           border-[3px]"
             >
               <div
-                className={`w-3/4 h-full flex items-center justify-center ${
+                className={`w-1/4 flex items-center justify-center ${
                   bgColors[index % bgColors.length]
                 }`}
               >
-                {loadingImages[index] ? (
-                  <div className="w-16 h-16 bg-gray-300 rounded-lg animate-pulse flex items-center justify-center">
-                    <span className="text-xs text-gray-600">...</span>
-                  </div>
-                ) : nftImages[index] ? (
-                  <img
-                    src={nftImages[index]}
-                    alt={`${hunt.name} NFT`}
-                    className="size-full object-cover rounded-lg border-2 border-white shadow-lg"
-                    onError={(e) => {
-                      // Fallback to icon if image fails to load
-                      e.currentTarget.style.display = 'none';
-                      e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                    }}
-                  />
-                ) : null}
-                {/* Fallback icon - hidden by default, shown if no NFT image or if image fails */}
-                <div className={`${nftImages[index] ? 'hidden' : ''} w-16 h-16 bg-white/20 rounded-lg border-2 border-white shadow-lg flex items-center justify-center`}>
-                  {icons[index % icons.length]}
-                </div>
+                {icons[index % icons.length]}
               </div>
 
-              <div className="w-3/4 p-5 flex flex-col justify-between ">
+              <div className="w-3/4 p-5 flex flex-col justify-between">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-800 mb-2 h-[32px] overflow-hidden">
                     {hunt.name}
