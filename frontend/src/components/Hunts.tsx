@@ -250,6 +250,7 @@ export function Hunts() {
     console.log("Register success: ", data);
     toast.success("Successfully registered for hunt!");
 
+    navigate(`/hunt/${huntIndex}`);
     // Update registration status for this specific hunt
     setHuntRegistrations((prev) => ({
       ...prev,
@@ -291,7 +292,7 @@ export function Hunts() {
     return Number(`${year}${month}${day}`);
   }
 
-  const today = formatDate(Date.now());
+  const today = Math.floor(Date.now() / 1000);
 
   console.log("today", today);
   console.log("reg", huntRegistrations);
@@ -307,10 +308,22 @@ export function Hunts() {
 
   // Function to get button text and action based on hunt state
   const getButtonConfig = (hunt: Hunt, index: number) => {
-    const huntStartTime = new Date(Number(hunt.startTime)).getTime();
+    const huntStartTime = Number(hunt.startTime);
     const isHuntStarted = huntStartTime <= today;
     const isRegistered = huntRegistrations[index];
     const isStarting = startingHunts[index];
+    const huntDuration = Number(hunt.duration);
+    const isHuntEnded = huntStartTime + huntDuration < today;
+
+    if (isHuntEnded) {
+      return {
+        text: "Ended",
+        disabled: true,
+        className:
+          "bg-gray-400 cursor-not-allowed text-gray-600 border border-gray-300",
+        action: null,
+      };
+    }
 
     if (!isHuntStarted) {
       return {
@@ -357,18 +370,18 @@ export function Hunts() {
             <div
               key={index}
               className="flex 
-         bg-white rounded-lg h-48
-        border-black 
-          relative  
-          before:absolute 
-          before:inset-0 
-          before:rounded-lg
-          before:border-[16px]
-          before:border-black
-          before:-translate-x-2
-          before:translate-y-2
-          before:-z-10
-          border-[3px]"
+            bg-white rounded-lg h-48
+            border-black 
+              relative  
+              before:absolute 
+              before:inset-0 
+              before:rounded-lg
+              before:border-[16px]
+              before:border-black
+              before:-translate-x-2
+              before:translate-y-2
+              before:-z-10
+              border-[3px]"
             >
               <div
                 className={`w-1/4 flex items-center justify-center ${
@@ -392,20 +405,12 @@ export function Hunts() {
                   <div className="flex items-center gap-1 text-gray-500 text-sm mb-3">
                     <BsFillCalendarDateFill className="w-4 h-4" />
                     <span>
-                      {new Date(
-                        Number(hunt.startTime.toString().substring(0, 4)),
-                        Number(hunt.startTime.toString().substring(4, 6)) - 1,
-                        Number(hunt.startTime.toString().substring(6, 8))
-                      ).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric",
-                      })}
+                    {new Date(Number(hunt.startTime) * 1000).toLocaleString()}
                     </span>
                   </div>
 
                   {/* Single button that changes based on state */}
-                  {/* {buttonConfig.action === "register" ? (
+                  {buttonConfig.action === "register" ? (
                     <TransactionButton
                       contractAddress={contractAddress}
                       abi={huntABI}
@@ -449,15 +454,15 @@ export function Hunts() {
                         ? "Checking..."
                         : buttonConfig.text}
                     </Button>
-                  )} */}
-                  <Button
+                  )}
+                  {/* <Button
                     onClick={() => {
                       navigate(`/hunt/${originalIndex}`);
                     }}
                     className={`w-full py-1.5 text-sm font-medium rounded-md ${buttonConfig.className} transition-colors duration-300`}
                   >
                     Register
-                  </Button>
+                  </Button> */}
                 </div>
               </div>
             </div>

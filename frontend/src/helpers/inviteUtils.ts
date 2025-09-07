@@ -85,7 +85,7 @@ export const decodeBase58Invite = (encodedInvite: string): {
  * @param huntStartTime - Hunt start timestamp in seconds
  * @returns Expiry timestamp in seconds
  */
-export const calculateInviteExpiry = (huntStartTime: number): number => {
+export const calculateInviteExpiry = (huntStartTime: number, huntDuration: number): number => {
   // Add 1 hour (3600 seconds) to hunt start time
-  return huntStartTime + 3600;
+  return huntStartTime + huntDuration;
 };

@@ -133,16 +133,17 @@ export function Create() {
       !huntName ||
       !description ||
       !startDate ||
+      !startTime ||
       !duration ||
       !cluesCID ||
       !answersCID ||
       !nftMetadataCID
     ) {
-      return null;
     }
 
-    // Convert date to Unix timestamp
-    const startTimestamp = Math.floor(new Date(startDate).getTime() / 1000);
+    // Convert date and time to Unix timestamp
+    const dateTimeString = `${startDate}T${startTime}`;
+    const startTimestamp = Math.floor(new Date(dateTimeString).getTime() / 1000);
     // Convert duration to seconds
     const durationInSeconds = parseInt(duration) * 3600; // Convert hours to seconds
 
@@ -457,6 +458,16 @@ export function Create() {
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="startTime">Start Time</Label>
+            <Input
+              id="startTime"
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
             />
           </div>
 

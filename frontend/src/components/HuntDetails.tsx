@@ -33,6 +33,7 @@ export function HuntDetails() {
   const { huntId } = useParams();
   const navigate = useNavigate();
   // Team status state
+  const [showTeamInfo, setShowTeamInfo] = useState<boolean>(false);
   
   // Team management state
   const [teamCode, setTeamCode] = useState<string>(""); // Default team code
@@ -44,6 +45,9 @@ export function HuntDetails() {
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
   const [showInviteWarning, setShowInviteWarning] = useState(false);
+  
+  // localStorage key for invite codes
+  const getInviteStorageKey = () => `invite_code_${huntId}_${userWallet}`;
   
   // Video reference for QR scanner
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -86,9 +90,6 @@ export function HuntDetails() {
     params: [BigInt(huntId || 0), userWallet || "0x0000000000000000000000000000000000000000"],
   });
 
-  // Log what would be msg.sender in the contract call
-  console.log("Frontend wallet address (would be msg.sender):", userWallet);
-  console.log("Contract call from:", account?.address);
 
   const teamData = teamDetails
   ? {
@@ -110,10 +111,11 @@ export function HuntDetails() {
       }
     : null;
 
-  const joinTeam = (signature: string) => {
+  const joinTeam = (signature: string, teamId: string) => {
 
     const huntStartTime = Number(huntData?.startsAt);
-    const expiryTime = calculateInviteExpiry(huntStartTime);
+    const huntDuration = Number(huntData?.duration);
+    const expiryTime = calculateInviteExpiry(huntStartTime, huntDuration);
 
     const transaction = prepareContractCall({
       contract: {
@@ -123,7 +125,7 @@ export function HuntDetails() {
         client,
       },
       method: "joinWithInvite",
-      params: [BigInt(teamCode || 0), BigInt(expiryTime), signature as `0x${string}`],
+      params: [BigInt(teamId || 0), BigInt(expiryTime), signature as `0x${string}`],
     });
 
     // Execute the transaction and get the result
@@ -163,7 +165,7 @@ export function HuntDetails() {
             setHasCamera(false); // Hide camera after successful scan
             toast.success("QR code scanned successfully!");
 
-            joinTeam(inviteData.signature);
+            joinTeam(inviteData.signature, inviteData.teamId);
 
           } else {
             toast.error("Invalid QR code detected. Please try again.");
@@ -211,16 +213,6 @@ export function HuntDetails() {
   if (teamError) {
     console.log("Team error:", teamError.message);
   }
-
-  // Function to generate a random team code
-  const generateTeamCode = (): string => {
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
-    for (let i = 0; i < 6; i++) {
-      result += characters.charAt(Math.floor(Math.random() * characters.length));
-    }
-    return result;
-  };
   
   // Generate a new team code when the dialog is opened
   useEffect(() => {
@@ -228,11 +220,29 @@ export function HuntDetails() {
       setTeamCode(teamData.teamId.toString());
     }
   }, [activeTab, teamData, teamDetails]);
+  
+  // Check localStorage for existing invite code on component mount
+  useEffect(() => {
+    if (userWallet && huntId) {
+      const storedInvite = localStorage.getItem(getInviteStorageKey());
+      if (storedInvite) {
+        setInviteCode(storedInvite);
+      }
+    }
+  }, [userWallet, huntId]);
 
   // Generate multi-use invite code
   const generateMultiUseInvite = async () => {
     if (!account || !huntData) {
       toast.error("Please connect your wallet first");
+      return;
+    }
+    
+    // Check if invite already exists in localStorage
+    const existingInvite = localStorage.getItem(getInviteStorageKey());
+    if (existingInvite) {
+      setInviteCode(existingInvite);
+      toast.info("Using existing invite code");
       return;
     }
     
@@ -249,7 +259,7 @@ export function HuntDetails() {
         method: "createTeam",
         params: [BigInt(huntId || 0)],
       });
-
+      generateInviteAfterTeamCreation();
       // Execute the transaction and get the result
       sendTransaction(transaction, {
         onSuccess: (result) => {
@@ -278,7 +288,8 @@ export function HuntDetails() {
   // Separate function to handle invite generation after team creation
   const generateInviteAfterTeamCreation = async () => {
 
-    if (!account || !huntData || teamCode != "") {
+    console.log("Generating invite after team creation");
+    if (!account || !huntData || teamCode == "") {
       toast.error("Please connect your wallet first");
       return;
     }
@@ -286,16 +297,16 @@ export function HuntDetails() {
     try {
       // Calculate expiry time (hunt start + 1 hour)
       const huntStartTime = Number(huntData.startsAt);
-      const expiryTime = calculateInviteExpiry(huntStartTime);
+      const huntDuration = Number(huntData.duration);
+      const expiryTime = calculateInviteExpiry(huntStartTime, huntDuration);
       
       // Generate invite hash
       const hash = generateInviteHash(
         teamCode,
         expiryTime,
-        paseoAssetHub.id,
+        currentNetwork == "base" ? baseSepolia.id : paseoAssetHub.id,
         contractAddress
-      );
-      
+      );      
       // Sign the hash with wallet using the account directly
       const signature = await account.signMessage({
         message: hash,
@@ -310,6 +321,9 @@ export function HuntDetails() {
       
       setInviteCode(encodedInvite);
       setShowInviteWarning(true);
+      
+      // Store invite code in localStorage
+      localStorage.setItem(getInviteStorageKey(), encodedInvite);
     } catch (error) {
       console.error("Error generating invite:", error);
       toast.error("Failed to generate invite code");
@@ -348,8 +362,8 @@ export function HuntDetails() {
               <div className="mt-6">
                 <h2 className="text-lg font-medium mb-4">Team Management</h2>
                 
-                {/* Conditional rendering based on team data */}
-                {!teamData ? (
+                {/* Conditional rendering based on team data and user actions */}
+                {!teamData || (teamData && teamData.owner === userWallet && !showTeamInfo) ? (
                   // Show tabs when user is not in a team
                   <Tabs defaultValue="create" onValueChange={(value) => setActiveTab(value as "create" | "join" | "invite")}>
                     <TabsList className="grid w-full grid-cols-2 mb-4">
@@ -414,7 +428,15 @@ export function HuntDetails() {
                           </div>
                         )}
                         
-                        <Button className="w-full" onClick={() => console.log("Join team", teamCode)}>
+                        <Button 
+                            className="w-full" 
+                            onClick={
+                              () => {
+                                const inviteData = decodeBase58Invite(teamCode);
+                                joinTeam(inviteData.signature, inviteData.teamId);
+                              }
+                            }
+                            >
                           Join Team
                         </Button>
                       </div>
@@ -469,13 +491,17 @@ export function HuntDetails() {
                               <span>Copy</span>
                             </Button>
                           </div>
+                          
+                          <div className="text-xs text-gray-500 text-center">
+                            This invite code is saved and can be reused
+                          </div>
                         </div>
                       )}
                     </div>
                   </TabsContent>
                 </Tabs>
                 ) : (
-                  // Show team data when user is in a team
+                  // Show team data when user is in a team and hasn't created it themselves OR when showTeamInfo is true
                   <div className="border-t-2 border-gray-200 pt-4">
                     <h3 className="text-lg font-semibold mb-4">Your Team</h3>
                     <div className="space-y-3">
@@ -524,7 +550,22 @@ export function HuntDetails() {
           )}
           <div className="mt-8 border-t pt-6 p-6 flex flex-col w-full">
             <div className="flex items-center justify-between mb-4"></div>
-
+            
+            {/* Toggle button for team owner only */}
+            {teamData && teamData.owner === userWallet && (
+              <Button
+                type="button"
+                size="lg"
+                onClick={() => setShowTeamInfo(!showTeamInfo)}
+                className={cn(
+                  "w-full text-white transition-colors duration-300 bg-blue-600 hover:bg-blue-700 mb-4"
+                )}
+              >
+                {showTeamInfo ? "Back to Create/Join" : "View Team Info"}
+              </Button>
+            )}
+            
+            {/* Start Hunt button - always visible */}
             <Button
               type="submit"
               size="lg"
@@ -532,7 +573,7 @@ export function HuntDetails() {
                 "w-full text-white transition-colors duration-300 bg-black hover:bg-gray-800"
               )}
             >
-              Register
+              Start Hunt
             </Button>
           </div>
         </div>
