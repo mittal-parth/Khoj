@@ -228,7 +228,7 @@ export function Create() {
 
       const data = await response.json();
       setUploadedImageCID(data.imageCID);
-      toast.success("Image uploaded successfully!");
+      // toast.success("Image uploaded successfully!");
       
       // Auto-generate NFT metadata
       await createNFTMetadata(data.imageCID);
