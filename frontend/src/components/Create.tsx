@@ -75,6 +75,11 @@ export function Create() {
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [uploadedImageCID, setUploadedImageCID] = useState<string>("");
   const [nftMetadataCID, setNftMetadataCID] = useState<string>("");
+  
+  // New state variables for previously hardcoded fields
+  const [teamsEnabled, setTeamsEnabled] = useState(false);
+  const [maxTeamSize, setMaxTeamSize] = useState("1");
+  const [theme, setTheme] = useState("general");
 
   // Add this to get current network from localStorage
   const currentNetwork = localStorage.getItem("current_network") || "assetHub";
@@ -140,9 +145,9 @@ export function Create() {
       cluesCID,
       answersCID,
       BigInt(durationInSeconds),
-      false, // teamsEnabled
-      BigInt(1), // maxTeamSize
-      "general", // theme
+      teamsEnabled, // teamsEnabled
+      BigInt(parseInt(maxTeamSize)), // maxTeamSize
+      theme, // theme
       `ipfs://${nftMetadataCID}`, // nftMetadataURI
     ];
   };
@@ -360,6 +365,9 @@ export function Create() {
     setImagePreview(null);
     setUploadedImageCID("");
     setNftMetadataCID("");
+    setTeamsEnabled(false);
+    setMaxTeamSize("1");
+    setTheme("general");
   };
 
   const transactionArgs = getTransactionArgs();
@@ -422,6 +430,50 @@ export function Create() {
               onChange={(e) => setDuration(e.target.value)}
               placeholder="Enter duration in hours"
             />
+          </div>
+
+          <div>
+            <div className="flex items-center space-x-2">
+              <input
+                id="teamsEnabled"
+                type="checkbox"
+                checked={teamsEnabled}
+                onChange={(e) => setTeamsEnabled(e.target.checked)}
+                className="rounded"
+              />
+              <Label htmlFor="teamsEnabled">Enable Teams</Label>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Allow participants to form teams for this hunt
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="maxTeamSize">Max Team Size</Label>
+            <Input
+              id="maxTeamSize"
+              type="number"
+              min="1"
+              value={maxTeamSize}
+              onChange={(e) => setMaxTeamSize(e.target.value)}
+              placeholder="Enter maximum team size"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Maximum number of participants per team
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="theme">Theme</Label>
+            <Input
+              id="theme"
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              placeholder="Enter hunt theme (e.g., general, adventure, mystery)"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Theme or category for this hunt
+            </p>
           </div>
 
           <div className="border-t pt-6">
