@@ -46,15 +46,15 @@ export function Create() {
   const account = useActiveAccount();
   const address = account?.address;
 
-  const [huntName, setHuntName] = useState("My Treasure Hunt");
-  const [description, setDescription] = useState("An exciting treasure hunt with clues and rewards!");
+  const [huntName, setHuntName] = useState("");
+  const [description, setDescription] = useState("");
   const [startDate, setStartDate] = useState(() => {
     // Set default start date to tomorrow
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     return tomorrow.toISOString().split('T')[0];
   });
-  const [duration, setDuration] = useState("24");
+  const [duration, setDuration] = useState("");
   const [clues, setClues] = useState<Clue[]>([]);
   const [currentClue, setCurrentClue] = useState<Partial<Clue>>({
     id: 1,
