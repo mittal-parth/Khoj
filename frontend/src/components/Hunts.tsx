@@ -410,7 +410,6 @@ export function Hunts() {
                       args={[
                         originalIndex,
                         address || "0x0000000000000000000000000000000000000000",
-                        "https://ethunt.vercel.app/metadata.json",
                       ]}
                       text={buttonConfig.text}
                       className={`w-full py-1.5 text-sm font-medium rounded-md ${buttonConfig.className} transition-colors duration-300`}

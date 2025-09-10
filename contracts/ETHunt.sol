@@ -35,6 +35,8 @@ contract ETHunt {
         // Hunt-specific teams
         uint256[] teamIds;
         uint256 teamCount;
+        // NFT metadata URI for this hunt
+        string nftMetadataURI;
     }
 
     struct HuntInfo {
@@ -48,6 +50,7 @@ contract ETHunt {
         bool teamsEnabled;
         uint256 maxTeamSize;
         string theme;
+        string nftMetadataURI;
     }
 
     Hunt[] private hunts;
@@ -95,7 +98,8 @@ contract ETHunt {
         uint256 _duration,
         bool _teamsEnabled,
         uint256 _maxTeamSize,
-        string memory _theme
+        string memory _theme, // overall theme of the event that will influence the clues
+        string memory _nftMetadataURI // IPFS URI for NFT metadata
     ) public returns (uint256) {
         hunts.push();
 
@@ -109,6 +113,7 @@ contract ETHunt {
         newHunt.teamsEnabled = _teamsEnabled;
         newHunt.maxTeamSize = _maxTeamSize;
         newHunt.theme = _theme;
+        newHunt.nftMetadataURI = _nftMetadataURI;
         newHunt.creator = msg.sender;
 
         uint256 huntId = hunts.length - 1;
@@ -127,12 +132,16 @@ contract ETHunt {
     /* Register for a hunt */
     function registerForHunt(
         uint256 _huntId,
-        address _recipient,
-        string memory _tokenURI
+        address _recipient
     ) public returns (uint256) {
         require(_huntId < hunts.length, "Hunt does not exist");
         // require(hunts[_huntId].startsAt > block.timestamp, "Hunt has started.");
-        uint256 tokenId = nftContract.mintNFT(_recipient, _tokenURI);
+        
+        // Use the hunt's NFT metadata URI
+        string memory tokenURI = hunts[_huntId].nftMetadataURI;
+        require(bytes(tokenURI).length > 0, "Hunt has no NFT metadata");
+        
+        uint256 tokenId = nftContract.mintNFT(_recipient, tokenURI);
         hunts[_huntId].noOfParticipants++;
         hunts[_huntId].participantToTokenId[_recipient] = tokenId;
         emit NFTAwarded(_huntId, _recipient, tokenId);
@@ -269,7 +278,8 @@ contract ETHunt {
             string memory answers_blobId,
             bool teamsEnabled,
             uint256 maxTeamSize,
-            string memory theme
+            string memory theme,
+            string memory nftMetadataURI
         )
     {
         require(_huntId < hunts.length, "Hunt does not exist");
@@ -285,7 +295,8 @@ contract ETHunt {
             hunt.answers_blobId,
             hunt.teamsEnabled,
             hunt.maxTeamSize,
-            hunt.theme
+            hunt.theme,
+            hunt.nftMetadataURI
         );
     }
 
@@ -323,7 +334,8 @@ contract ETHunt {
                 answers_blobId: hunt.answers_blobId,
                 teamsEnabled: hunt.teamsEnabled,
                 maxTeamSize: hunt.maxTeamSize,
-                theme: hunt.theme
+                theme: hunt.theme,
+                nftMetadataURI: hunt.nftMetadataURI
             });
         }
 

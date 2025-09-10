@@ -39,7 +39,8 @@ import { LitNetwork } from "@lit-protocol/constants";
 import dotenv from "dotenv";
 import cors from "cors";
 
-import { readObject, storeString } from "./pinata.js";
+import { readObject, storeString, storeFile } from "./pinata.js";
+import multer from "multer";
 import {
   getRoomId,
   getToken,
@@ -71,6 +72,22 @@ app.options('*', cors(corsOptions));
 
 app.use(cors(corsOptions)); // Single CORS configuration
 app.use(express.json());
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    // Accept only image files
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'), false);
+    }
+  }
+});
 
 const port = process.env.PORT || 8000;
 const userAddress = "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397";
@@ -670,6 +687,58 @@ app.post("/decrypt-clues", async (req, res) => {
     });
   }
 });
+
+app.post("/upload-image", upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file provided" });
+    }
+
+    const { buffer, originalname, mimetype } = req.file;
+    
+    // Upload image to IPFS via Pinata
+    const imageCID = await storeFile(buffer, originalname, mimetype);
+    
+    res.json({
+      success: true,
+      imageCID,
+      imageUrl: `https://${process.env.PINATA_GATEWAY}/ipfs/${imageCID}`
+    });
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    res.status(500).json({
+      error: "Failed to upload image",
+      message: error.message
+    });
+  }
+});
+
+app.post("/upload-metadata", async (req, res) => {
+  try {
+    const { metadata } = req.body;
+    
+    if (!metadata) {
+      return res.status(400).json({ error: "No metadata provided" });
+    }
+
+    // Upload metadata to IPFS via Pinata
+    const metadataCID = await storeString(metadata);
+    
+    res.json({
+      success: true,
+      metadataCID,
+      metadataUrl: `https://${process.env.PINATA_GATEWAY}/ipfs/${metadataCID}`
+    });
+  } catch (error) {
+    console.error("Error uploading metadata:", error);
+    res.status(500).json({
+      error: "Failed to upload metadata",
+      message: error.message
+    });
+  }
+});
+
+
 
 app.post("/startHuddle", async (req, res) => {
   try {

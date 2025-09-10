@@ -10,6 +10,7 @@ import { TransactionButton } from "./TransactionButton";
 import { CONTRACT_ADDRESSES, SUPPORTED_CHAINS } from "../lib/utils";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
+const IPFS_GATEWAY = import.meta.env.VITE_PUBLIC_IPFS_GATEWAY || "harlequin-fantastic-giraffe-234.mypinata.cloud";
 
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
@@ -47,7 +48,12 @@ export function Create() {
 
   const [huntName, setHuntName] = useState("");
   const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState("");
+  const [startDate, setStartDate] = useState(() => {
+    // Set default start date to tomorrow
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow.toISOString().split('T')[0];
+  });
   const [duration, setDuration] = useState("");
   const [clues, setClues] = useState<Clue[]>([]);
   const [currentClue, setCurrentClue] = useState<Partial<Clue>>({
@@ -62,6 +68,18 @@ export function Create() {
   const [cluesCID, setCluesCID] = useState("");
   const [answersCID, setAnswersCID] = useState("");
   const [healthCheckStatus, setHealthCheckStatus] = useState<string | null>(null);
+  
+  // Image upload states
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [uploadedImageCID, setUploadedImageCID] = useState<string>("");
+  const [nftMetadataCID, setNftMetadataCID] = useState<string>("");
+  
+  // New state variables for previously hardcoded fields
+  const [teamsEnabled, setTeamsEnabled] = useState(false);
+  const [maxTeamSize, setMaxTeamSize] = useState("1");
+  const [theme, setTheme] = useState("general");
 
   // Add this to get current network from localStorage
   const currentNetwork = localStorage.getItem("current_network") || "assetHub";
@@ -109,7 +127,8 @@ export function Create() {
       !startDate ||
       !duration ||
       !cluesCID ||
-      !answersCID
+      !answersCID ||
+      !nftMetadataCID
     ) {
       return null;
     }
@@ -126,6 +145,10 @@ export function Create() {
       cluesCID,
       answersCID,
       BigInt(durationInSeconds),
+      teamsEnabled, // teamsEnabled
+      BigInt(parseInt(maxTeamSize)), // maxTeamSize
+      theme, // theme
+      `ipfs://${nftMetadataCID}`, // nftMetadataURI
     ];
   };
 
@@ -154,6 +177,112 @@ export function Create() {
     } catch (error) {
       setHealthCheckStatus("❌ Backend unreachable");
       toast.error("Backend is unreachable");
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please select a valid image file");
+        return;
+      }
+      
+      // Validate file size (10MB limit)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Image size must be less than 10MB");
+        return;
+      }
+
+      setSelectedImage(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImagePreview(event.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadImage = async () => {
+    if (!selectedImage) {
+      toast.error("Please select an image first");
+      return;
+    }
+
+    setIsUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', selectedImage);
+
+      const response = await fetch(`${BACKEND_URL}/upload-image`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const data = await response.json();
+      setUploadedImageCID(data.imageCID);
+      // toast.success("Image uploaded successfully!");
+      
+      // Auto-generate NFT metadata
+      await createNFTMetadata(data.imageCID);
+      
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      toast.error("Failed to upload image");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const createNFTMetadata = async (imageCID: string) => {
+    try {
+      // Create NFT metadata following OpenSea standard
+      const metadata = {
+        name: huntName || "ETHunt NFT",
+        description: description || "Participation NFT for ETHunt",
+        image: `ipfs://${imageCID}`,
+        attributes: [
+          {
+            trait_type: "Hunt Name",
+            value: huntName || "Unknown Hunt"
+          },
+          {
+            trait_type: "Created At",
+            value: new Date().toISOString()
+          }
+        ],
+        external_url: "", // Could be set to hunt URL later
+      };
+
+      // Upload metadata to IPFS via backend
+      const response = await fetch(`${BACKEND_URL}/upload-metadata`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          metadata: metadata,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload NFT metadata to IPFS');
+      }
+
+      const data = await response.json();
+      setNftMetadataCID(data.metadataCID);
+      toast.success("NFT metadata created and uploaded!");
+      
+    } catch (error) {
+      console.error("Error creating NFT metadata:", error);
+      toast.error("Failed to create NFT metadata");
     }
   };
 
@@ -199,8 +328,13 @@ export function Create() {
 
       const data = await response.json();
       setUploadedCIDs(data);
+      
+      // Automatically populate the IPFS configuration fields with the returned blob IDs
+      setCluesCID(data.clues_blobId);
+      setAnswersCID(data.answers_blobId);
+      
       toast.success(
-        "Successfully uploaded to IPFS! Please copy the CIDs below to the CID input fields."
+        "Successfully uploaded to IPFS! CIDs have been automatically added to the configuration."
       );
     } catch (err) {
       console.error("Error uploading to IPFS:", err);
@@ -227,6 +361,13 @@ export function Create() {
     setCluesCID("");
     setAnswersCID("");
     setUploadedCIDs(null);
+    setSelectedImage(null);
+    setImagePreview(null);
+    setUploadedImageCID("");
+    setNftMetadataCID("");
+    setTeamsEnabled(false);
+    setMaxTeamSize("1");
+    setTheme("general");
   };
 
   const transactionArgs = getTransactionArgs();
@@ -291,6 +432,117 @@ export function Create() {
             />
           </div>
 
+          <div>
+            <div className="flex items-center space-x-2">
+              <input
+                id="teamsEnabled"
+                type="checkbox"
+                checked={teamsEnabled}
+                onChange={(e) => setTeamsEnabled(e.target.checked)}
+                className="rounded"
+              />
+              <Label htmlFor="teamsEnabled">Enable Teams</Label>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Allow participants to form teams for this hunt
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="maxTeamSize">Max Team Size</Label>
+            <Input
+              id="maxTeamSize"
+              type="number"
+              min="1"
+              value={maxTeamSize}
+              onChange={(e) => setMaxTeamSize(e.target.value)}
+              placeholder="Enter maximum team size"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Maximum number of participants per team
+            </p>
+          </div>
+
+          <div>
+            <Label htmlFor="theme">Theme</Label>
+            <Input
+              id="theme"
+              value={theme}
+              onChange={(e) => setTheme(e.target.value)}
+              placeholder="Enter hunt theme (e.g., general, adventure, mystery)"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Theme or category for this hunt
+            </p>
+          </div>
+
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-semibold mb-4">NFT Image</h3>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="nftImage">Hunt NFT Image</Label>
+                <Input
+                  id="nftImage"
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="mt-1"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Select an image for the hunt participation NFT (Max 10MB)
+                </p>
+              </div>
+
+              {imagePreview && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium">Preview:</p>
+                  <img
+                    src={imagePreview}
+                    alt="NFT Preview"
+                    className="w-32 h-32 object-cover rounded-md border"
+                  />
+                  <Button
+                    onClick={uploadImage}
+                    disabled={isUploadingImage}
+                    variant="outline"
+                    className="bg-blue-50"
+                  >
+                    {isUploadingImage ? "Uploading..." : "Upload Image to IPFS"}
+                  </Button>
+                </div>
+              )}
+
+              {uploadedImageCID && (
+                <div className="p-3 bg-green-50 rounded-md">
+                  <p className="text-sm font-medium text-green-800">✅ Image Uploaded Successfully!</p>
+                  <p className="text-xs text-green-600">Image CID: {uploadedImageCID}</p>
+                  <a 
+                    href={`https://${IPFS_GATEWAY}/ipfs/${uploadedImageCID}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 hover:text-blue-800 underline"
+                  >
+                    🔗 View Image on IPFS
+                  </a>
+                  {nftMetadataCID && (
+                    <>
+                      <p className="text-xs text-green-600 mt-2">Metadata CID: {nftMetadataCID}</p>
+                      <a 
+                        href={`https://${IPFS_GATEWAY}/ipfs/${nftMetadataCID}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 hover:text-blue-800 underline block"
+                      >
+                        🔗 View Metadata on IPFS
+                      </a>
+                      <p className="text-xs text-green-600 mt-1">✅ NFT metadata created! Ready to create hunt.</p>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
           <div className="border-t pt-6">
             <h3 className="text-lg font-semibold mb-4">IPFS Configuration</h3>
 
@@ -335,6 +587,8 @@ export function Create() {
             >
               {!account
                 ? "Connect Wallet to Create Hunt"
+                : !nftMetadataCID
+                ? "Upload NFT image to continue"
                 : "Fill in all fields to create hunt"}
             </Button>
           )}

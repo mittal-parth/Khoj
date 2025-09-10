@@ -52,12 +52,12 @@ export function Navbar() {
   };
 
   return (
-    <nav className="fixed top-0 w-full bg-white shadow-sm z-50">
+    <nav className="fixed top-0 w-full bg-white z-50 border-b-2 border-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo/Brand */}
           <div className="flex-shrink-0">
-            <Link to="/" className="text-xl font-bold flex items-center gap-2">
+            <Link to="/" className="text-xl font-bold flex items-center gap-2 text-black hover:text-green transition-colors">
               <FaEthereum className="text-green text-2xl" />
               Khoj
             </Link>
@@ -66,40 +66,50 @@ export function Navbar() {
           {/* Navigation Links and Network Selector */}
           <div className="flex items-center gap-2 md:gap-4">
             <div className="hidden md:flex items-center gap-6">
-              <Link to="/" className="text-gray-700 hover:text-green">
+              <Link to="/" className="text-black hover:text-green font-medium transition-colors">
                 Hunts
               </Link>
-              <Link to="/profile" className="text-gray-700 hover:text-green">
+              <Link to="/profile" className="text-black hover:text-green font-medium transition-colors">
                 Profile
               </Link>
               <Link
                 to="/hunt/create"
-                className="text-gray-700 hover:text-green"
+                className="text-black hover:text-green font-medium transition-colors"
               >
                 Create Hunt
               </Link>
             </div>
 
             {/* Custom Network Selector */}
-            <div className="relative">
+            <div className="relative group">
               <select
                 aria-label="Select network"
                 value={currentNetwork}
                 onChange={(e) => handleNetworkChange(e.target.value)}
-                className="appearance-none bg-white border border-gray-300 rounded-md 
-                  w-24 h-10 pl-8 pr-2
-                  hover:border-gray-400 focus:outline-none focus:ring-1 
-                  focus:ring-green/20 focus:border-green cursor-pointer"
-                style={{ textIndent: "-999px" }}
+                className="appearance-none bg-white border-2 border-black rounded-md 
+                  w-28 h-10 pl-10 pr-8
+                  hover:border-green focus:outline-none focus:border-green 
+                  cursor-pointer font-medium text-sm transition-all duration-200
+                  hover:shadow-md hover:scale-105"
               >
                 {Object.keys(SUPPORTED_CHAINS).map((key) => (
-                  <option key={key} value={key}>
+                  <option key={key} value={key} className="text-black">
                     {NETWORK_META[key]?.label || key}
                   </option>
                 ))}
               </select>
-              <div className="absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 {renderSelectedNetwork()}
+              </div>
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+                <svg 
+                  className="w-4 h-4 text-black group-hover:text-green transition-colors" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </div>
             </div>
           </div>
@@ -107,8 +117,9 @@ export function Navbar() {
           {/* Wallet Connect */}
           <div className="flex items-center text-black ml-1 md:ml-2">
             <WalletWrapper
-              className="bg-yellow/80 border border-black text-black rounded-xl
-                hover:bg-yellow/80 px-2 py-1 text-xs md:text-sm font-medium"
+              className="bg-yellow border-2 border-black text-black rounded-md
+                hover:bg-orange hover:border-orange px-3 py-2 text-xs md:text-sm font-semibold
+                transition-all duration-300 transform hover:scale-105"
               text="Connect Wallet"
               withWalletAggregator={true}
             />
