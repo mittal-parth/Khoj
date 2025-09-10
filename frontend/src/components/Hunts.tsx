@@ -173,7 +173,6 @@ export function Hunts() {
   }
 
   //get the token getTokenId
-  console.log(currentNetwork, SUPPORTED_CHAINS)
   const chainId =
     SUPPORTED_CHAINS[currentNetwork as keyof typeof SUPPORTED_CHAINS].id;
 
