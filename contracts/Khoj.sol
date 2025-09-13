@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./ETHuntNFT.sol";
+import "./KhojNFT.sol";
 
-contract ETHunt {
-    ETHuntNFT public nftContract;
+contract Khoj {
+    KhojNFT public nftContract;
 
     /* Structs */
     struct Team {
@@ -83,7 +83,7 @@ contract ETHunt {
     event TeamJoined(uint256 indexed teamId, address indexed member);
 
     constructor(address _nftContractAddress) {
-        nftContract = ETHuntNFT(_nftContractAddress);
+        nftContract = KhojNFT(_nftContractAddress);
     }
 
     /* Functions */
