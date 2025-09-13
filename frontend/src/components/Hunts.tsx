@@ -1,6 +1,7 @@
 import { TbLadder, TbChessKnight } from "react-icons/tb";
 import { FaChess, FaDice } from "react-icons/fa";
 import { BsFillCalendarDateFill } from "react-icons/bs";
+import { GiOpenTreasureChest } from "react-icons/gi";
 import { useNavigate } from "react-router-dom";
 import { useActiveAccount, useReadContract } from "thirdweb/react";
 import { getContract, readContract } from "thirdweb";
@@ -283,15 +284,6 @@ export function Hunts() {
 
   console.log("Hunts: hunts", hunts);
 
-  function formatDate(date: number) {
-    const dateObj = new Date(date);
-    const year = dateObj.getFullYear();
-    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-    const day = String(dateObj.getDate()).padStart(2, "0");
-
-    return Number(`${year}${month}${day}`);
-  }
-
   const today = Math.floor(Date.now() / 1000);
 
   console.log("today", today);
@@ -357,11 +349,28 @@ export function Hunts() {
 
   return (
     <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-[90px]">
-      <h1 className="text-3xl font-bold my-8 text-green drop-shadow-xl">
+      <h1 className="text-3xl font-bold my-12 mx-4 text-green drop-shadow-xl">
         Hunts
       </h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {processedHunts.map((hunt: Hunt, index: number) => {
+      
+      {processedHunts.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-32 px-4">
+          <div className="relative mb-8">
+            <GiOpenTreasureChest className="w-32 h-32 text-gray-400 opacity-50" />
+          </div>
+          <div className="text-center max-w-md">
+            <h2 className="text-2xl font-bold text-gray-700 mb-4">
+              No Treasure Hunts Yet! 🗺️
+            </h2>
+            <p className="text-sm text-gray-600 mb-6 italic">
+              The treasure map is empty, but adventure awaits! Check back soon for exciting hunts to embark upon.
+            </p>
+
+          </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {processedHunts.map((hunt: Hunt, index: number) => {
           const buttonConfig = getButtonConfig(hunt, index);
           // Find the original index for contract interactions
           const originalIndex = hunts.findIndex(h => h === hunt);
@@ -468,7 +477,8 @@ export function Hunts() {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

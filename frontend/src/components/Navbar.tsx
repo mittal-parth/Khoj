@@ -1,4 +1,3 @@
-import { FaEthereum } from "react-icons/fa";
 import { SiPolkadot, SiCoinbase } from "react-icons/si";
 import { Link } from "react-router-dom";
 import WalletWrapper from "@/helpers/WalletWrapper";
@@ -58,8 +57,11 @@ export function Navbar() {
           {/* Logo/Brand */}
           <div className="flex-shrink-0">
             <Link to="/" className="text-xl font-bold flex items-center gap-2 text-black hover:text-green transition-colors">
-              <FaEthereum className="text-green text-2xl" />
-              Khoj
+              <img 
+                src="/khoj-logo-no-bg.png" 
+                alt="Khoj Logo" 
+                className="h-16 object-contain"
+              />
             </Link>
           </div>
 
