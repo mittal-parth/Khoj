@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { RewardCard } from "../types";
 import {
   ChartConfig,
   ChartContainer,
@@ -48,13 +49,6 @@ const chartConfig = {
   },
 } satisfies ChartConfig;
 
-interface RewardCard {
-  code: string;
-  description: string;
-  isExpired: boolean;
-  expiryDate?: string;
-  icon: JSX.Element;
-}
 
 const rewardCards: RewardCard[] = [
   {

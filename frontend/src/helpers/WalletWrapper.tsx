@@ -2,12 +2,8 @@ import { ConnectButton } from "thirdweb/react";
 import { client } from "../lib/client";
 import { paseoAssetHub } from "../lib/chains";
 import { baseSepolia } from "../lib/chains";
+import { WalletWrapperParams } from "../types";
 
-type WalletWrapperParams = {
-  text?: string;
-  className?: string;
-  withWalletAggregator?: boolean;
-};
 
 export default function WalletWrapper({
   className,

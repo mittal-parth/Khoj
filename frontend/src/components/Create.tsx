@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { TransactionButton } from "./TransactionButton";
 import { CONTRACT_ADDRESSES, SUPPORTED_CHAINS } from "../lib/utils";
+import { Clue, ClueData, AnswerData, IPFSResponse } from "../types";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 const IPFS_GATEWAY = import.meta.env.VITE_PUBLIC_IPFS_GATEWAY || "harlequin-fantastic-giraffe-234.mypinata.cloud";
@@ -17,30 +18,6 @@ function isValidHexAddress(address: string): address is `0x${string}` {
   return /^0x[0-9a-fA-F]{40}$/.test(address);
 }
 
-interface Clue {
-  id: number;
-  lat: number;
-  long: number;
-  description: string;
-  answer: string;
-}
-
-interface ClueData {
-  id: number;
-  description: string;
-}
-
-interface AnswerData {
-  id: number;
-  answer: string;
-  lat: number;
-  long: number;
-}
-
-interface IPFSResponse {
-  clues_blobId: string;
-  answers_blobId: string;
-}
 
 export function Create() {
   const account = useActiveAccount();

@@ -15,15 +15,8 @@ import {
 } from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { HuddleRoomConfig, HuddleRoomProps } from "../types";
 
-interface HuddleRoomConfig {
-  roomId: string;
-  token: string;
-}
-
-interface HuddleRoomProps {
-  huntId: string;
-}
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 

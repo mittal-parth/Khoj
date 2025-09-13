@@ -1,4 +1,4 @@
-import { TbLadder, TbChessKnight, TbUsers, TbUsersGroup } from "react-icons/tb";
+import { TbLadder, TbChessKnight, TbUsersGroup } from "react-icons/tb";
 import { FaChess, FaDice } from "react-icons/fa";
 import { BsCalendar2DateFill } from "react-icons/bs";
 import { IoIosPeople } from "react-icons/io";
@@ -16,20 +16,8 @@ import { useState, useEffect, useMemo } from "react";
 import { SUPPORTED_CHAINS, CONTRACT_ADDRESSES } from "../lib/utils";
 import { client } from "../lib/client";
 import { paseoAssetHub, baseSepolia } from "../lib/chains";
+import { Hunt } from "../types";
 
-interface Hunt {
-  name: string;
-  description: string;
-  startTime: bigint;
-  endTime: bigint;
-  participantCount: bigint;
-  clues_blobId: string;
-  answers_blobId: string;
-  teamsEnabled: boolean;
-  maxTeamSize: bigint;
-  theme: string;
-  nftMetadataURI: string;
-}
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 

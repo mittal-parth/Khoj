@@ -2,21 +2,10 @@ import { useState } from "react";
 import { useActiveAccount, useSendTransaction } from "thirdweb/react";
 import { prepareContractCall } from "thirdweb";
 import { client } from "../lib/client";
-import { paseoAssetHub, baseSepolia } from "../lib/chains";
+import { baseSepolia } from "../lib/chains";
 import { Button } from "./ui/button";
+import { TransactionButtonProps } from "../types";
 
-interface TransactionButtonProps {
-  contractAddress: string;
-  abi: any;
-  functionName: string;
-  args: any[];
-  text: string;
-  className?: string;
-  disabled?: boolean;
-  onSuccess?: (data: any) => void;
-  onError?: (error: any) => void;
-  onClick?: () => boolean | void;
-}
 
 export function TransactionButton({
   contractAddress,
