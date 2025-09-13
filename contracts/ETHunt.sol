@@ -14,6 +14,9 @@ contract ETHunt {
         mapping(address => bool) members;
         // We need both: mapping for O(1) membership checks, array for returning member list
         address[] membersList;
+        // Commit-reveal scheme for invites - tracks used hashes
+        // false = available (not committed or committed but not revealed / used), true = revealed / used
+        mapping(bytes32 => bool) inviteHashes;
     }
 
     struct Hunt {
@@ -81,6 +84,14 @@ contract ETHunt {
         uint256 maxMembers
     );
     event TeamJoined(uint256 indexed teamId, address indexed member);
+    event InviteCommitted(
+        uint256 indexed teamId,
+        bytes32 indexed inviteHash
+    );
+    event InviteRevealed(
+        uint256 indexed teamId,
+        address indexed member
+    );
 
     constructor(address _nftContractAddress) {
         nftContract = ETHuntNFT(_nftContractAddress);
@@ -154,6 +165,9 @@ contract ETHunt {
         Hunt storage hunt = hunts[_huntId];
         require(hunt.teamsEnabled, "Teams disabled for this hunt");
         require(hunt.maxTeamSize > 0, "Invalid team size configuration");
+        
+        // Require that the team owner has registered for the hunt
+        require(hunt.participantToTokenId[msg.sender] > 0, "Must register for hunt before creating team");
 
         teamId = nextTeamId;
         nextTeamId++;
@@ -176,89 +190,72 @@ contract ETHunt {
         return teamId;
     }
 
-    /* Verify invite signature */
-    function verifyInviteSignature(
+    /* Commit invite hash for team */
+    function commitTeamInviteHash(
         uint256 _teamId,
-        uint256 _expiry,
-        bytes memory _signature,
-        address _expectedSigner
-    ) internal view returns (bool) {
-        // Create the hash that should have been signed
-        bytes32 hash = keccak256(
-            abi.encodePacked(
-                "TeamInvite",
-                _teamId,
-                _expiry,
-                block.chainid,
-                address(this) // contract address
-            )
-        );
-
-        // Add Ethereum message prefix (EIP-191)
-        bytes32 ethSignedMessageHash = keccak256(
-            abi.encodePacked("\x19Ethereum Signed Message:\n32", hash)
-        );
-
-        require(_signature.length == 65, "Invalid signature length");
-
-        // Extract r, s, v from signature
-        // r, s: 32-byte components of ECDSA signature (elliptic curve point)
-        // v: recovery ID (27 or 28) to determine which public key to recover
-        bytes32 r;
-        bytes32 s;
-        uint8 v;
-
-        assembly {
-            r := mload(add(_signature, 32)) // First 32 bytes
-            s := mload(add(_signature, 64)) // Next 32 bytes
-            v := byte(0, mload(add(_signature, 96))) // Last byte
-        }
-
-        // Recover the signer's address from signature
-        address recoveredSigner = ecrecover(ethSignedMessageHash, v, r, s);
-
-        return recoveredSigner == _expectedSigner;
-    }
-
-    /* Join team via signed invite */
-    function joinWithInvite(
-        uint256 _teamId,
-        uint256 _expiry,
-        bytes memory _signature
+        bytes32 _inviteHash
     ) public {
-        // 1. Verify expiry
-        require(block.timestamp <= _expiry, "Invite expired");
-
-        // 2. Verify team exists
         require(_teamId < nextTeamId, "Team does not exist");
         Team storage team = teams[_teamId];
-        // address(0) is 0x0000...0000 - default value for non-existent mapping entries
-        // If team wasn't created, owner would be address(0)
+        require(team.owner != address(0), "Team does not exist");
+        require(team.owner == msg.sender, "Only team owner can commit invite hash");
+        
+        // Check that the invite hash hasn't been used before for this team
+        // false = available (not committed or committed but not used), true = used
+        require(!team.inviteHashes[_inviteHash], "Invite hash already used for this team");
+        
+        // Mark the invite hash as available (not used yet)
+        team.inviteHashes[_inviteHash] = false;
+        
+        emit InviteCommitted(_teamId, _inviteHash);
+    }
+
+    /* Join team via secret reveal */
+    function joinTeam(
+        uint256 _teamId,
+        string memory _secret
+    ) public {
+        // 1. Verify team exists
+        require(_teamId < nextTeamId, "Team does not exist");
+        Team storage team = teams[_teamId];
         require(team.owner != address(0), "Team does not exist");
 
-        // 3. Verify not already in team
+        // 2. Verify not already in team
         require(!team.members[msg.sender], "Already in team");
 
-        // 4. Get hunt to check team size limit
+        // 3. Get hunt to check team size limit
         uint256 huntId = team.huntId;
         Hunt storage hunt = hunts[huntId];
 
         // Verify team not full
         require(team.memberCount < hunt.maxTeamSize, "Team full");
 
-        // 5. Verify signature
-        require(
-            verifyInviteSignature(_teamId, _expiry, _signature, team.owner),
-            "Invalid signature"
+        // 4. Generate the secret hash
+        bytes32 secretHash = keccak256(
+            abi.encodePacked(
+                "KhojTeamInvite",
+                _teamId,
+                huntId,
+                _secret,
+                block.chainid,
+                address(this)
+            )
         );
+        
+        // 5. Verify the invite hash exists and is available
+        require(!team.inviteHashes[secretHash], "Invite hash not found or already used");
+        
+        // 6. Mark invite hash as used for this team
+        team.inviteHashes[secretHash] = true;
 
-        // 6. Add member
+        // 7. Add member
         team.members[msg.sender] = true;
         team.memberCount++;
         team.membersList.push(msg.sender);
         hunt.participantToTeamId[msg.sender] = _teamId;
 
         emit TeamJoined(_teamId, msg.sender);
+        emit InviteRevealed(_teamId, msg.sender);
     }
 
     /* Get hunt details */
