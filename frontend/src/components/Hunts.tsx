@@ -1,6 +1,7 @@
-import { TbLadder, TbChessKnight } from "react-icons/tb";
+import { TbLadder, TbChessKnight, TbUsers, TbUsersGroup } from "react-icons/tb";
 import { FaChess, FaDice } from "react-icons/fa";
-import { BsFillCalendarDateFill } from "react-icons/bs";
+import { BsCalendar2DateFill } from "react-icons/bs";
+import { IoIosPeople } from "react-icons/io";
 import { GiOpenTreasureChest } from "react-icons/gi";
 import { useNavigate } from "react-router-dom";
 import { useActiveAccount, useReadContract } from "thirdweb/react";
@@ -20,10 +21,14 @@ interface Hunt {
   name: string;
   description: string;
   startTime: bigint;
-  duration: bigint;
+  endTime: bigint;
   participantCount: bigint;
   clues_blobId: string;
   answers_blobId: string;
+  teamsEnabled: boolean;
+  maxTeamSize: bigint;
+  theme: string;
+  nftMetadataURI: string;
 }
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
@@ -31,6 +36,20 @@ const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
   return /^0x[0-9a-fA-F]{40}$/.test(address);
+}
+
+// Helper function to format date range
+function formatDateRange(startTime: bigint, endTime: bigint): string {
+  const startDate = new Date(Number(startTime) * 1000);
+  const endDate = new Date(Number(endTime) * 1000);
+  
+  // If same day, show time range
+  if (startDate.toDateString() === endDate.toDateString()) {
+    return `${startDate.toLocaleDateString([], { month: 'short', day: 'numeric' })} • ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  
+  // Different days, show date range with times
+  return `${startDate.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 }
 
 export function Hunts() {
@@ -290,7 +309,7 @@ export function Hunts() {
   console.log("reg", huntRegistrations);
 
   // Array of background colors and icons to rotate through
-  const bgColors = ["bg-green", "bg-orange", "bg-yellow", "bg-pink", "bg-red"];
+  const bgColors = ["green", "orange", "yellow", "pink", "red"];
   const icons = [
     <TbLadder className="w-10 h-10 text-white" />,
     <TbChessKnight className="w-10 h-10 text-white" />,
@@ -300,12 +319,11 @@ export function Hunts() {
 
   // Function to get button text and action based on hunt state
   const getButtonConfig = (hunt: Hunt, index: number) => {
-    const huntStartTime = Number(hunt.startTime);
-    const isHuntStarted = huntStartTime <= today;
+    const huntEndTime = Number(hunt.endTime);
+    const isHuntStarted = true;
     const isRegistered = huntRegistrations[index];
     const isStarting = startingHunts[index];
-    const huntDuration = Number(hunt.duration);
-    const isHuntEnded = huntStartTime + huntDuration < today;
+    const isHuntEnded = huntEndTime < today;
 
     if (isHuntEnded) {
       return {
@@ -349,7 +367,7 @@ export function Hunts() {
 
   return (
     <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-[90px]">
-      <h1 className="text-3xl font-bold my-12 mx-4 text-green drop-shadow-xl">
+      <h1 className="text-3xl font-bold mt-12 mb-6 mx-2 text-green drop-shadow-xl">
         Hunts
       </h1>
       
@@ -369,7 +387,7 @@ export function Hunts() {
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mx-2">
           {processedHunts.map((hunt: Hunt, index: number) => {
           const buttonConfig = getButtonConfig(hunt, index);
           // Find the original index for contract interactions
@@ -379,7 +397,7 @@ export function Hunts() {
             <div
               key={index}
               className="flex 
-            bg-white rounded-lg h-48
+            bg-white rounded-lg
             border-black 
               relative  
               before:absolute 
@@ -393,7 +411,7 @@ export function Hunts() {
               border-[3px]"
             >
               <div
-                className={`w-1/4 flex items-center justify-center ${
+                className={`w-1/4 flex items-center justify-center bg-${
                   bgColors[index % bgColors.length]
                 }`}
               >
@@ -401,78 +419,85 @@ export function Hunts() {
               </div>
 
               <div className="w-3/4 p-5 flex flex-col justify-between">
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-800 mb-2 h-[32px] overflow-hidden">
+                {/* Header with title and teams pill */}
+                <div className="flex justify-between items-start mb-2">
+                  <h2 className="text-xl font-semibold text-gray-800 h-[32px] overflow-hidden flex-1 pr-2">
                     {hunt.name}
                   </h2>
-                  <p className="text-[0.85rem] text-gray-600 line-clamp-2">
-                    {hunt.description}
-                  </p>
+                  {hunt.teamsEnabled && (
+                    <div className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
+                      <TbUsersGroup className="w-3 h-3" />
+                      <span>Teams</span>
+                    </div>
+                  )}
                 </div>
 
-                <div className="mt-auto">
-                  <div className="flex items-center gap-1 text-gray-500 text-sm mb-3">
-                    <BsFillCalendarDateFill className="w-4 h-4" />
-                    <span>
-                    {new Date(Number(hunt.startTime) * 1000).toLocaleString()}
-                    </span>
-                  </div>
+                <p className="text-sm text-gray-600 mb-3">
+                  {hunt.description}
+                </p>
 
-                  {/* Single button that changes based on state */}
-                  {buttonConfig.action === "register" ? (
-                    <TransactionButton
-                      contractAddress={contractAddress}
-                      abi={huntABI}
-                      functionName="registerForHunt"
-                      args={[
-                        originalIndex,
-                        address || "0x0000000000000000000000000000000000000000",
-                      ]}
-                      text={buttonConfig.text}
-                      className={`w-full py-1.5 text-sm font-medium rounded-md ${buttonConfig.className} transition-colors duration-300`}
-                      disabled={
-                        !address ||
-                        isLoading ||
-                        isCheckingRegistrations ||
-                        buttonConfig.disabled
-                      }
-                      onError={(error) => console.log(error)}
-                      onSuccess={(data) => handleRegisterSuccess(data, index)}
-                    />
-                  ) : (
-                    <Button
-                      onClick={() => {
-                        if (buttonConfig.action === "start") {
-                          handleHuntStart(
-                            index,
-                            originalIndex,
-                            hunt.clues_blobId,
-                            hunt.answers_blobId
-                          );
-                        }
-                      }}
-                      className={`w-full py-1.5 text-sm font-medium rounded-md ${buttonConfig.className} transition-colors duration-300`}
-                      disabled={
-                        !address ||
-                        isLoading ||
-                        isCheckingRegistrations ||
-                        buttonConfig.disabled
-                      }
-                    >
-                      {isCheckingRegistrations
-                        ? "Checking..."
-                        : buttonConfig.text}
-                    </Button>
-                  )}
-                  {/* <Button
+                {/* Date and time information */}
+                <div className="flex items-center gap-1 text-sm mb-3">
+                  <BsCalendar2DateFill className={`w-4 h-4 text-${bgColors[index % bgColors.length]} mr-0.5`} />
+                  <span className="text-sm">
+                    {formatDateRange(hunt.startTime, hunt.endTime)}
+                  </span>
+                </div>
+
+                {/* Participant count */}
+                <div className="flex items-center gap-1 text-sm mb-3">
+                  <IoIosPeople className={`w-5 h-5 text-${bgColors[index % bgColors.length]}`} />
+                  <span className="text-sm">
+                    {Number(hunt.participantCount)} participant{hunt.participantCount !== 1n ? 's' : ''}
+                  </span>
+                </div>
+
+                {/* Single button that changes based on state */}
+                {buttonConfig.action === "register" ? (
+                  <TransactionButton
+                    contractAddress={contractAddress}
+                    abi={huntABI}
+                    functionName="registerForHunt"
+                    args={[
+                      originalIndex,
+                      address || "0x0000000000000000000000000000000000000000",
+                    ]}
+                    text={buttonConfig.text}
+                    className={`w-full py-1.5 text-sm font-medium rounded-md ${buttonConfig.className} transition-colors duration-300`}
+                    disabled={
+                      !address ||
+                      isLoading ||
+                      isCheckingRegistrations ||
+                      buttonConfig.disabled
+                    }
+                    onError={(error) => console.log(error)}
+                    onSuccess={(data) => handleRegisterSuccess(data, index)}
+                  />
+                ) : (
+                  <Button
                     onClick={() => {
-                      navigate(`/hunt/${originalIndex}`);
+                      if (buttonConfig.action === "start") {
+                        handleHuntStart(
+                          index,
+                          originalIndex,
+                          hunt.clues_blobId,
+                          hunt.answers_blobId
+                        );
+                      }
                     }}
                     className={`w-full py-1.5 text-sm font-medium rounded-md ${buttonConfig.className} transition-colors duration-300`}
+                    disabled={
+                      !address ||
+                      isLoading ||
+                      isCheckingRegistrations ||
+                      buttonConfig.disabled
+                    }
                   >
-                    Register
-                  </Button> */}
-                </div>
+                    {isCheckingRegistrations
+                      ? "Checking..."
+                      : buttonConfig.text}
+                  </Button>
+                )}
               </div>
             </div>
           );
