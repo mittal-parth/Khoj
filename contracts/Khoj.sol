@@ -19,10 +19,10 @@ contract Khoj {
     struct Hunt {
         string name;
         string description;
-        uint256 startsAt;
+        uint256 startTime;
+        uint256 endTime;
         string clues_blobId;
         string answers_blobId;
-        uint256 duration;
         address[] winners;
         uint256 noOfParticipants;
         address creator;
@@ -43,7 +43,7 @@ contract Khoj {
         string name;
         string description;
         uint256 startTime;
-        uint256 duration;
+        uint256 endTime;
         uint256 participantCount;
         string clues_blobId;
         string answers_blobId;
@@ -64,8 +64,8 @@ contract Khoj {
         uint256 indexed huntId,
         string name,
         string description,
-        uint256 startsAt,
-        uint256 duration
+        uint256 startTime,
+        uint256 endTime
     );
 
     event HuntStarted(uint256 indexed huntId, uint256 startedAt);
@@ -92,10 +92,10 @@ contract Khoj {
     function createHunt(
         string memory _name,
         string memory _description,
-        uint256 startsAt,
+        uint256 _startTime,
+        uint256 _endTime,
         string memory _clues_blobId,
         string memory _answers_blobId,
-        uint256 _duration,
         bool _teamsEnabled,
         uint256 _maxTeamSize,
         string memory _theme, // overall theme of the event that will influence the clues
@@ -106,8 +106,8 @@ contract Khoj {
         Hunt storage newHunt = hunts[hunts.length - 1];
         newHunt.name = _name;
         newHunt.description = _description;
-        newHunt.startsAt = startsAt;
-        newHunt.duration = _duration;
+        newHunt.startTime = _startTime;
+        newHunt.endTime = _endTime;
         newHunt.clues_blobId = _clues_blobId;
         newHunt.answers_blobId = _answers_blobId;
         newHunt.teamsEnabled = _teamsEnabled;
@@ -122,8 +122,8 @@ contract Khoj {
             huntId,
             _name,
             _description,
-            block.timestamp,
-            _duration
+            _startTime,
+            _endTime
         );
 
         return huntId;
@@ -270,8 +270,8 @@ contract Khoj {
         returns (
             string memory name,
             string memory description,
-            uint256 startedAt,
-            uint256 duration,
+            uint256 startTime,
+            uint256 endTime,
             uint256 noOfParticipants,
             address[] memory winners,
             string memory clues_blobId,
@@ -287,8 +287,8 @@ contract Khoj {
         return (
             hunt.name,
             hunt.description,
-            hunt.startsAt,
-            hunt.duration,
+            hunt.startTime,
+            hunt.endTime,
             hunt.noOfParticipants,
             hunt.winners,
             hunt.clues_blobId,
@@ -327,8 +327,8 @@ contract Khoj {
             allHunts[i] = HuntInfo({
                 name: hunt.name,
                 description: hunt.description,
-                startTime: hunt.startsAt,
-                duration: hunt.duration,
+                startTime: hunt.startTime,
+                endTime: hunt.endTime,
                 participantCount: hunt.noOfParticipants,
                 clues_blobId: hunt.clues_blobId,
                 answers_blobId: hunt.answers_blobId,

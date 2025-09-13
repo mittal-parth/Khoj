@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { huntABI } from "../assets/hunt_abi";
 import { toast } from "sonner";
@@ -48,13 +48,20 @@ export function Create() {
 
   const [huntName, setHuntName] = useState("");
   const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState(() => {
-    // Set default start date to tomorrow
+  const [startDateTime, setStartDateTime] = useState(() => {
+    // Set default start datetime to tomorrow at 12:00
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
+    tomorrow.setHours(12, 0, 0, 0);
+    return tomorrow.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
   });
-  const [duration, setDuration] = useState("");
+  const [endDateTime, setEndDateTime] = useState(() => {
+    // Set default end datetime to day after tomorrow at 12:00
+    const dayAfterTomorrow = new Date();
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+    dayAfterTomorrow.setHours(12, 0, 0, 0);
+    return dayAfterTomorrow.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
+  });
   const [clues, setClues] = useState<Clue[]>([]);
   const [currentClue, setCurrentClue] = useState<Partial<Clue>>({
     id: 1,
@@ -83,7 +90,6 @@ export function Create() {
 
   // Add this to get current network from localStorage
   const currentNetwork = localStorage.getItem("current_network") || "assetHub";
-  console.log("Create: Current Network: ", currentNetwork);
   const contractAddress =
     CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
     "0x0000000000000000000000000000000000000000";
@@ -91,9 +97,14 @@ export function Create() {
   // Get chain ID for the current network
   const chainId =
     SUPPORTED_CHAINS[currentNetwork as keyof typeof SUPPORTED_CHAINS].id;
-  console.log("Create: Chain ID: ", chainId);
-  console.log("Create: Contract Address: ", contractAddress);
-  console.log("Create: All Contract Addresses: ", CONTRACT_ADDRESSES);
+
+  // Log network info only when component mounts or network changes
+  useEffect(() => {
+    console.log("Create: Current Network: ", currentNetwork);
+    console.log("Create: Chain ID: ", chainId);
+    console.log("Create: Contract Address: ", contractAddress);
+    console.log("Create: All Contract Addresses: ", CONTRACT_ADDRESSES);
+  }, [currentNetwork, chainId, contractAddress]);
 
   if (!isValidHexAddress(contractAddress)) {
     toast.error("Invalid contract address format");
@@ -129,37 +140,33 @@ export function Create() {
   };
 
   const getTransactionArgs = () => {
+    // Check if all required fields are filled (without showing toast errors)
     if (
       !huntName ||
       !description ||
-      !startDate ||
-      !startTime ||
-      !duration ||
+      !startDateTime ||
+      !endDateTime ||
       !cluesCID ||
       !answersCID ||
       !nftMetadataCID
     ) {
+      return null;
     }
 
-    // Convert date and time to Unix timestamp
-    const dateTimeString = `${startDate}T${startTime}`;
-    const startTimestamp = Math.floor(new Date(dateTimeString).getTime() / 1000);
-    // Convert duration to seconds
-    const durationInSeconds = parseInt(duration) * 3600; // Convert hours to seconds
+    // Convert datetime-local inputs to Unix timestamps
+    const startTimestamp = Math.floor(new Date(startDateTime).getTime() / 1000);
+    const endTimestamp = Math.floor(new Date(endDateTime).getTime() / 1000);
 
-    // Validate parameters
+    // Validate parameters (without showing toast errors)
     if (huntName.length === 0 || description.length === 0) {
-      toast.error("Hunt name and description cannot be empty");
       return null;
     }
     
     if (cluesCID.length === 0 || answersCID.length === 0) {
-      toast.error("Both CIDs must be provided");
       return null;
     }
     
-    if (durationInSeconds <= 0) {
-      toast.error("Duration must be greater than 0");
+    if (endTimestamp <= startTimestamp) {
       return null;
     }
 
@@ -167,9 +174,9 @@ export function Create() {
       huntName,
       description,
       startTimestamp,
+      endTimestamp,
       cluesCID,
       answersCID,
-      BigInt(durationInSeconds),
       teamsEnabled, // teamsEnabled
       BigInt(parseInt(maxTeamSize)), // maxTeamSize
       theme, // theme
@@ -177,7 +184,7 @@ export function Create() {
     ];
 
     console.log("Transaction args:", args);
-    console.log("Start timestamp:", startTimestamp, "Current time:", Math.floor(Date.now() / 1000));
+    console.log("Start timestamp:", startTimestamp, "End timestamp:", endTimestamp, "Current time:", Math.floor(Date.now() / 1000));
     
     return args;
   };
@@ -185,6 +192,34 @@ export function Create() {
   const handleTransactionSuccess = () => {
     toast.success("Hunt created successfully!");
     resetForm();
+  };
+
+  const validateForm = () => {
+    if (huntName.length === 0 || description.length === 0) {
+      toast.error("Hunt name and description cannot be empty");
+      return false;
+    }
+    
+    if (cluesCID.length === 0 || answersCID.length === 0) {
+      toast.error("Both CIDs must be provided");
+      return false;
+    }
+    
+    // Validate start and end times
+    const startTimestamp = Math.floor(new Date(startDateTime).getTime() / 1000);
+    const endTimestamp = Math.floor(new Date(endDateTime).getTime() / 1000);
+    
+    if (endTimestamp <= startTimestamp) {
+      toast.error("End time must be after start time");
+      return false;
+    }
+
+    if (!nftMetadataCID) {
+      toast.error("Please upload an NFT image first");
+      return false;
+    }
+
+    return true;
   };
 
   const handleTransactionError = (error: any) => {
@@ -285,8 +320,8 @@ export function Create() {
     try {
       // Create NFT metadata following OpenSea standard
       const metadata = {
-        name: huntName || "ETHunt NFT",
-        description: description || "Participation NFT for ETHunt",
+        name: huntName || "Khoj NFT",
+        description: description || "Participation NFT for Khoj",
         image: `ipfs://${imageCID}`,
         attributes: [
           {
@@ -388,8 +423,18 @@ export function Create() {
   const resetForm = () => {
     setHuntName("");
     setDescription("");
-    setStartDate("");
-    setDuration("");
+    setStartDateTime(() => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(12, 0, 0, 0);
+      return tomorrow.toISOString().slice(0, 16);
+    });
+    setEndDateTime(() => {
+      const dayAfterTomorrow = new Date();
+      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+      dayAfterTomorrow.setHours(12, 0, 0, 0);
+      return dayAfterTomorrow.toISOString().slice(0, 16);
+    });
     setClues([]);
     setCurrentClue({
       id: 1,
@@ -452,33 +497,22 @@ export function Create() {
           </div>
 
           <div>
-            <Label htmlFor="startDate">Start Date</Label>
+            <Label htmlFor="startDateTime">Start Date & Time</Label>
             <Input
-              id="startDate"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
+              id="startDateTime"
+              type="datetime-local"
+              value={startDateTime}
+              onChange={(e) => setStartDateTime(e.target.value)}
             />
           </div>
 
           <div>
-            <Label htmlFor="startTime">Start Time</Label>
+            <Label htmlFor="endDateTime">End Date & Time</Label>
             <Input
-              id="startTime"
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="duration">Duration (hours)</Label>
-            <Input
-              id="duration"
-              type="number"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              placeholder="Enter duration in hours"
+              id="endDateTime"
+              type="datetime-local"
+              value={endDateTime}
+              onChange={(e) => setEndDateTime(e.target.value)}
             />
           </div>
 
@@ -488,7 +522,12 @@ export function Create() {
                 id="teamsEnabled"
                 type="checkbox"
                 checked={teamsEnabled}
-                onChange={(e) => setTeamsEnabled(e.target.checked)}
+                onChange={(e) => {
+                  setTeamsEnabled(e.target.checked);
+                  if (!e.target.checked) {
+                    setMaxTeamSize("1");
+                  }
+                }}
                 className="rounded"
               />
               <Label htmlFor="teamsEnabled">Enable Teams</Label>
@@ -498,20 +537,22 @@ export function Create() {
             </p>
           </div>
 
-          <div>
-            <Label htmlFor="maxTeamSize">Max Team Size</Label>
-            <Input
-              id="maxTeamSize"
-              type="number"
-              min="1"
-              value={maxTeamSize}
-              onChange={(e) => setMaxTeamSize(e.target.value)}
-              placeholder="Enter maximum team size"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Maximum number of participants per team
-            </p>
-          </div>
+          {teamsEnabled && (
+            <div>
+              <Label htmlFor="maxTeamSize">Max Team Size</Label>
+              <Input
+                id="maxTeamSize"
+                type="number"
+                min="1"
+                value={maxTeamSize}
+                onChange={(e) => setMaxTeamSize(e.target.value)}
+                placeholder="Enter maximum team size"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Maximum number of participants per team
+              </p>
+            </div>
+          )}
 
           <div>
             <Label htmlFor="theme">Theme</Label>
@@ -629,6 +670,7 @@ export function Create() {
               className="w-full bg-yellow/40 border border-black text-black hover:bg-orange/90 py-2 rounded-md font-medium"
               onSuccess={handleTransactionSuccess}
               onError={handleTransactionError}
+              onClick={validateForm}
             />
           ) : (
             <Button
@@ -756,10 +798,6 @@ export function Create() {
                 </p>
                 <p className="text-xs text-green-600">
                   Answers CID: {uploadedCIDs.answers_blobId}
-                </p>
-                <p className="text-xs text-amber-600 mt-2">
-                  Please copy these CIDs to the respective fields in the IPFS
-                  Configuration section
                 </p>
               </div>
             )}

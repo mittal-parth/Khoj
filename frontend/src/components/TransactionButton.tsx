@@ -15,6 +15,7 @@ interface TransactionButtonProps {
   disabled?: boolean;
   onSuccess?: (data: any) => void;
   onError?: (error: any) => void;
+  onClick?: () => boolean | void;
 }
 
 export function TransactionButton({
@@ -27,6 +28,7 @@ export function TransactionButton({
   disabled,
   onSuccess,
   onError,
+  onClick,
 }: TransactionButtonProps) {
   const account = useActiveAccount();
   const { mutate: sendTransaction, isPending } = useSendTransaction();
@@ -36,6 +38,11 @@ export function TransactionButton({
     if (!account) {
       onError?.({ message: "Please connect your wallet first" });
       return;
+    }
+
+    // Call the onClick handler for validation
+    if (onClick && onClick() === false) {
+      return; // Stop if validation fails
     }
 
     setIsLoading(true);
