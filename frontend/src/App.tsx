@@ -9,7 +9,6 @@ import { HuntDetails } from "./components/HuntDetails";
 import { Footer } from "./components/Footer";
 import { About } from "./components/About";
 import { Create } from "./components/Create";
-import ThirdwebExample from "./components/ThirdwebExample";
 
 function App() {
   return (
@@ -24,7 +23,6 @@ function App() {
           <Route path="/profile" element={<Rewards />} />
           <Route path="/about" element={<About />} />
           <Route path="/hunt/create" element={<Create />} />
-          <Route path="/thirdweb-example" element={<ThirdwebExample />} />
         </Routes>
         <div className="md:hidden">
           <Footer />

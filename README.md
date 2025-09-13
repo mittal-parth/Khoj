@@ -217,14 +217,14 @@ Built with ❤️ by Team Khoj
 
 ## 📝 Creating a Hunt via Remix
 
-You can create a new hunt directly on-chain using the [Remix IDE](https://remix.ethereum.org/) and the `ETHunt.sol` smart contract. This is useful for admins or sponsors who want to launch a new treasure hunt with custom parameters.
+You can create a new hunt directly on-chain using the [Remix IDE](https://remix.ethereum.org/) and the `Khoj.sol` smart contract. This is useful for admins or sponsors who want to launch a new treasure hunt with custom parameters.
 
-### Step 1: Deploy the ETHunt Contract (if not already deployed)
+### Step 1: Deploy the Khoj Contract (if not already deployed)
 1. Open [Remix IDE](https://remix.ethereum.org/).
-2. Upload the `ETHunt.sol` and `ETHuntNFT.sol` files from the `contracts/` directory of this repo.
+2. Upload the `Khoj.sol` and `KhojNFT.sol` files from the `contracts/` directory of this repo.
 3. Compile both contracts using the Solidity compiler in Remix.
-4. Deploy the `ETHuntNFT` contract first. Copy its deployed address.
-5. Deploy the `ETHunt` contract, passing the `ETHuntNFT` contract address as the constructor argument.
+4. Deploy the `KhojNFT` contract first. Copy its deployed address.
+5. Deploy the `Khoj` contract, passing the `KhojNFT` contract address as the constructor argument.
 
 > **Note:** If the contract is already deployed on your target network, you can skip deployment and just interact with the existing contract address.
 
@@ -239,7 +239,7 @@ Here is an example hunt you can create:
 - **_duration:** `6000` (in seconds)
 
 ### Step 3: Call `createHunt` in Remix
-1. In Remix, select the deployed `ETHunt` contract instance.
+1. In Remix, select the deployed `Khoj` contract instance.
 2. Find the `createHunt` function in the contract's interface.
 3. Enter the parameters as follows:
    - `_name`: `Goa Hack`
