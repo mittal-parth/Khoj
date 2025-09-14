@@ -1,6 +1,4 @@
 import { useParams } from "react-router-dom";
-import { Button } from "./ui/button";
-import { BsTrophy } from "react-icons/bs";
 import { FaCoins, FaRegClock, FaCheckCircle } from "react-icons/fa";
 import { Confetti } from "./ui/confetti";
 import { useEffect, useState } from "react";

@@ -26,6 +26,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { huntABI } from "../assets/hunt_abi.ts";
 import { useGenerateRiddles } from "@/hooks/useGenerateRiddles.ts";
 import { Hunt, Team } from "../types";
+import { buttonStyles } from "../lib/styles.ts";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -506,7 +507,7 @@ export function HuntDetails() {
                                   setHasCamera(false);
                                 }
                               }} 
-                              className="absolute bottom-2 right-2 bg-red-500 hover:bg-red-600 text-white"
+                              className={`absolute bottom-2 right-2 ${buttonStyles.danger}`}
                               size="sm"
                             >
                               Stop Scanner
@@ -645,7 +646,7 @@ export function HuntDetails() {
                 size="lg"
                 onClick={() => setShowTeamInfo(!showTeamInfo)}
                 className={cn(
-                  "w-full text-white transition-colors duration-300 bg-blue-600 hover:bg-blue-700 mb-4"
+                  `w-full text-white mb-4 ${buttonStyles.team}`
                 )}
               >
                 {showTeamInfo ? "Back to Create/Join" : "View Team Info"}
@@ -659,7 +660,7 @@ export function HuntDetails() {
               onClick={handleHuntStart}
               disabled={isStartingHunt || isGeneratingRiddles}
               className={cn(
-                "w-full text-white transition-colors duration-300 bg-black hover:bg-gray-800"
+                `w-full text-white ${buttonStyles.primary}`
               )}
             >
               {(isStartingHunt || isGeneratingRiddles) ? "Starting Hunt..." : "Start Hunt"}

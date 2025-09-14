@@ -16,6 +16,7 @@ import { SUPPORTED_CHAINS, CONTRACT_ADDRESSES } from "../lib/utils";
 import { client } from "../lib/client";
 import { paseoAssetHub, baseSepolia } from "../lib/chains";
 import { Hunt, bgColorClasses, textColorClasses, bgColors } from "../types";
+import { buttonStyles } from "../lib/styles.ts";
 
 
 
@@ -249,8 +250,7 @@ export function Hunts() {
       return {
         text: "Ended",
         disabled: true,
-        className:
-          "bg-gray-400 cursor-not-allowed text-gray-600 border border-gray-300",
+        className: buttonStyles.disabled,
         action: null,
       };
     }
@@ -259,8 +259,7 @@ export function Hunts() {
       return {
         text: "Coming Soon",
         disabled: true,
-        className:
-          "bg-gray-400 cursor-not-allowed text-gray-600 border border-gray-300",
+        className: buttonStyles.disabled,
         action: null,
       };
     }
@@ -269,8 +268,7 @@ export function Hunts() {
       return {
         text: "Register",
         disabled: false,
-        className:
-          "bg-yellow/70 border border-black text-white font-semibold hover:bg-yellow-600 hover:border-yellow-700 shadow-md hover:shadow-lg transform hover:scale-[1.02]",
+        className: buttonStyles.secondary,
         action: "register",
       };
     }
@@ -278,7 +276,7 @@ export function Hunts() {
     return {
       text: "Manage",
       disabled: false,
-      className: "bg-green/70 border border-green text-white font-semibold hover:bg-green hover:border-green shadow-md hover:shadow-lg transform hover:scale-[1.02]",
+      className: buttonStyles.primary,
       action: "manage",
     };
   };
