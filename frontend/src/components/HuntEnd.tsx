@@ -1,6 +1,6 @@
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { Button } from "./ui/button";
-import { BsArrowLeft, BsTrophy } from "react-icons/bs";
+import { BsTrophy } from "react-icons/bs";
 import { FaCoins, FaRegClock, FaCheckCircle } from "react-icons/fa";
 import { Confetti } from "./ui/confetti";
 import { useEffect, useState } from "react";
@@ -10,7 +10,8 @@ import { huntABI } from "../assets/hunt_abi";
 import { CONTRACT_ADDRESSES } from "../lib/utils";
 import { toast } from "sonner";
 import { client } from "../lib/client";
-import { paseoAssetHub } from "../lib/chains";
+import { baseSepolia, paseoAssetHub } from "../lib/chains";
+import { Hunt } from "../types";
 
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
@@ -19,7 +20,6 @@ function isValidHexAddress(address: string): address is `0x${string}` {
 
 export function HuntEnd() {
   const { huntId } = useParams();
-  const navigate = useNavigate();
   const [progress, setProgress] = useState(0);
 
   // Get current network and contract address
@@ -31,17 +31,17 @@ export function HuntEnd() {
   // Create thirdweb contract instance
   const contract = getContract({
     client,
-    chain: paseoAssetHub,
+    chain: currentNetwork === "base" ? baseSepolia : paseoAssetHub,
     address: contractAddress as `0x${string}`,
     abi: huntABI,
   });
 
-  // Get hunt details from contract
-  const { data: huntDetails } = useReadContract({
+  // Get hunt details from contract - now returns HuntInfo struct directly
+  const { data: huntData } = useReadContract({
     contract,
     method: "getHunt",
     params: [BigInt(huntId || 0)],
-  });
+  }) as { data: Hunt | undefined };
 
   const trustScore = localStorage.getItem("trust_score") || "6.5";
   const score = parseInt(trustScore);
@@ -60,11 +60,11 @@ export function HuntEnd() {
   }
 
   // Use dynamic title, static reward/description
-  const huntData = {
-    title: huntDetails ? huntDetails[0] : "...",
+  const huntInfo = {
+    title: huntData?.name || "...",
     totalReward: "Swags!! 🎁",
     description:
-      "You've successfully completed all the challenges and found the treasure!",
+      "You've successfully completed all the challenges and found the treasure! Please contact the organizers for next steps.",
   };
 
   const handleClaim = async () => {
@@ -76,29 +76,14 @@ export function HuntEnd() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-green/10 to-white pt-20 px-4 mb-20">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-green/20">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black">
           {/* Header */}
-          <div className="bg-gradient-to-r from-green to-light-green p-6 text-white">
-            <div className="flex items-center justify-between mb-4">
-              <Button
-                onClick={() => navigate("/")}
-                variant="ghost"
-                className="text-white hover:bg-white/20"
-              >
-                <BsArrowLeft className="mr-2" />
-                Back to Hunts
-              </Button>
-            </div>
-            <h1 className="text-4xl font-bold mb-2">{huntData.title}</h1>
+          <div className="bg-green p-6 text-white">
+            <h1 className="text-xl font-bold my-4">{huntInfo.title}</h1>
           </div>
 
           {/* Success Content */}
           <div className="p-12 flex flex-col items-center">
-            {/* Trophy Icon with Glow Effect */}
-            <div className="mb-8 relative">
-              <div className="absolute inset-0 bg-yellow/30 blur-xl rounded-full"></div>
-              <BsTrophy className="w-32 h-32 text-yellow relative animate-bounce-slow" />
-            </div>
 
             {/* Trust Score Card */}
             <div className="bg-gray-50 rounded-xl p-6 mb-8 w-full max-w-sm">
@@ -172,33 +157,33 @@ export function HuntEnd() {
             />
 
             {/* Success Message */}
-            <h2 className="text-4xl font-bold text-gray-900 mb-4 text-center">
-              Treasure Found!
+            <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
+              Treasure Found! 🏆
             </h2>
-            <p className="text-md text-gray-600 mb-8 text-center max-w-2xl">
-              {huntData.description}
+            <p className="text-md text-gray-600 mb-6 text-center">
+              {huntInfo.description}
             </p>
 
             {/* Reward Display */}
-            <div className="bg-gray-50 rounded-xl p-6 mb-8 flex items-center gap-4">
+            <div className="bg-gray-50 rounded-xl p-6 flex items-center gap-4">
               <FaCoins className="w-8 h-8 text-yellow" />
               <div>
                 <p className="text-sm text-gray-600">Your Reward</p>
                 <p className="text-2xl font-bold text-green">
-                  {huntData.totalReward}
+                  {huntInfo.totalReward}
                 </p>
               </div>
             </div>
 
             {/* Claim Button */}
-            <Button
+            {/* <Button
               onClick={handleClaim}
               size="lg"
               className="bg-green hover:bg-light-green text-white px-12 py-6 text-xl shadow-lg shadow-green/20 transition-all hover:scale-105"
             >
               <FaCoins className="mr-2" />
               Claim Your Treasure
-            </Button>
+            </Button> */}
           </div>
         </div>
       </div>
