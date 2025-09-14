@@ -5,11 +5,10 @@ import { IoIosPeople } from "react-icons/io";
 import { GiOpenTreasureChest } from "react-icons/gi";
 import { useNavigate } from "react-router-dom";
 import { useActiveAccount, useReadContract } from "thirdweb/react";
-import { getContract, readContract } from "thirdweb";
+import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi.ts";
 import { toast } from "sonner";
 
-import { useGenerateRiddles } from "@/hooks/useGenerateRiddles.ts";
 import { TransactionButton } from "./TransactionButton";
 import { Button } from "./ui/button.tsx";
 import { useState, useEffect, useMemo } from "react";
@@ -19,7 +18,6 @@ import { paseoAssetHub, baseSepolia } from "../lib/chains";
 import { Hunt } from "../types";
 
 
-const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
@@ -44,17 +42,11 @@ export function Hunts() {
   const account = useActiveAccount();
   const address = account?.address;
   const navigate = useNavigate();
-  const [currentHuntId, setCurrentHuntId] = useState<number>(0);
   // Track registration status per hunt (true if registered, false if not)
   const [huntRegistrations, setHuntRegistrations] = useState<
     Record<number, boolean>
   >({});
   const [isCheckingRegistrations, setIsCheckingRegistrations] = useState(false);
-  // Track which hunt is currently starting
-  const [startingHunts, setStartingHunts] = useState<Record<number, boolean>>(
-    {}
-  );
-  const { fetchRiddles, isLoading } = useGenerateRiddles(currentHuntId);
 
   // Feature flag for hunt filtering - controlled by environment variable
   const enableHuntFiltering = import.meta.env.VITE_ENABLE_HUNT_FILTERING === 'true';
@@ -86,11 +78,14 @@ export function Hunts() {
   }, [rawContractAddress, currentChain]);
 
   // Call hooks at the top level
-  const { data: hunts = [], error: huntsError } = useReadContract({
+  const { data: huntsData = [], error: huntsError } = useReadContract({
     contract: contract!,
     method: "getAllHunts",
     params: [],
   });
+
+  // Cast to Hunt type to include participants field
+  const hunts = huntsData as Hunt[];
 
   const { data: nftContractAddress } = useReadContract({
     contract: contract!,
@@ -120,39 +115,19 @@ export function Hunts() {
 
   // Check registration status for all hunts when component loads or address changes
   useEffect(() => {
-    const checkRegistrationStatus = async () => {
-      if (!address || !processedHunts.length || isCheckingRegistrations || !contract)
-        return;
+    const checkRegistrationStatus = () => {
+      if (!address || !processedHunts.length) return;
 
       setIsCheckingRegistrations(true);
       const registrationStatus: Record<number, boolean> = {};
 
       try {
-        // Check registration status for each hunt
-        // Note: We need to map back to original hunt indices for contract calls
-        const promises = processedHunts.map(async (_, processedIndex) => {
-          try {
-            // Find the original index of this hunt in the full hunts array
-            const originalIndex = hunts.findIndex(hunt => hunt === processedHunts[processedIndex]);
-            
-            const tokenId = await readContract({
-              contract,
-              method: "getTokenId",
-              params: [BigInt(originalIndex), address],
-            });
-
-            // If tokenId > 0, user is registered for this hunt
-            // Store using the processedIndex for UI consistency
-            return { index: processedIndex, isRegistered: tokenId > 0n };
-          } catch (error) {
-            console.error(`Error checking registration for hunt ${processedIndex}:`, error);
-            return { index: processedIndex, isRegistered: false };
-          }
-        });
-
-        const results = await Promise.all(promises);
-        results.forEach(({ index, isRegistered }) => {
-          registrationStatus[index] = isRegistered;
+        // Check registration status by looking at the participants array
+        processedHunts.forEach((hunt, processedIndex) => {
+          // Check if the current user's address is in the participants array
+          // If participants array doesn't exist, fall back to false
+          const isRegistered = hunt.participants?.includes(address) ?? false;
+          registrationStatus[processedIndex] = isRegistered;
         });
 
         setHuntRegistrations(registrationStatus);
@@ -164,7 +139,7 @@ export function Hunts() {
     };
 
     checkRegistrationStatus();
-  }, [address, processedHunts.length, contract, hunts]); // Added hunts dependency for mapping
+  }, [address, processedHunts]); // Simplified dependencies
 
   // Early returns after all hooks
   if (!isValidHexAddress(rawContractAddress)) {
@@ -191,79 +166,21 @@ export function Hunts() {
   console.log("Hunts: contractAddress", contractAddress);
   console.log("NFT Contract Address:", nftContractAddress);
 
-  const handleHuntStart = async (
-    processedIndex: number,
-    originalIndex: number,
-    clues_blobId: string,
-    answers_blobId: string
-  ) => {
-    if (!address) {
-      toast.error("Please connect your wallet first");
-      return;
-    }
-
-    // Set this hunt as starting
-    setStartingHunts((prev) => ({ ...prev, [processedIndex]: true }));
-    setCurrentHuntId(originalIndex);
-
-    try {
-      const tokenId = await readContract({
-        contract,
-        method: "getTokenId",
-        params: [BigInt(originalIndex), address],
-      });
-
-      if (tokenId === 0n) {
-        toast.error(
-          "You are not eligible for this hunt. Please register or check the requirements."
-        );
-        return;
-      }
-
-      console.log("Hunt ID:", originalIndex, clues_blobId, answers_blobId);
-      const headersList = {
-        Accept: "*/*",
-        "Content-Type": "application/json",
-      };
-
-      const bodyContent = JSON.stringify({
-        userAddress: "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
-        clues_blobId: clues_blobId,
-        answers_blobId: answers_blobId,
-      });
-
-      const response = await fetch(`${BACKEND_URL}/decrypt-clues`, {
-        method: "POST",
-        body: bodyContent,
-        headers: headersList,
-      });
-
-      const data = await response.text();
-      const clues = JSON.parse(data);
-
-      console.log("Clues: ", clues);
-
-      await fetchRiddles(clues, originalIndex.toString());
-      navigate(`/hunt/${originalIndex}/clue/1`);
-    } catch (error) {
-      console.error("Error reading contract:", error);
-      toast.error("Failed to check hunt eligibility");
-    } finally {
-      // Remove this hunt from starting state
-      setStartingHunts((prev) => ({ ...prev, [processedIndex]: false }));
-    }
-  };
 
   const handleRegisterSuccess = (data: any, huntIndex: number) => {
     console.log("Register success: ", data);
     toast.success("Successfully registered for hunt!");
 
-    navigate(`/hunt/${huntIndex}`);
     // Update registration status for this specific hunt
     setHuntRegistrations((prev) => ({
       ...prev,
       [huntIndex]: true,
     }));
+
+    // Note: The participants array will be updated when the component re-renders
+    // and fetches fresh data from the contract, so no need to manually update it here
+    
+    navigate(`/hunt/${huntIndex}`);
   };
 
   // Add more detailed logging
@@ -310,7 +227,6 @@ export function Hunts() {
     const huntEndTime = Number(hunt.endTime);
     const isHuntStarted = true;
     const isRegistered = huntRegistrations[index];
-    const isStarting = startingHunts[index];
     const isHuntEnded = huntEndTime < today;
 
     if (isHuntEnded) {
@@ -344,11 +260,9 @@ export function Hunts() {
     }
 
     return {
-      text: isStarting ? "Starting..." : "Start",
-      disabled: isStarting,
-      className: isStarting
-        ? "bg-gray-500 border border-gray-600 text-white font-semibold cursor-not-allowed"
-        : "bg-green/70 border border-green text-white font-semibold hover:bg-green hover:border-green shadow-md hover:shadow-lg transform hover:scale-[1.02]",
+      text: "Start",
+      disabled: false,
+      className: "bg-green/70 border border-green text-white font-semibold hover:bg-green hover:border-green shadow-md hover:shadow-lg transform hover:scale-[1.02]",
       action: "start",
     };
   };
@@ -454,7 +368,6 @@ export function Hunts() {
                     className={`w-full py-1.5 text-sm font-medium rounded-md ${buttonConfig.className} transition-colors duration-300`}
                     disabled={
                       !address ||
-                      isLoading ||
                       isCheckingRegistrations ||
                       buttonConfig.disabled
                     }
@@ -465,18 +378,12 @@ export function Hunts() {
                   <Button
                     onClick={() => {
                       if (buttonConfig.action === "start") {
-                        handleHuntStart(
-                          index,
-                          originalIndex,
-                          hunt.clues_blobId,
-                          hunt.answers_blobId
-                        );
+                        navigate(`/hunt/${originalIndex}`);
                       }
                     }}
                     className={`w-full py-1.5 text-sm font-medium rounded-md ${buttonConfig.className} transition-colors duration-300`}
                     disabled={
                       !address ||
-                      isLoading ||
                       isCheckingRegistrations ||
                       buttonConfig.disabled
                     }

@@ -23,6 +23,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { generateInviteHash, encodeInviteToBase58, calculateInviteExpiry, decodeBase58Invite } from "../helpers/inviteUtils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { huntABI } from "../assets/hunt_abi.ts";
+import { useGenerateRiddles } from "@/hooks/useGenerateRiddles.ts";
+
+const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
@@ -58,6 +61,9 @@ export function HuntDetails() {
   const account = useActiveAccount();
   const userWallet = account?.address;
   const { mutate: sendTransaction } = useSendTransaction();
+  
+  // Add useGenerateRiddles hook
+  const { fetchRiddles, isLoading: isGeneratingRiddles } = useGenerateRiddles(Number(huntId));
 
   // Add this to get current network from localStorage
   const currentNetwork = localStorage.getItem("current_network") || "assetHub";
@@ -87,8 +93,9 @@ export function HuntDetails() {
   const { data: teamDetails, error: teamError } = useReadContract({
     contract,
     method: "getTeam",
-    params: [BigInt(huntId || 0), userWallet || "0x0000000000000000000000000000000000000000"],
+    params: [BigInt(huntId || 0)],
   });
+
 
 
   const teamData = teamDetails
@@ -104,10 +111,13 @@ export function HuntDetails() {
   // Extract hunt details
   const huntData = huntDetails
     ? {
-        title: huntDetails[0],
-        description: huntDetails[1],
-        startsAt: huntDetails[2],
-        duration: huntDetails[3],
+        title: (huntDetails as any)[0],
+        description: (huntDetails as any)[1],
+        startsAt: (huntDetails as any)[2],
+        duration: (huntDetails as any)[3],
+        clues_blobId: (huntDetails as any)[6],
+        answers_blobId: (huntDetails as any)[7],
+        participants: (huntDetails as any)[12], // participantsList is the 13th element (index 12)
       }
     : null;
 
@@ -121,7 +131,7 @@ export function HuntDetails() {
       contract: {
         address: contractAddress as `0x${string}`,
         abi: huntABI,
-        chain: baseSepolia,
+        chain: currentNetwork === "base" ? baseSepolia : paseoAssetHub,
         client,
       },
       method: "joinWithInvite",
@@ -129,17 +139,70 @@ export function HuntDetails() {
     });
 
     // Execute the transaction and get the result
-    sendTransaction(transaction, {
+    sendTransaction(transaction as any, {
       onSuccess: (result) => {
         console.log("Transaction successful:", result);
-        toast.success("Team created successfully!");
+        toast.success("Team joined successfully!");
       },
       onError: (error) => {
         console.error("Transaction failed:", error);
-        toast.error("Failed to create team");
+        toast.error("Failed to join team");
       }
     });
   }
+
+  const handleHuntStart = async () => {
+    if (!userWallet) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+
+    if (!huntData?.clues_blobId || !huntData?.answers_blobId) {
+      toast.error("Hunt data not available");
+      return;
+    }
+
+    try {
+      // Check if user is registered by looking at the participants array
+      const isRegistered = huntData?.participants?.includes(userWallet) ?? false;
+
+      if (!isRegistered) {
+        toast.error(
+          "You are not eligible for this hunt. Please register or check the requirements."
+        );
+        return;
+      }
+
+      console.log("Hunt ID:", huntId, huntData.clues_blobId, huntData.answers_blobId);
+      const headersList = {
+        Accept: "*/*",
+        "Content-Type": "application/json",
+      };
+
+      const bodyContent = JSON.stringify({
+        userAddress: userWallet,
+        clues_blobId: huntData.clues_blobId,
+        answers_blobId: huntData.answers_blobId,
+      });
+
+      const response = await fetch(`${BACKEND_URL}/decrypt-clues`, {
+        method: "POST",
+        body: bodyContent,
+        headers: headersList,
+      });
+
+      const data = await response.text();
+      const clues = JSON.parse(data);
+
+      console.log("Clues: ", clues);
+
+      await fetchRiddles(clues, huntId || "0");
+      navigate(`/hunt/${huntId}/clue/1`);
+    } catch (error) {
+      console.error("Error starting hunt:", error);
+      toast.error("Failed to start hunt");
+    }
+  };
   
   // Function to start the QR scanner
   const startScanner = async () => {
@@ -253,7 +316,7 @@ export function HuntDetails() {
         contract: {
           address: contractAddress as `0x${string}`,
           abi: huntABI,
-          chain: baseSepolia,
+          chain: currentNetwork === "base" ? baseSepolia : paseoAssetHub,
           client,
         },
         method: "createTeam",
@@ -261,7 +324,7 @@ export function HuntDetails() {
       });
       generateInviteAfterTeamCreation();
       // Execute the transaction and get the result
-      sendTransaction(transaction, {
+      sendTransaction(transaction as any, {
         onSuccess: (result) => {
           console.log("Transaction successful:", result);
           // The result contains transaction hash and receipt
@@ -569,11 +632,13 @@ export function HuntDetails() {
             <Button
               type="submit"
               size="lg"
+              onClick={handleHuntStart}
+              disabled={isGeneratingRiddles}
               className={cn(
                 "w-full text-white transition-colors duration-300 bg-black hover:bg-gray-800"
               )}
             >
-              Start Hunt
+              {isGeneratingRiddles ? "Starting Hunt..." : "Start Hunt"}
             </Button>
           </div>
         </div>
