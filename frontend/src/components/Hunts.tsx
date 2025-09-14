@@ -2,7 +2,6 @@ import { TbLadder, TbChessKnight, TbUsersGroup } from "react-icons/tb";
 import { FaChess, FaDice } from "react-icons/fa";
 import { BsCalendar2DateFill } from "react-icons/bs";
 import { IoIosPeople } from "react-icons/io";
-import { GiOpenTreasureChest } from "react-icons/gi";
 import { useNavigate } from "react-router-dom";
 import { useActiveAccount, useReadContract } from "thirdweb/react";
 import { getContract } from "thirdweb";
@@ -11,11 +10,12 @@ import { toast } from "sonner";
 
 import { TransactionButton } from "./TransactionButton";
 import { Button } from "./ui/button.tsx";
+import { Loader } from "./ui/loader";
 import { useState, useEffect, useMemo } from "react";
 import { SUPPORTED_CHAINS, CONTRACT_ADDRESSES } from "../lib/utils";
 import { client } from "../lib/client";
 import { paseoAssetHub, baseSepolia } from "../lib/chains";
-import { Hunt } from "../types";
+import { Hunt, bgColorClasses, textColorClasses, bgColors } from "../types";
 
 
 
@@ -78,7 +78,7 @@ export function Hunts() {
   }, [rawContractAddress, currentChain]);
 
   // Call hooks at the top level
-  const { data: huntsData = [], error: huntsError } = useReadContract({
+  const { data: huntsData = [], error: huntsError, isLoading: huntsLoading } = useReadContract({
     contract: contract!,
     method: "getAllHunts",
     params: [],
@@ -213,8 +213,24 @@ export function Hunts() {
   console.log("today", today);
   console.log("reg", huntRegistrations);
 
+  // Show loading state while hunts are being fetched
+  if (huntsLoading) {
+    return (
+      <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-[90px]">
+        <h1 className="text-3xl font-bold mt-12 mb-6 mx-2 text-green drop-shadow-xl">
+          Hunts
+        </h1>
+        <Loader 
+          text="Loading Treasure Hunts..." 
+          subtext="Fetching the latest adventures for you..."
+          showAnimation={true}
+        />
+      </div>
+    );
+  }
+
   // Array of background colors and icons to rotate through
-  const bgColors = ["green", "orange", "yellow", "pink", "red"];
+
   const icons = [
     <TbLadder className="w-10 h-10 text-white" />,
     <TbChessKnight className="w-10 h-10 text-white" />,
@@ -260,10 +276,10 @@ export function Hunts() {
     }
 
     return {
-      text: "Start",
+      text: "Manage",
       disabled: false,
       className: "bg-green/70 border border-green text-white font-semibold hover:bg-green hover:border-green shadow-md hover:shadow-lg transform hover:scale-[1.02]",
-      action: "start",
+      action: "manage",
     };
   };
 
@@ -274,20 +290,11 @@ export function Hunts() {
       </h1>
       
       {processedHunts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-32 px-4">
-          <div className="relative mb-8">
-            <GiOpenTreasureChest className="w-32 h-32 text-gray-400 opacity-50" />
-          </div>
-          <div className="text-center max-w-md">
-            <h2 className="text-2xl font-bold text-gray-700 mb-4">
-              No Treasure Hunts Yet! 🗺️
-            </h2>
-            <p className="text-sm text-gray-600 mb-6 italic">
-              The treasure map is empty, but adventure awaits! Check back soon for exciting hunts to embark upon.
-            </p>
-
-          </div>
-        </div>
+        <Loader 
+          text="No Treasure Hunts Yet! 🗺️" 
+          subtext="The treasure map is empty, but adventure awaits! Check back soon for exciting hunts to embark upon."
+          showAnimation={false}
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mx-2">
           {processedHunts.map((hunt: Hunt, index: number) => {
@@ -313,8 +320,8 @@ export function Hunts() {
               border-[3px]"
             >
               <div
-                className={`w-1/4 flex items-center justify-center bg-${
-                  bgColors[index % bgColors.length]
+                className={`w-1/4 flex items-center justify-center ${
+                  bgColorClasses[bgColors[index % bgColors.length] as keyof typeof bgColorClasses]
                 }`}
               >
                 {icons[index % icons.length]}
@@ -323,7 +330,7 @@ export function Hunts() {
               <div className="w-3/4 p-5 flex flex-col justify-between">
                 {/* Header with title and teams pill */}
                 <div className="flex justify-between items-start mb-2">
-                  <h2 className="text-xl font-semibold text-gray-800 h-[32px] overflow-hidden flex-1 pr-2">
+                  <h2 className="text-xl font-semibold text-gray-800 flex-1 pr-2 leading-tight">
                     {hunt.name}
                   </h2>
                   {hunt.teamsEnabled && (
@@ -340,7 +347,7 @@ export function Hunts() {
 
                 {/* Date and time information */}
                 <div className="flex items-center gap-1 text-sm mb-3">
-                  <BsCalendar2DateFill className={`w-4 h-4 text-${bgColors[index % bgColors.length]} mr-0.5`} />
+                  <BsCalendar2DateFill className={`w-4 h-4 ${textColorClasses[bgColors[index % bgColors.length] as keyof typeof textColorClasses]} mr-0.5`} />
                   <span className="text-sm">
                     {formatDateRange(hunt.startTime, hunt.endTime)}
                   </span>
@@ -348,7 +355,7 @@ export function Hunts() {
 
                 {/* Participant count */}
                 <div className="flex items-center gap-1 text-sm mb-3">
-                  <IoIosPeople className={`w-5 h-5 text-${bgColors[index % bgColors.length]}`} />
+                  <IoIosPeople className={`w-5 h-5 ${textColorClasses[bgColors[index % bgColors.length] as keyof typeof textColorClasses]}`} />
                   <span className="text-sm">
                     {Number(hunt.participantCount)} participant{hunt.participantCount !== 1n ? 's' : ''}
                   </span>
@@ -377,7 +384,7 @@ export function Hunts() {
                 ) : (
                   <Button
                     onClick={() => {
-                      if (buttonConfig.action === "start") {
+                      if (buttonConfig.action === "manage") {
                         navigate(`/hunt/${originalIndex}`);
                       }
                     }}

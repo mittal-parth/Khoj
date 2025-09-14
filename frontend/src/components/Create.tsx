@@ -63,7 +63,7 @@ export function Create() {
   // New state variables for previously hardcoded fields
   const [teamsEnabled, setTeamsEnabled] = useState(false);
   const [maxTeamSize, setMaxTeamSize] = useState("1");
-  const [theme, setTheme] = useState("general");
+  const [theme, setTheme] = useState("");
 
   // Add this to get current network from localStorage
   const currentNetwork = localStorage.getItem("current_network") || "assetHub";
@@ -429,7 +429,7 @@ export function Create() {
     setNftMetadataCID("");
     setTeamsEnabled(false);
     setMaxTeamSize("1");
-    setTheme("general");
+    setTheme("");
   };
 
   const transactionArgs = getTransactionArgs();
@@ -473,24 +473,26 @@ export function Create() {
             />
           </div>
 
-          <div>
-            <Label htmlFor="startDateTime">Start Date & Time</Label>
-            <Input
-              id="startDateTime"
-              type="datetime-local"
-              value={startDateTime}
-              onChange={(e) => setStartDateTime(e.target.value)}
-            />
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="startDateTime">Start Date & Time</Label>
+              <Input
+                id="startDateTime"
+                type="datetime-local"
+                value={startDateTime}
+                onChange={(e) => setStartDateTime(e.target.value)}
+              />
+            </div>
 
-          <div>
-            <Label htmlFor="endDateTime">End Date & Time</Label>
-            <Input
-              id="endDateTime"
-              type="datetime-local"
-              value={endDateTime}
-              onChange={(e) => setEndDateTime(e.target.value)}
-            />
+            <div>
+              <Label htmlFor="endDateTime">End Date & Time</Label>
+              <Input
+                id="endDateTime"
+                type="datetime-local"
+                value={endDateTime}
+                onChange={(e) => setEndDateTime(e.target.value)}
+              />
+            </div>
           </div>
 
           <div>
@@ -537,11 +539,8 @@ export function Create() {
               id="theme"
               value={theme}
               onChange={(e) => setTheme(e.target.value)}
-              placeholder="Enter hunt theme (e.g., general, adventure, mystery)"
+              placeholder="Adventure, tech, or a mix of themes. It can be a word or a phrase and will influence the clues"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Theme or category for this hunt
-            </p>
           </div>
 
           <div className="border-t pt-6">
@@ -650,7 +649,7 @@ export function Create() {
                     description: e.target.value,
                   }))
                 }
-                placeholder="Enter clue description"
+                placeholder="Enter clue description. Clues will be generated using Generative AI based on the theme and the description of the clue."
               />
             </div>
 
