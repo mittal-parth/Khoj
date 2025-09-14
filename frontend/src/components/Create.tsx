@@ -612,55 +612,15 @@ export function Create() {
           </div>
 
           <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold mb-4">IPFS Configuration</h3>
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="cluesCID">Clues CID</Label>
-                <Input
-                  id="cluesCID"
-                  value={cluesCID}
-                  onChange={(e) => setCluesCID(e.target.value)}
-                  placeholder="Enter clues CID"
-                />
               </div>
 
               <div>
-                <Label htmlFor="answersCID">Answers CID</Label>
-                <Input
-                  id="answersCID"
-                  value={answersCID}
-                  onChange={(e) => setAnswersCID(e.target.value)}
-                  placeholder="Enter answers CID"
-                />
               </div>
             </div>
           </div>
-
-          {canCreateHunt ? (
-            <TransactionButton
-              contractAddress={contractAddress}
-              abi={huntABI}
-              functionName="createHunt"
-              args={transactionArgs}
-              text="Create Hunt"
-              className="w-full bg-yellow/40 border border-black text-black hover:bg-orange/90 py-2 rounded-md font-medium"
-              onSuccess={handleTransactionSuccess}
-              onError={handleTransactionError}
-              onClick={validateForm}
-            />
-          ) : (
-            <Button
-              disabled
-              className="w-full bg-gray-300 text-gray-500 py-2 rounded-md font-medium"
-            >
-              {!account
-                ? "Connect Wallet to Create Hunt"
-                : !nftMetadataCID
-                ? "Upload NFT image to continue"
-                : "Fill in all fields to create hunt"}
-            </Button>
-          )}
         </div>
 
         <div className="space-y-6">
@@ -777,6 +737,34 @@ export function Create() {
                   Answers CID: {uploadedCIDs.answers_blobId}
                 </p>
               </div>
+            )}
+          </div>
+
+          {/* Create Hunt Button - Moved to right side */}
+          <div className="mt-8">
+            {canCreateHunt ? (
+              <TransactionButton
+                contractAddress={contractAddress}
+                abi={huntABI}
+                functionName="createHunt"
+                args={transactionArgs}
+                text="Create Hunt"
+                className="w-full bg-yellow/40 border border-black text-black hover:bg-orange/90 py-2 rounded-md font-medium"
+                onSuccess={handleTransactionSuccess}
+                onError={handleTransactionError}
+                onClick={validateForm}
+              />
+            ) : (
+              <Button
+                disabled
+                className="w-full bg-gray-300 text-gray-500 py-2 rounded-md font-medium"
+              >
+                {!account
+                  ? "Connect Wallet to Create Hunt"
+                  : !nftMetadataCID
+                  ? "Upload NFT image to continue"
+                  : "Fill in all fields to create hunt"}
+              </Button>
             )}
           </div>
         </div>
