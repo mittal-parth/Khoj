@@ -1,12 +1,7 @@
 import { useState } from "react";
 import { GoogleGenAI, Type } from "@google/genai";
 import { GEMENI_MODEL } from "@/constants";
-
-export interface Riddle {
-  riddle: string;
-  answer: string;
-  hint: string;
-}
+import { Riddle } from "@/types";
 
 const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_PUBLIC_GEMINI_API_KEY });
 
@@ -19,7 +14,7 @@ export function useGenerateRiddles(huntId: any) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchRiddles = async (clues: any, huntId: string) => {
+  const fetchRiddles = async (clues: any, huntId: string, theme: string) => {
     setIsLoading(true);
     setError(null);
 
@@ -36,7 +31,7 @@ export function useGenerateRiddles(huntId: any) {
         locations: clues.decryptedData.map(
           (location: any) => location.description
         ),
-        themes: ["Tech", "web3", "easy"],
+        themes: [theme],
       };
 
       // 2. Generate riddles using Claude
@@ -49,7 +44,7 @@ export function useGenerateRiddles(huntId: any) {
           Rules:
           1. You will create exactly ${huntData.locations.length} riddles.
           2. Each riddle should lead to one of these locations: ${huntData.locations.join(", ")}.
-          3. Each riddle must incorporate the following themes: ${huntData.themes.join(", ")}.
+          3. Each riddle must incorporate the following themes: ${theme}.
           4. Do not include the actual location names in the riddle text.
           5. Provide a subtle hint for each riddle that aids the solver but does not directly reveal the answer.
           6. Output only valid JSON in this exact structure (no extra text, no explanations):`;

@@ -1,15 +1,16 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
+import { Loader } from "./ui/loader";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 import {
-  BsArrowLeft,
   BsQrCode,
   BsExclamationTriangle,
   BsLink45Deg,
+  BsCalendar2DateFill,
 } from "react-icons/bs";
-import { TbCalendarClock } from "react-icons/tb";
-import { GiSandsOfTime } from "react-icons/gi";
+import { TbUsersGroup } from "react-icons/tb";
+import { IoIosPeople } from "react-icons/io";
 import { HuddleRoom } from "./HuddleRoom";
 import { useReadContract, useActiveAccount, useSendTransaction } from "thirdweb/react";
 import { getContract, prepareContractCall } from "thirdweb";
@@ -24,6 +25,7 @@ import { generateInviteHash, encodeInviteToBase58, calculateInviteExpiry, decode
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { huntABI } from "../assets/hunt_abi.ts";
 import { useGenerateRiddles } from "@/hooks/useGenerateRiddles.ts";
+import { Hunt, Team } from "../types";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -64,6 +66,9 @@ export function HuntDetails() {
   
   // Add useGenerateRiddles hook
   const { fetchRiddles, isLoading: isGeneratingRiddles } = useGenerateRiddles(Number(huntId));
+  
+  // Local loading state for immediate button feedback
+  const [isStartingHunt, setIsStartingHunt] = useState(false);
 
   // Add this to get current network from localStorage
   const currentNetwork = localStorage.getItem("current_network") || "assetHub";
@@ -83,48 +88,23 @@ export function HuntDetails() {
     abi: huntABI,
   });
 
-  // Get hunt details from contract
-  const { data: huntDetails } = useReadContract({
+  // Get hunt details from contract - now returns HuntInfo struct directly
+  const { data: huntData, isLoading: huntLoading } = useReadContract({
     contract,
     method: "getHunt",
     params: [BigInt(huntId || 0)],
-  });
+  }) as { data: Hunt | undefined; isLoading: boolean };
 
-  const { data: teamDetails, error: teamError } = useReadContract({
+  const { data: teamData, error: teamError } = useReadContract({
     contract,
     method: "getTeam",
     params: [BigInt(huntId || 0)],
-  });
-
-
-
-  const teamData = teamDetails
-  ? {
-      teamId: teamDetails[0] as bigint,
-      owner: teamDetails[1] as string,
-      maxTeamSize: teamDetails[2] as bigint,
-      memberCount: teamDetails[3] as bigint,
-      membersList: teamDetails[4] as string[],
-    }
-  : null;
-
-  // Extract hunt details
-  const huntData = huntDetails
-    ? {
-        title: (huntDetails as any)[0],
-        description: (huntDetails as any)[1],
-        startsAt: (huntDetails as any)[2],
-        duration: (huntDetails as any)[3],
-        clues_blobId: (huntDetails as any)[6],
-        answers_blobId: (huntDetails as any)[7],
-        participants: (huntDetails as any)[12], // participantsList is the 13th element (index 12)
-      }
-    : null;
+  }) as { data: Team | undefined; error: Error | undefined };
 
   const joinTeam = (signature: string, teamId: string) => {
 
-    const huntStartTime = Number(huntData?.startsAt);
-    const huntDuration = Number(huntData?.duration);
+    const huntStartTime = Number(huntData?.startTime);
+    const huntDuration = Number(huntData?.endTime) - Number(huntData?.startTime);
     const expiryTime = calculateInviteExpiry(huntStartTime, huntDuration);
 
     const transaction = prepareContractCall({
@@ -152,13 +132,17 @@ export function HuntDetails() {
   }
 
   const handleHuntStart = async () => {
+    setIsStartingHunt(true);
+    
     if (!userWallet) {
       toast.error("Please connect your wallet first");
+      setIsStartingHunt(false);
       return;
     }
 
     if (!huntData?.clues_blobId || !huntData?.answers_blobId) {
       toast.error("Hunt data not available");
+      setIsStartingHunt(false);
       return;
     }
 
@@ -170,6 +154,7 @@ export function HuntDetails() {
         toast.error(
           "You are not eligible for this hunt. Please register or check the requirements."
         );
+        setIsStartingHunt(false);
         return;
       }
 
@@ -196,11 +181,12 @@ export function HuntDetails() {
 
       console.log("Clues: ", clues);
 
-      await fetchRiddles(clues, huntId || "0");
+      await fetchRiddles(clues, huntId || "0", huntData?.theme || "");
       navigate(`/hunt/${huntId}/clue/1`);
     } catch (error) {
       console.error("Error starting hunt:", error);
       toast.error("Failed to start hunt");
+      setIsStartingHunt(false);
     }
   };
   
@@ -282,7 +268,7 @@ export function HuntDetails() {
     if (activeTab === 'create' && teamData?.teamId) {
       setTeamCode(teamData.teamId.toString());
     }
-  }, [activeTab, teamData, teamDetails]);
+  }, [activeTab, teamData]);
   
   // Check localStorage for existing invite code on component mount
   useEffect(() => {
@@ -293,6 +279,21 @@ export function HuntDetails() {
       }
     }
   }, [userWallet, huntId]);
+
+  // Show loading state while hunt data is being fetched
+  if (huntLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 pt-20 px-4 mb-[90px]">
+        <div className="max-w-4xl mx-auto">
+          <Loader 
+            text="Loading Hunt Details..." 
+            subtext="Fetching hunt information and team data..."
+            showAnimation={true}
+          />
+        </div>
+      </div>
+    );
+  }
 
   // Generate multi-use invite code
   const generateMultiUseInvite = async () => {
@@ -359,8 +360,8 @@ export function HuntDetails() {
 
     try {
       // Calculate expiry time (hunt start + 1 hour)
-      const huntStartTime = Number(huntData.startsAt);
-      const huntDuration = Number(huntData.duration);
+      const huntStartTime = Number(huntData.startTime);
+      const huntDuration = Number(huntData.endTime) - Number(huntData.startTime);
       const expiryTime = calculateInviteExpiry(huntStartTime, huntDuration);
       
       // Generate invite hash
@@ -399,29 +400,58 @@ export function HuntDetails() {
     <div className="min-h-screen bg-gray-50 pt-20 px-4 mb-[90px]">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] justify-between relative flex flex-col">
-          <div className="bg-green p-6 text-white absolute top-0 w-full">
-            <div className="flex items-center justify-between">
-              <Button
-                onClick={() => navigate("/")}
-                variant="ghost"
-                className="text-white hover:bg-white/20"
-              >
-                <BsArrowLeft className="mr-2" />
-                Back to Hunts
-              </Button>
+          <div className="bg-green p-6 text-white">
+            <div className="flex items-center justify-center">
+              <h1 className="text-2xl font-bold text-white">
+                {huntData?.name || 'Hunt Details'}
+              </h1>
             </div>
           </div>
 
           {huntData && (
-            <div className="mt-28 px-6">
-              {/* <h1 className="text-xl font-semibold mb-2">Hunt Information</h1> */}
-              <h1 className="text-xl text-gray-800 mb-2 font-semibold">{huntData.title}</h1>
-              <p className="text-gray-600 font-base mb-4">{huntData.description}</p>
-              <div className="flex gap-5 items-center"> 
-              <p className="text-gray-600 mb-4 flex items-center"><TbCalendarClock className="mr-2 w-5 h-5" /><span>{new Date(Number(huntData.startsAt) * 1000).toLocaleString()}</span></p>
-              <p className="text-gray-600 mb-4 flex items-center"><GiSandsOfTime className="mr-2 stroke-[20px] w-5 h-5" /><span>{huntData.duration.toString()} min</span></p>
+            <div className="px-6">
+              <p className="text-gray-600 font-base my-6">{huntData.description}</p>
+              
+              {/* Hunt Details Section */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Date and Time */}
+                  <div className="flex items-center gap-2">
+                    <BsCalendar2DateFill className="w-5 h-5 text-green" />
+                    <div>
+                      <p className="text-sm text-gray-600">Date & Time</p>
+                      <p className="text-sm font-medium text-gray-800">
+                        {new Date(Number(huntData.startTime) * 1000).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(Number(huntData.startTime) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(Number(huntData.endTime) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Participants */}
+                  <div className="flex items-center gap-2">
+                    <IoIosPeople className="w-5 h-5 text-green" />
+                    <div>
+                      <p className="text-sm text-gray-600">Participants</p>
+                      <p className="text-sm font-medium text-gray-800">
+                        {Number(huntData.participantCount)} registered
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Teams Status */}
+                  <div className="flex items-center gap-2">
+                    <TbUsersGroup className="w-5 h-5 text-green" />
+                    <div>
+                      <p className="text-sm text-gray-600">Teams</p>
+                      <p className="text-sm font-medium text-gray-800">
+                        {huntData?.teamsEnabled ? 'Enabled' : 'Disabled'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
                 </div> 
               
+              {/* Team Management Section - Only show if teams are enabled */}
+              {huntData?.teamsEnabled && (
               <div className="mt-6">
                 <h2 className="text-lg font-medium mb-4">Team Management</h2>
                 
@@ -568,13 +598,9 @@ export function HuntDetails() {
                   <div className="border-t-2 border-gray-200 pt-4">
                     <h3 className="text-lg font-semibold mb-4">Your Team</h3>
                     <div className="space-y-3">
-                        {/* <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Team ID:</span>
-                          <span className="font-medium">{teamData?.teamId?.toString() || 'N/A'}</span>
-                        </div> */}
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Members:</span>
-                          <span className="font-medium">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxTeamSize?.toString() || '0'}</span>
+                          <span className="font-medium">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxMembers?.toString() || '0'}</span>
                         </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Team Owner:</span>
@@ -583,7 +609,7 @@ export function HuntDetails() {
                       <div className="mt-4">
                         <span className="text-gray-600 block mb-2">Team Members:</span>
                         <div className="flex gap-3 flex-wrap">
-                          {(teamData?.membersList || []).map((member, index) => (
+                          {(teamData?.members || []).map((member, index) => (
                             <div key={index} className="flex flex-col items-center gap-3">
                                 <img 
                                   src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${member}`}
@@ -594,13 +620,10 @@ export function HuntDetails() {
                                 <span className="text-xs font-medium text-gray-500">
                                   {member ? `${member.slice(0, 4)}...${member.slice(-4)}` : 'Unknown Member'}
                                 </span>
-                                {/* {member === "0x1234567890abcdef1234567890abcdef12345678" && (
-                                    <span className="ml-2 text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Owner</span>
-                                  )} */}
                               </div>
                             </div>
                           ))}
-                          {(!teamData?.membersList || teamData.membersList.length === 0) && (
+                          {(!teamData?.members || teamData.members.length === 0) && (
                             <div className="text-sm text-gray-500 italic">No members found</div>
                           )}
                         </div>
@@ -609,13 +632,14 @@ export function HuntDetails() {
                   </div>
                 )}
               </div>
+              )}
             </div>
           )}
           <div className="mt-8 border-t pt-6 p-6 flex flex-col w-full">
             <div className="flex items-center justify-between mb-4"></div>
             
-            {/* Toggle button for team owner only */}
-            {teamData && teamData.owner === userWallet && (
+            {/* Toggle button for team owner only - only show if teams are enabled */}
+            {huntData?.teamsEnabled && teamData && teamData.owner === userWallet && (
               <Button
                 type="button"
                 size="lg"
@@ -633,12 +657,12 @@ export function HuntDetails() {
               type="submit"
               size="lg"
               onClick={handleHuntStart}
-              disabled={isGeneratingRiddles}
+              disabled={isStartingHunt || isGeneratingRiddles}
               className={cn(
                 "w-full text-white transition-colors duration-300 bg-black hover:bg-gray-800"
               )}
             >
-              {isGeneratingRiddles ? "Starting Hunt..." : "Start Hunt"}
+              {(isStartingHunt || isGeneratingRiddles) ? "Starting Hunt..." : "Start Hunt"}
             </Button>
           </div>
         </div>

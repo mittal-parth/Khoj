@@ -27,6 +27,12 @@ export interface RewardCard {
   icon: JSX.Element;
 }
 
+export interface Riddle {
+  riddle: string;
+  answer: string;
+  hint: string;
+}
+
 export interface ChartContextProps {
   config: any; // ChartConfig type from chart component
 }
@@ -45,3 +51,19 @@ export type ConfettiProps = React.ComponentPropsWithRef<"canvas"> & {
 
 export type ConfettiRef = Api | null;
 export type ToasterProps = React.ComponentProps<typeof import("sonner").Toaster>;
+
+export const bgColors = ["green", "orange", "yellow", "pink", "red"];
+export const bgColorClasses = {
+  green: "bg-green",
+  orange: "bg-orange", 
+  yellow: "bg-yellow",
+  pink: "bg-pink",
+  red: "bg-red"
+};
+export const textColorClasses = {
+  green: "text-green",
+  orange: "text-orange", 
+  yellow: "text-yellow",
+  pink: "text-pink",
+  red: "text-red"
+};
