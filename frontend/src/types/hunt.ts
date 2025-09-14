@@ -10,6 +10,7 @@ export interface Hunt {
   maxTeamSize: bigint;
   theme: string;
   nftMetadataURI: string;
+  participants?: string[]; // Array of participant addresses (optional for backward compatibility)
 }
 
 export interface Clue {

@@ -26,7 +26,7 @@ contract Khoj {
         address[] winners;
         uint256 noOfParticipants;
         address creator;
-        mapping(address => uint256) participantToTokenId;
+        address[] participantsList;
         // Team play extensions
         bool teamsEnabled;
         uint256 maxTeamSize;
@@ -51,6 +51,7 @@ contract Khoj {
         uint256 maxTeamSize;
         string theme;
         string nftMetadataURI;
+        address[] participants;
     }
 
     Hunt[] private hunts;
@@ -143,7 +144,8 @@ contract Khoj {
         
         uint256 tokenId = nftContract.mintNFT(_recipient, tokenURI);
         hunts[_huntId].noOfParticipants++;
-        hunts[_huntId].participantToTokenId[_recipient] = tokenId;
+        // Add to participants list
+        hunts[_huntId].participantsList.push(_recipient);
         emit NFTAwarded(_huntId, _recipient, tokenId);
         return tokenId;
     }
@@ -279,7 +281,8 @@ contract Khoj {
             bool teamsEnabled,
             uint256 maxTeamSize,
             string memory theme,
-            string memory nftMetadataURI
+            string memory nftMetadataURI,
+            address[] memory participantsList
         )
     {
         require(_huntId < hunts.length, "Hunt does not exist");
@@ -296,7 +299,8 @@ contract Khoj {
             hunt.teamsEnabled,
             hunt.maxTeamSize,
             hunt.theme,
-            hunt.nftMetadataURI
+            hunt.nftMetadataURI,
+            hunt.participantsList
         );
     }
 
@@ -305,16 +309,6 @@ contract Khoj {
         require(_huntId < hunts.length, "Hunt does not exist");
         Hunt storage hunt = hunts[_huntId];
         hunt.winners.push(winner);
-    }
-
-    /* Get token ID for a participant */
-    function getTokenId(
-        uint256 _huntId,
-        address _recipient
-    ) public view returns (uint256) {
-        require(_huntId < hunts.length, "Hunt does not exist");
-        Hunt storage hunt = hunts[_huntId];
-        return hunt.participantToTokenId[_recipient];
     }
 
     /* Get all hunts */
@@ -335,7 +329,8 @@ contract Khoj {
                 teamsEnabled: hunt.teamsEnabled,
                 maxTeamSize: hunt.maxTeamSize,
                 theme: hunt.theme,
-                nftMetadataURI: hunt.nftMetadataURI
+                nftMetadataURI: hunt.nftMetadataURI,
+                participants: hunt.participantsList
             });
         }
 

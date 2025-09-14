@@ -316,6 +316,11 @@ export const huntABI = [
             name: "nftMetadataURI",
             type: "string",
           },
+          {
+            internalType: "address[]",
+            name: "participants",
+            type: "address[]",
+          },
         ],
         internalType: "struct Khoj.HuntInfo[]",
         name: "",
@@ -495,30 +500,6 @@ export const huntABI = [
         internalType: "address[]",
         name: "members",
         type: "address[]",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "_huntId",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "_recipient",
-        type: "address",
-      },
-    ],
-    name: "getTokenId",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
       },
     ],
     stateMutability: "view",
