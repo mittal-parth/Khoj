@@ -341,64 +341,71 @@ export const huntABI = [
     name: "getHunt",
     outputs: [
       {
-        internalType: "string",
-        name: "name",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "description",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "startTime",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "endTime",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "noOfParticipants",
-        type: "uint256",
-      },
-      {
-        internalType: "address[]",
-        name: "winners",
-        type: "address[]",
-      },
-      {
-        internalType: "string",
-        name: "clues_blobId",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "answers_blobId",
-        type: "string",
-      },
-      {
-        internalType: "bool",
-        name: "teamsEnabled",
-        type: "bool",
-      },
-      {
-        internalType: "uint256",
-        name: "maxTeamSize",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "theme",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "nftMetadataURI",
-        type: "string",
+        components: [
+          {
+            internalType: "string",
+            name: "name",
+            type: "string",
+          },
+          {
+            internalType: "string",
+            name: "description",
+            type: "string",
+          },
+          {
+            internalType: "uint256",
+            name: "startTime",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "endTime",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "participantCount",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "clues_blobId",
+            type: "string",
+          },
+          {
+            internalType: "string",
+            name: "answers_blobId",
+            type: "string",
+          },
+          {
+            internalType: "bool",
+            name: "teamsEnabled",
+            type: "bool",
+          },
+          {
+            internalType: "uint256",
+            name: "maxTeamSize",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "theme",
+            type: "string",
+          },
+          {
+            internalType: "string",
+            name: "nftMetadataURI",
+            type: "string",
+          },
+          {
+            internalType: "address[]",
+            name: "participants",
+            type: "address[]",
+          },
+        ],
+        internalType: "struct Khoj.HuntInfo",
+        name: "",
+        type: "tuple",
       },
     ],
     stateMutability: "view",
@@ -477,29 +484,41 @@ export const huntABI = [
     name: "getTeam",
     outputs: [
       {
-        internalType: "uint256",
-        name: "teamId",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "owner",
-        type: "address",
-      },
-      {
-        internalType: "uint256",
-        name: "maxMembers",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "memberCount",
-        type: "uint256",
-      },
-      {
-        internalType: "address[]",
-        name: "members",
-        type: "address[]",
+        components: [
+          {
+            internalType: "uint256",
+            name: "huntId",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "teamId",
+            type: "uint256",
+          },
+          {
+            internalType: "address",
+            name: "owner",
+            type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "maxMembers",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "memberCount",
+            type: "uint256",
+          },
+          {
+            internalType: "address[]",
+            name: "members",
+            type: "address[]",
+          },
+        ],
+        internalType: "struct Khoj.TeamInfo",
+        name: "",
+        type: "tuple",
       },
     ],
     stateMutability: "view",

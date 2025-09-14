@@ -37,3 +37,12 @@ export interface IPFSResponse {
   clues_blobId: string;
   answers_blobId: string;
 }
+
+export interface Team {
+  huntId: bigint;
+  teamId: bigint;
+  owner: string;
+  maxMembers: bigint;
+  memberCount: bigint;
+  members?: string[];
+}

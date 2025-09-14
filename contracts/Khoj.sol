@@ -39,6 +39,7 @@ contract Khoj {
         string nftMetadataURI;
     }
 
+    /* Structs for view-only data */
     struct HuntInfo {
         string name;
         string description;
@@ -52,6 +53,15 @@ contract Khoj {
         string theme;
         string nftMetadataURI;
         address[] participants;
+    }
+
+    struct TeamInfo {
+        uint256 huntId;
+        uint256 teamId;
+        address owner;
+        uint256 maxMembers;
+        uint256 memberCount;
+        address[] members;
     }
 
     Hunt[] private hunts;
@@ -269,39 +279,24 @@ contract Khoj {
     )
         public
         view
-        returns (
-            string memory name,
-            string memory description,
-            uint256 startTime,
-            uint256 endTime,
-            uint256 noOfParticipants,
-            address[] memory winners,
-            string memory clues_blobId,
-            string memory answers_blobId,
-            bool teamsEnabled,
-            uint256 maxTeamSize,
-            string memory theme,
-            string memory nftMetadataURI,
-            address[] memory participantsList
-        )
+        returns (HuntInfo memory)
     {
         require(_huntId < hunts.length, "Hunt does not exist");
         Hunt storage hunt = hunts[_huntId];
-        return (
-            hunt.name,
-            hunt.description,
-            hunt.startTime,
-            hunt.endTime,
-            hunt.noOfParticipants,
-            hunt.winners,
-            hunt.clues_blobId,
-            hunt.answers_blobId,
-            hunt.teamsEnabled,
-            hunt.maxTeamSize,
-            hunt.theme,
-            hunt.nftMetadataURI,
-            hunt.participantsList
-        );
+        return HuntInfo({
+            name: hunt.name,
+            description: hunt.description,
+            startTime: hunt.startTime,
+            endTime: hunt.endTime,
+            participantCount: hunt.noOfParticipants,
+            clues_blobId: hunt.clues_blobId,
+            answers_blobId: hunt.answers_blobId,
+            teamsEnabled: hunt.teamsEnabled,
+            maxTeamSize: hunt.maxTeamSize,
+            theme: hunt.theme,
+            nftMetadataURI: hunt.nftMetadataURI,
+            participants: hunt.participantsList
+        });
     }
 
     /* Add winners to hunt */
@@ -340,17 +335,7 @@ contract Khoj {
     /* Get team information for a user in a specific hunt */
     function getTeam(
         uint256 _huntId
-    )
-        public
-        view
-        returns (
-            uint256 teamId,
-            address owner,
-            uint256 maxMembers,
-            uint256 memberCount,
-            address[] memory members
-        )
-    {
+    ) public view returns (TeamInfo memory) {
         require(_huntId < hunts.length, "Hunt does not exist");
         Hunt storage hunt = hunts[_huntId];
 
@@ -368,13 +353,14 @@ contract Khoj {
         // Only team members can view their team
         require(team.members[msg.sender], "Access denied");
 
-        return (
-            userTeamId,
-            team.owner,
-            hunt.maxTeamSize,
-            team.memberCount,
-            team.membersList
-        );
+        return TeamInfo({
+            huntId: _huntId,
+            teamId: userTeamId,
+            owner: team.owner,
+            maxMembers: hunt.maxTeamSize,
+            memberCount: team.memberCount,
+            members: team.membersList
+        });
     }
 
     /* Check if address is member of team */
