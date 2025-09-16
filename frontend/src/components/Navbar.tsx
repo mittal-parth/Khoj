@@ -66,7 +66,7 @@ export function Navbar() {
           {/* Navigation Links and Network Selector */}
           <div className="flex items-center gap-2 md:gap-4">
             <div className="hidden md:flex items-center gap-6">
-              <Link to="/" className="text-black hover:text-green font-medium transition-colors">
+              <Link to="/hunts" className="text-black hover:text-green font-medium transition-colors">
                 Hunts
               </Link>
               <Link to="/profile" className="text-black hover:text-green font-medium transition-colors">
