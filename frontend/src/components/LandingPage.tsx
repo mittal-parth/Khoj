@@ -1,6 +1,5 @@
 import { TbLadder, TbChessKnight, TbMapPin, TbTrophy, TbUsers, TbShield } from "react-icons/tb";
 import { FaChess, FaDice, FaRocket, FaGem } from "react-icons/fa";
-import { BsGlobe } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button.tsx";
 
