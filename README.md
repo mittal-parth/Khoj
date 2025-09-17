@@ -3,7 +3,7 @@
 <h1 align="center">Khoj - Web3 Treasure Hunt Platform</h1>
 </div>
 
-Khoj (meaning "search" or "discovery" in Hindi) is a gamified geo-location based treasure hunt platform that combines real-world exploration with Web3 technology. Built during ETHIndia Hackathon 2024, Khoj transforms traditional scavenger hunts into an immersive blockchain experience with a dream to bring millions of new users to the Web3 world.
+Khoj (meaning "search" or "discovery" in Hindi) is a gamified geo-location based treasure hunt platform that combines real-world exploration with Web3 technology. Built during the ETHIndia Hackathon 2024, Khoj transforms traditional scavenger hunts into an immersive blockchain experience with a dream to bring millions of new users to the Web3 world.
 
 ## 🌟 Overview
 
@@ -217,18 +217,21 @@ Built with ❤️ by Team Khoj
 
 ## 📝 Creating a Hunt via UI
 
-You can create new hunts by going to `/create-hunt` and filling the form.
+You can create new hunts by going to `hunt/create` and filling out the form.
 
 ### Steps
 
-1. Choose the right network (currently supports Base and Polkadot Moonbeam)
-2. Enter the hunt details
-3. Check the "Teams Enabled" checkbox if you want to enable teams
-3.1 If teams are enabled, enter the max team size
-4. Add clue by adding description and answer and coordinates of the clue
-5. Once all clues are added, add NFT Image for the hunt
-6. Click on "Create Hunt" button
+<img width="1280" height="720" alt="Khoj Create Hunt Guide" src="https://github.com/user-attachments/assets/8ff6198e-0308-4231-b1ff-98bb79834124" />
 
+1. Choose the right network (currently supports Base and Polkadot Moonbeam)
+2. Enter the hunt details like - name, description, start/end time, theme, etc.
+3. Check the "Teams Enabled" checkbox if you want to enable Teams
+3.1 If teams are enabled, enter the max team size
+4. Add a clue by adding a description of an answer, and the coordinates of the clue
+5. Once all clues are added, add an NFT Image for the hunt
+6. Click on the "Create Hunt" button
+
+You have successfully created a hunt.
 
 
 
