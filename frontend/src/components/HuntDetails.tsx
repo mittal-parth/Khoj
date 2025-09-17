@@ -13,7 +13,7 @@ import { TbUsersGroup } from "react-icons/tb";
 import { IoIosPeople } from "react-icons/io";
 import { HuddleRoom } from "./HuddleRoom";
 import { useReadContract, useActiveAccount, useSendTransaction } from "thirdweb/react";
-import { getContract, prepareContractCall } from "thirdweb";
+import { getContract, prepareContractCall, readContract } from "thirdweb";
 import { CONTRACT_ADDRESSES } from "../lib/utils";
 import { toast } from "sonner";
 import { client } from "../lib/client";
@@ -21,7 +21,7 @@ import { baseSepolia, paseoAssetHub } from "../lib/chains";
 import QRCode from "react-qr-code";
 import QrScanner from "qr-scanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { generateInviteHash, encodeInviteToBase58, calculateInviteExpiry, decodeBase58Invite } from "../helpers/inviteUtils";
+import { generateInviteHash, encodeInviteToBase58, calculateInviteExpiry, decodeBase58Invite, signMessageWithEIP191 } from "../helpers/inviteUtils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { huntABI } from "../assets/hunt_abi.ts";
 import { useGenerateRiddles } from "@/hooks/useGenerateRiddles.ts";
@@ -52,8 +52,6 @@ export function HuntDetails() {
   const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
   const [showInviteWarning, setShowInviteWarning] = useState(false);
   
-  // localStorage key for invite codes
-  const getInviteStorageKey = () => `invite_code_${huntId}_${userWallet}`;
   
   // Video reference for QR scanner
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -102,13 +100,35 @@ export function HuntDetails() {
     params: [BigInt(huntId || 0)],
   }) as { data: Team | undefined; error: Error | undefined };
 
-  const joinTeam = (signature: string, teamId: string) => {
+  const joinTeam = async (signature: string, teamId: string, expiry: number) => {
+    try {
+      console.log("[joinWithInvite] invoked", {
+        teamId,
+        expiry,
+        signature,
+        now: Math.floor(Date.now() / 1000),
+        currentNetwork,
+        contractAddress,
+        userWallet,
+      });
 
-    const huntStartTime = Number(huntData?.startTime);
-    const huntDuration = Number(huntData?.endTime) - Number(huntData?.startTime);
-    const expiryTime = calculateInviteExpiry(huntStartTime, huntDuration);
+      if (!signature || !teamId || !expiry) {
+        console.warn("[joinWithInvite] Missing required params", { signaturePresent: !!signature, teamId, expiry });
+      }
 
-    const transaction = prepareContractCall({
+      if (!/^0x[0-9a-fA-F]+$/.test(signature)) {
+        console.warn("[joinWithInvite] Signature may be malformed (expected 0x-hex)", signature);
+      }
+
+      if (Number.isNaN(Number(teamId))) {
+        console.warn("[joinWithInvite] teamId is not a number", teamId);
+      }
+
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      console.log("[joinWithInvite] Expiry delta (s)", expiry - nowSeconds);
+
+      console.log("[joinWithInvite] Preparing transaction...");
+      const transaction = prepareContractCall({
       contract: {
         address: contractAddress as `0x${string}`,
         abi: huntABI,
@@ -116,20 +136,38 @@ export function HuntDetails() {
         client,
       },
       method: "joinWithInvite",
-      params: [BigInt(teamId || 0), BigInt(expiryTime), signature as `0x${string}`],
-    });
+      params: [BigInt(teamId || 0), BigInt(expiry), signature as `0x${string}`],
+      });
 
-    // Execute the transaction and get the result
-    sendTransaction(transaction as any, {
-      onSuccess: (result) => {
-        console.log("Transaction successful:", result);
-        toast.success("Team joined successfully!");
-      },
-      onError: (error) => {
-        console.error("Transaction failed:", error);
-        toast.error("Failed to join team");
-      }
-    });
+      console.log("[joinWithInvite] Transaction prepared", {
+        to: contractAddress,
+        method: "joinWithInvite",
+        params: [teamId?.toString(), expiry?.toString(), `${signature?.slice(0, 10)}...`],
+      });
+
+      // Execute the transaction and get the result
+      console.log("[joinWithInvite] Sending transaction...");
+      sendTransaction(transaction as any, {
+        onSuccess: (result) => {
+          console.log("[joinWithInvite] Transaction success", {
+            txHash: (result as any)?.transactionHash,
+            result,
+          });
+          toast.success("Team joined successfully!");
+        },
+        onError: (error) => {
+          const anyErr = error as any;
+          console.error("[joinWithInvite] Transaction failed", error);
+          if (anyErr?.reason) console.error("[joinWithInvite] reason:", anyErr.reason);
+          if (anyErr?.data?.message) console.error("[joinWithInvite] data.message:", anyErr.data.message);
+          if (anyErr?.shortMessage) console.error("[joinWithInvite] shortMessage:", anyErr.shortMessage);
+          toast.error("Failed to join team");
+        }
+      });
+    } catch (err) {
+      console.error("[joinWithInvite] Unexpected error before send", err);
+      toast.error("Failed to prepare join transaction");
+    }
   }
 
   const handleHuntStart = async () => {
@@ -215,7 +253,11 @@ export function HuntDetails() {
             setHasCamera(false); // Hide camera after successful scan
             toast.success("QR code scanned successfully!");
 
-            joinTeam(inviteData.signature, inviteData.teamId);
+            // Join team asynchronously
+            joinTeam(inviteData.signature, inviteData.teamId, inviteData.expiry).catch(error => {
+              console.error("Error joining team:", error);
+              toast.error("Failed to join team");
+            });
 
           } else {
             toast.error("Invalid QR code detected. Please try again.");
@@ -271,15 +313,11 @@ export function HuntDetails() {
     }
   }, [activeTab, teamData]);
   
-  // Check localStorage for existing invite code on component mount
+
+  // Monitor teamData changes for debugging
   useEffect(() => {
-    if (userWallet && huntId) {
-      const storedInvite = localStorage.getItem(getInviteStorageKey());
-      if (storedInvite) {
-        setInviteCode(storedInvite);
-      }
-    }
-  }, [userWallet, huntId]);
+    console.log("🔄 teamData changed:", teamData);
+  }, [teamData]);
 
   // Show loading state while hunt data is being fetched
   if (huntLoading) {
@@ -298,22 +336,19 @@ export function HuntDetails() {
 
   // Generate multi-use invite code
   const generateMultiUseInvite = async () => {
+    console.log("🚀 Starting generateMultiUseInvite");
+    console.log("Account:", account?.address);
+    console.log("HuntId:", huntId);
+    
     if (!account || !huntData) {
+      console.log("❌ Missing account or huntData");
       toast.error("Please connect your wallet first");
       return;
     }
     
-    // Check if invite already exists in localStorage
-    const existingInvite = localStorage.getItem(getInviteStorageKey());
-    if (existingInvite) {
-      setInviteCode(existingInvite);
-      toast.info("Using existing invite code");
-      return;
-    }
     
     try {
       setIsGeneratingInvite(true);
-
       const transaction = prepareContractCall({
         contract: {
           address: contractAddress as `0x${string}`,
@@ -324,75 +359,128 @@ export function HuntDetails() {
         method: "createTeam",
         params: [BigInt(huntId || 0)],
       });
-      generateInviteAfterTeamCreation();
+
+      console.log("📤 Sending transaction...");
       // Execute the transaction and get the result
       sendTransaction(transaction as any, {
-        onSuccess: (result) => {
-          console.log("Transaction successful:", result);
-          // The result contains transaction hash and receipt
-          // For createTeam, you might want to get the teamId from events
+        onSuccess: async (_) => {
+          console.log("✅ Transaction successful!");
           toast.success("Team created successfully!");
           
-          // Continue with invite generation after successful team creation
-          // generateInviteAfterTeamCreation();
+          // The createTeam function returns the teamId directly, but we can't access return values from transactions
+          // However, the contract emits a TeamCreated event with the teamId
+          // We need to wait for the transaction to be mined and then get the teamId from the event
+          try {
+            // Wait for the transaction to be mined and then get the teamId
+            // TODO: We can listen for the TeamCreated event instead of using getParticipantTeamId as a fallback
+            console.log("⏳ Waiting for transaction to be mined...");
+            
+            // Wait a bit for the transaction to be mined
+            setTimeout(async () => {
+              try {
+                console.log("🔍 Getting teamId after transaction is mined...");
+                const teamId = await readContract({
+                  contract,
+                  method: "getParticipantTeamId",
+                  params: [BigInt(huntId || 0), userWallet as `0x${string}`],
+                });
+                console.log("TeamId from getParticipantTeamId:", teamId);
+                
+                if (teamId && teamId.toString() !== "0") {
+                  console.log("✅ Found teamId:", teamId.toString());
+                  await generateInviteAfterTeamCreation(teamId.toString());
+                } else {
+                  console.log("❌ No teamId found for user (teamId is 0 or undefined)");
+                  toast.error("Team created but could not generate invite. Please try again.");
+                  setIsGeneratingInvite(false);
+                }
+              } catch (error) {
+                console.error("❌ Error getting teamId after mining:", error);
+                toast.error("Team created but could not generate invite. Please try again.");
+                setIsGeneratingInvite(false);
+              }
+            }, 3000); // Wait 3 seconds for transaction to be mined
+            
+          } catch (error) {
+            console.error("❌ Error in transaction success handler:", error);
+            toast.error("Team created but could not generate invite. Please try again.");
+            setIsGeneratingInvite(false);
+          }
         },
         onError: (error) => {
-          console.error("Transaction failed:", error);
+          console.error("❌ Transaction failed:", error);
           toast.error("Failed to create team");
           setIsGeneratingInvite(false);
         }
       });
 
     } catch (error) {
-      console.error("Error preparing transaction:", error);
+      console.error("❌ Error preparing transaction:", error);
       toast.error("Failed to prepare transaction");
       setIsGeneratingInvite(false);
     }
   };
 
   // Separate function to handle invite generation after team creation
-  const generateInviteAfterTeamCreation = async () => {
-
-    console.log("Generating invite after team creation");
-    if (!account || !huntData || teamCode == "") {
-      toast.error("Please connect your wallet first");
+  const generateInviteAfterTeamCreation = async (teamId: string) => {
+    console.log("🎯 Starting generateInviteAfterTeamCreation");
+    
+    if (!account || !huntData || !teamId) {
+      console.log("❌ Missing required data for invite generation");
+      console.log("Account present:", !!account);
+      console.log("HuntData present:", !!huntData);
+      console.log("TeamId present:", !!teamId);
+      toast.error("Missing required data for invite generation");
+      setIsGeneratingInvite(false);
       return;
     }
 
     try {
-      // Calculate expiry time (hunt start + 1 hour)
-      const huntStartTime = Number(huntData.startTime);
-      const huntDuration = Number(huntData.endTime) - Number(huntData.startTime);
-      const expiryTime = calculateInviteExpiry(huntStartTime, huntDuration);
+      // Calculate expiry time (current time + 1 hour)
+      const expiryTime = calculateInviteExpiry();
+      console.log("Expiry date (UTC):", new Date(expiryTime * 1000).toISOString());
+      console.log("🔐 Generating invite hash...");
       
       // Generate invite hash
       const hash = generateInviteHash(
-        teamCode,
+        teamId,
         expiryTime,
         currentNetwork == "base" ? baseSepolia.id : paseoAssetHub.id,
         contractAddress
-      );      
-      // Sign the hash with wallet using the account directly
-      const signature = await account.signMessage({
-        message: hash,
-      });
+      );
       
+      console.log("Generated hash:", hash);
+      
+      console.log("✍️ Signing hash with wallet using EIP-191...");
+      // Sign the hash with EIP-191 prefix for contract verification
+      const signature = await signMessageWithEIP191(hash, account);
+      
+      console.log("Signature received:", signature);
+      console.log("📦 Encoding invite data...");
       // Encode the invite data
       const encodedInvite = encodeInviteToBase58(
-        teamCode,
+        teamId,
         expiryTime,
         signature
       );
       
+      console.log("Encoded invite:", encodedInvite);
+  
       setInviteCode(encodedInvite);
       setShowInviteWarning(true);
       
-      // Store invite code in localStorage
-      localStorage.setItem(getInviteStorageKey(), encodedInvite);
+      
+      // Update teamCode for display purposes
+      setTeamCode(teamId);
+      console.log("TeamCode updated to:", teamId);
+      console.log("✅ Invite generation completed successfully!");
+      
     } catch (error) {
-      console.error("Error generating invite:", error);
+      console.error("❌ Error generating invite:", error);
+      console.error("Error details:", error);
       toast.error("Failed to generate invite code");
     } finally {
+      console.log("🔄 Setting isGeneratingInvite to false");
       setIsGeneratingInvite(false);
     }
   };
@@ -524,12 +612,10 @@ export function HuntDetails() {
                         
                         <Button 
                             className="w-full" 
-                            onClick={
-                              () => {
+                            onClick={async () => {
                                 const inviteData = decodeBase58Invite(teamCode);
-                                joinTeam(inviteData.signature, inviteData.teamId);
-                              }
-                            }
+                                await joinTeam(inviteData.signature, inviteData.teamId, inviteData.expiry);
+                              }}
                             >
                           Join Team
                         </Button>

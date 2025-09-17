@@ -178,10 +178,12 @@ export function Hunts() {
       [huntIndex]: true,
     }));
 
+    // give a little delay
+    setTimeout(() => {
+      navigate(`/hunt/${huntIndex}`);
+    }, 2000);
     // Note: The participants array will be updated when the component re-renders
     // and fetches fresh data from the contract, so no need to manually update it here
-    
-    navigate(`/hunt/${huntIndex}`);
   };
 
   // Add more detailed logging

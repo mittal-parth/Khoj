@@ -172,13 +172,18 @@ export function Create() {
   };
 
   const validateForm = () => {
-    if (huntName.length === 0 || description.length === 0) {
+    if (huntName.trim().length === 0 || description.trim().length === 0) {
       toast.error("Hunt name and description cannot be empty");
       return false;
     }
     
     if (cluesCID.length === 0 || answersCID.length === 0) {
       toast.error("Both CIDs must be provided");
+      return false;
+    }
+
+    if (teamsEnabled && parseInt(maxTeamSize) < 2) {
+      toast.error("Max team size must be at least 2");
       return false;
     }
     
@@ -522,7 +527,7 @@ export function Create() {
               <Input
                 id="maxTeamSize"
                 type="number"
-                min="1"
+                min="2"
                 value={maxTeamSize}
                 onChange={(e) => setMaxTeamSize(e.target.value)}
                 placeholder="Enter maximum team size"
