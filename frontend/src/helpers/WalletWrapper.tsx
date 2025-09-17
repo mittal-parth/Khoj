@@ -1,12 +1,8 @@
 import { ConnectButton } from "thirdweb/react";
 import { client } from "../lib/client";
-import { paseoAssetHub } from "../lib/chains";
+import { paseoAssetHub, baseSepolia, moonbaseAlpha } from "../lib/chains";
+import { WalletWrapperParams } from "../types";
 
-type WalletWrapperParams = {
-  text?: string;
-  className?: string;
-  withWalletAggregator?: boolean;
-};
 
 export default function WalletWrapper({
   className,
@@ -15,14 +11,14 @@ export default function WalletWrapper({
   return (
     <ConnectButton
       client={client}
-      chains={[paseoAssetHub]}
+      chains={[paseoAssetHub, baseSepolia, moonbaseAlpha]}
       connectButton={{
         label: text || "Connect Wallet",
         className: className,
       }}
       appMetadata={{
-        name: "ETHunt",
-        url: "https://ethunt.vercel.app",
+        name: "Khoj",
+        url: "https://khoj-app.vercel.app",
       }}
     />
   );

@@ -3,7 +3,7 @@ import { User, Map } from "lucide-react";
 
 export function Footer() {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t-2 border-black p-4">
       <div className="flex justify-around items-center">
         <Link
           to="/"

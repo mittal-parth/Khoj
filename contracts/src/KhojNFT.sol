@@ -5,11 +5,11 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract ETHuntNFT is ERC721URIStorage {
+contract KhojNFT is ERC721URIStorage {
     using Counters for Counters.Counter;
     Counters.Counter private _tokenIds;
 
-    constructor() ERC721("ETHuntNFT", "EHT") {}
+    constructor() ERC721("KhojNFT", "KHOJ") {}
 
     function mintNFT(address player, string memory tokenURI)
         public

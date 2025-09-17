@@ -17,10 +17,10 @@ import { HuddleRoom } from "./HuddleRoom";
 import { useReadContract, useActiveAccount } from "thirdweb/react";
 import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi";
-import { CONTRACT_ADDRESSES } from "../lib/utils";
+import { useNetworkState } from "../lib/utils";
 import { toast } from "sonner";
 import { client } from "../lib/client";
-import { paseoAssetHub } from "../lib/chains";
+import { Hunt } from "../types";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -43,26 +43,23 @@ export function Clue() {
   >("idle");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
-  // Add this to get current network from localStorage
-  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
-  const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
-    "0x0000000000000000000000000000000000000000";
+  // Use the reactive network state hook
+  const { contractAddress, currentChain } = useNetworkState();
 
   // Create thirdweb contract instance
   const contract = getContract({
     client,
-    chain: paseoAssetHub,
+    chain: currentChain,
     address: contractAddress as `0x${string}`,
     abi: huntABI,
   });
 
-  // Get hunt details from contract
-  const { data: huntDetails } = useReadContract({
+  // Get hunt details from contract - now returns HuntInfo struct directly
+  const { data: huntData } = useReadContract({
     contract,
     method: "getHunt",
     params: [BigInt(huntId || 0)],
-  });
+  }) as { data: Hunt | undefined };
 
   const account = useActiveAccount();
   const userWallet = account?.address;
@@ -104,17 +101,6 @@ export function Clue() {
     localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
   );
 
-  // Extract hunt details
-  const huntData = huntDetails
-    ? {
-        title: huntDetails[0],
-        description: huntDetails[1],
-        totalClues: currentClueData?.length || 0,
-        currentClue: parseInt(clueId || "1"),
-        answers_blobId: huntDetails[7],
-      }
-    : null;
-
   const createHuntAttestation = async () => {
     try {
       const api = await getTrueNetworkInstance();
@@ -153,12 +139,22 @@ export function Clue() {
   };
 
   const handleVerify = async (e: React.FormEvent) => {
+    console.log("handleVerify called");
     e.preventDefault();
-    if (!location || !huntData) return;
+    if (!location) {
+      console.log("location is null");
+      return;
+    } else {
+      console.log("location is not null ", location);
+    }
+    if (!huntData) {
+      console.log("huntData is null");
+      return;
+    }
 
     setIsSubmitting(true);
     setVerificationState("verifying");
-    console.log("huntData: ", huntDetails);
+    console.log("huntData: ", huntData);
     console.log("=== DEBUGGING REQUEST ===");
     console.log("Current location state:", location);
     console.log("Location type:", typeof location);
@@ -223,7 +219,7 @@ export function Clue() {
 
         console.log("Success"), showSuccessMessage;
 
-        // Wait 2 seconds before navigating
+        // Wait 0.5 seconds before navigating
         setTimeout(async () => {
           const nextClueId = currentClue + 1;
           if (currentClueData && nextClueId <= currentClueData.length) {
@@ -238,7 +234,7 @@ export function Clue() {
             }
             navigate(`/hunt/${huntId}/end`);
           }
-        }, 2000);
+        }, 500);
       } else {
         setVerificationState("error");
         setAttempts((prev) => prev - 1);
@@ -311,23 +307,14 @@ export function Clue() {
   return (
     <div className="min-h-screen bg-gray-50 pt-20 px-4 mb-[90px]">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] md:h-[calc(100vh-180px)] justify-between flex flex-col">
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] justify-between flex flex-col">
           <div className="bg-green p-6 text-white">
-            <div className="flex items-center justify-between mb-4">
-              <Button
-                onClick={() => navigate("/")}
-                variant="ghost"
-                className="text-white hover:bg-white/20"
-              >
-                <BsArrowLeft className="mr-2" />
-                Back to Hunts
-              </Button>
-              <div className="text-2xl font-bold">
+            <div className="flex items-center justify-between my-4">
+              <h1 className="text-xl font-bold flex-1 break-words">{huntData?.name}</h1>
+              <div className="text-2xl font-bold flex-shrink-0">
                 # {currentClue}/{currentClueData?.length}
               </div>
             </div>
-
-            <h1 className="text-xl font-bold mb-2">{huntData?.title}</h1>
           </div>
 
           <div className="prose max-w-none p-6 h-full">

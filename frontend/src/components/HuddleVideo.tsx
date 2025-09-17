@@ -11,11 +11,8 @@ import {
 import { Audio, Video } from '@huddle01/react/components';
 import { Button } from "./ui/button";
 import { BsCameraVideo, BsCameraVideoOff, BsMic, BsMicMute, BsDisplay } from "react-icons/bs";
+import { HuddleVideoProps, RemotePeerProps } from "../types";
 
-interface HuddleVideoProps {
-  minimized?: boolean;
-  onToggleMinimize?: () => void;
-}
 
 export const HuddleVideo: FC<HuddleVideoProps> = ({ minimized = false }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -107,9 +104,6 @@ export const HuddleVideo: FC<HuddleVideoProps> = ({ minimized = false }) => {
   );
 };
 
-interface RemotePeerProps {
-  peerId: string;
-}
 
 const RemotePeer: FC<RemotePeerProps> = ({ peerId }) => {
   const { stream: videoStream } = useRemoteVideo({ peerId });

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./ETHuntNFT.sol";
+import "./KhojNFT.sol";
 
-contract ETHunt {
-    ETHuntNFT public nftContract;
+contract Khoj {
+    KhojNFT public nftContract;
 
     /* Structs */
     struct Team {
@@ -19,14 +19,14 @@ contract ETHunt {
     struct Hunt {
         string name;
         string description;
-        uint256 startsAt;
+        uint256 startTime;
+        uint256 endTime;
         string clues_blobId;
         string answers_blobId;
-        uint256 duration;
         address[] winners;
         uint256 noOfParticipants;
         address creator;
-        mapping(address => uint256) participantToTokenId;
+        address[] participantsList;
         // Team play extensions
         bool teamsEnabled;
         uint256 maxTeamSize;
@@ -39,11 +39,12 @@ contract ETHunt {
         string nftMetadataURI;
     }
 
+    /* Structs for view-only data */
     struct HuntInfo {
         string name;
         string description;
         uint256 startTime;
-        uint256 duration;
+        uint256 endTime;
         uint256 participantCount;
         string clues_blobId;
         string answers_blobId;
@@ -51,6 +52,16 @@ contract ETHunt {
         uint256 maxTeamSize;
         string theme;
         string nftMetadataURI;
+        address[] participants;
+    }
+
+    struct TeamInfo {
+        uint256 huntId;
+        uint256 teamId;
+        address owner;
+        uint256 maxMembers;
+        uint256 memberCount;
+        address[] members;
     }
 
     Hunt[] private hunts;
@@ -64,8 +75,8 @@ contract ETHunt {
         uint256 indexed huntId,
         string name,
         string description,
-        uint256 startsAt,
-        uint256 duration
+        uint256 startTime,
+        uint256 endTime
     );
 
     event HuntStarted(uint256 indexed huntId, uint256 startedAt);
@@ -83,7 +94,8 @@ contract ETHunt {
     event TeamJoined(uint256 indexed teamId, address indexed member);
 
     constructor(address _nftContractAddress) {
-        nftContract = ETHuntNFT(_nftContractAddress);
+        nftContract = KhojNFT(_nftContractAddress);
+        nextTeamId = 1;
     }
 
     /* Functions */
@@ -92,22 +104,31 @@ contract ETHunt {
     function createHunt(
         string memory _name,
         string memory _description,
-        uint256 startsAt,
+        uint256 _startTime,
+        uint256 _endTime,
         string memory _clues_blobId,
         string memory _answers_blobId,
-        uint256 _duration,
         bool _teamsEnabled,
         uint256 _maxTeamSize,
         string memory _theme, // overall theme of the event that will influence the clues
         string memory _nftMetadataURI // IPFS URI for NFT metadata
     ) public returns (uint256) {
+        require(bytes(_name).length > 0, "Name cannot be empty");
+        require(bytes(_description).length > 0, "Description cannot be empty");
+        require(bytes(_clues_blobId).length > 0, "Clues blob ID cannot be empty");
+        require(bytes(_answers_blobId).length > 0, "Answers blob ID cannot be empty");
+        require(bytes(_nftMetadataURI).length > 0, "NFT metadata URI cannot be empty");
+        require(_endTime > _startTime, "End time cannot be before start time");
+        if (_teamsEnabled) {
+            require(_maxTeamSize > 1, "Invalid team size configuration");
+        }
         hunts.push();
 
         Hunt storage newHunt = hunts[hunts.length - 1];
         newHunt.name = _name;
         newHunt.description = _description;
-        newHunt.startsAt = startsAt;
-        newHunt.duration = _duration;
+        newHunt.startTime = _startTime;
+        newHunt.endTime = _endTime;
         newHunt.clues_blobId = _clues_blobId;
         newHunt.answers_blobId = _answers_blobId;
         newHunt.teamsEnabled = _teamsEnabled;
@@ -122,8 +143,8 @@ contract ETHunt {
             huntId,
             _name,
             _description,
-            block.timestamp,
-            _duration
+            _startTime,
+            _endTime
         );
 
         return huntId;
@@ -143,17 +164,20 @@ contract ETHunt {
         
         uint256 tokenId = nftContract.mintNFT(_recipient, tokenURI);
         hunts[_huntId].noOfParticipants++;
-        hunts[_huntId].participantToTokenId[_recipient] = tokenId;
+        // Add to participants list
+        hunts[_huntId].participantsList.push(_recipient);
         emit NFTAwarded(_huntId, _recipient, tokenId);
         return tokenId;
     }
 
     /* Create a new team for a specific hunt */
     function createTeam(uint256 _huntId) public returns (uint256 teamId) {
-        require(_huntId < hunts.length, "Hunt does not exist");
+        // 1. Check if user is not in any team of the hunt
+        _checkNotInAnyTeam(_huntId);
+
+        // 2. Check if teams are enabled for this hunt
         Hunt storage hunt = hunts[_huntId];
         require(hunt.teamsEnabled, "Teams disabled for this hunt");
-        require(hunt.maxTeamSize > 0, "Invalid team size configuration");
 
         teamId = nextTeamId;
         nextTeamId++;
@@ -232,27 +256,27 @@ contract ETHunt {
         // 2. Verify team exists
         require(_teamId < nextTeamId, "Team does not exist");
         Team storage team = teams[_teamId];
-        // address(0) is 0x0000...0000 - default value for non-existent mapping entries
-        // If team wasn't created, owner would be address(0)
-        require(team.owner != address(0), "Team does not exist");
 
         // 3. Verify not already in team
         require(!team.members[msg.sender], "Already in team");
 
-        // 4. Get hunt to check team size limit
+        // Get hunt
         uint256 huntId = team.huntId;
         Hunt storage hunt = hunts[huntId];
 
-        // Verify team not full
+        // 4. User should not be in any other team of the hunt
+        _checkNotInAnyTeam(huntId);
+
+        // 5. Verify team not full
         require(team.memberCount < hunt.maxTeamSize, "Team full");
 
-        // 5. Verify signature
+        // 6. Verify signature
         require(
             verifyInviteSignature(_teamId, _expiry, _signature, team.owner),
             "Invalid signature"
         );
 
-        // 6. Add member
+        // 7. Add member
         team.members[msg.sender] = true;
         team.memberCount++;
         team.membersList.push(msg.sender);
@@ -267,37 +291,24 @@ contract ETHunt {
     )
         public
         view
-        returns (
-            string memory name,
-            string memory description,
-            uint256 startedAt,
-            uint256 duration,
-            uint256 noOfParticipants,
-            address[] memory winners,
-            string memory clues_blobId,
-            string memory answers_blobId,
-            bool teamsEnabled,
-            uint256 maxTeamSize,
-            string memory theme,
-            string memory nftMetadataURI
-        )
+        returns (HuntInfo memory)
     {
         require(_huntId < hunts.length, "Hunt does not exist");
         Hunt storage hunt = hunts[_huntId];
-        return (
-            hunt.name,
-            hunt.description,
-            hunt.startsAt,
-            hunt.duration,
-            hunt.noOfParticipants,
-            hunt.winners,
-            hunt.clues_blobId,
-            hunt.answers_blobId,
-            hunt.teamsEnabled,
-            hunt.maxTeamSize,
-            hunt.theme,
-            hunt.nftMetadataURI
-        );
+        return HuntInfo({
+            name: hunt.name,
+            description: hunt.description,
+            startTime: hunt.startTime,
+            endTime: hunt.endTime,
+            participantCount: hunt.noOfParticipants,
+            clues_blobId: hunt.clues_blobId,
+            answers_blobId: hunt.answers_blobId,
+            teamsEnabled: hunt.teamsEnabled,
+            maxTeamSize: hunt.maxTeamSize,
+            theme: hunt.theme,
+            nftMetadataURI: hunt.nftMetadataURI,
+            participants: hunt.participantsList
+        });
     }
 
     /* Add winners to hunt */
@@ -307,14 +318,10 @@ contract ETHunt {
         hunt.winners.push(winner);
     }
 
-    /* Get token ID for a participant */
-    function getTokenId(
-        uint256 _huntId,
-        address _recipient
-    ) public view returns (uint256) {
+    /* Get winners of a hunt */
+    function getHuntWinners(uint256 _huntId) public view returns (address[] memory) {
         require(_huntId < hunts.length, "Hunt does not exist");
-        Hunt storage hunt = hunts[_huntId];
-        return hunt.participantToTokenId[_recipient];
+        return hunts[_huntId].winners;
     }
 
     /* Get all hunts */
@@ -327,15 +334,16 @@ contract ETHunt {
             allHunts[i] = HuntInfo({
                 name: hunt.name,
                 description: hunt.description,
-                startTime: hunt.startsAt,
-                duration: hunt.duration,
+                startTime: hunt.startTime,
+                endTime: hunt.endTime,
                 participantCount: hunt.noOfParticipants,
                 clues_blobId: hunt.clues_blobId,
                 answers_blobId: hunt.answers_blobId,
                 teamsEnabled: hunt.teamsEnabled,
                 maxTeamSize: hunt.maxTeamSize,
                 theme: hunt.theme,
-                nftMetadataURI: hunt.nftMetadataURI
+                nftMetadataURI: hunt.nftMetadataURI,
+                participants: hunt.participantsList
             });
         }
 
@@ -344,42 +352,28 @@ contract ETHunt {
 
     /* Get team information for a user in a specific hunt */
     function getTeam(
-        uint256 _huntId
-    )
-        public
-        view
-        returns (
-            uint256 teamId,
-            address owner,
-            uint256 maxMembers,
-            uint256 memberCount,
-            address[] memory members
-        )
-    {
+        uint256 _huntId,
+        address _user
+    ) public view returns (TeamInfo memory) {
         require(_huntId < hunts.length, "Hunt does not exist");
         Hunt storage hunt = hunts[_huntId];
 
         // Get the team ID for this user in this hunt
-        uint256 userTeamId = hunt.participantToTeamId[msg.sender];
-        require(
-            userTeamId > 0 || (userTeamId == 0 && teams[0].members[msg.sender]),
-            "You are not in any team for this hunt"
-        );
+        uint256 userTeamId = hunt.participantToTeamId[_user];
+        require(userTeamId > 0, "You are not in any team for this hunt");
 
         Team storage team = teams[userTeamId];
         require(team.owner != address(0), "Team does not exist");
         require(team.huntId == _huntId, "Team hunt mismatch");
 
-        // Only team members can view their team
-        require(team.members[msg.sender], "Access denied");
-
-        return (
-            userTeamId,
-            team.owner,
-            hunt.maxTeamSize,
-            team.memberCount,
-            team.membersList
-        );
+        return TeamInfo({
+            huntId: _huntId,
+            teamId: userTeamId,
+            owner: team.owner,
+            maxMembers: hunt.maxTeamSize,
+            memberCount: team.memberCount,
+            members: team.membersList
+        });
     }
 
     /* Check if address is member of team */
@@ -412,5 +406,19 @@ contract ETHunt {
     ) public view returns (uint256) {
         require(_huntId < hunts.length, "Hunt does not exist");
         return hunts[_huntId].participantToTeamId[_participant];
+    }
+
+    /* Check if user is not in any team of the hunt */
+    function _checkNotInAnyTeam(uint256 _huntId) internal view {
+        require(_huntId < hunts.length, "Hunt does not exist");
+        require(hunts[_huntId].participantToTeamId[msg.sender] == 0, "Already in another team of the hunt");
+    }
+
+    function getContractAddress() public view returns (address) {
+        return address(this);
+    }
+
+    function getChainId() public view returns (uint256) {
+        return block.chainid;
     }
 }

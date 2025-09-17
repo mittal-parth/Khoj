@@ -2,88 +2,6 @@ export const huntABI = [
   {
     inputs: [
       {
-        internalType: "uint256",
-        name: "_huntId",
-        type: "uint256",
-      },
-      {
-        internalType: "address",
-        name: "winner",
-        type: "address",
-      },
-    ],
-    name: "addWinner",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "string",
-        name: "_name",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "_description",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "startsAt",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "_clues_blobId",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "_answers_blobId",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "_duration",
-        type: "uint256",
-      },
-      {
-        internalType: "bool",
-        name: "_teamsEnabled",
-        type: "bool",
-      },
-      {
-        internalType: "uint256",
-        name: "_maxTeamSize",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "_theme",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "_nftMetadataURI",
-        type: "string",
-      },
-    ],
-    name: "createHunt",
-    outputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
         internalType: "address",
         name: "_nftContractAddress",
         type: "address",
@@ -116,13 +34,13 @@ export const huntABI = [
       {
         indexed: false,
         internalType: "uint256",
-        name: "startsAt",
+        name: "startTime",
         type: "uint256",
       },
       {
         indexed: false,
         internalType: "uint256",
-        name: "duration",
+        name: "endTime",
         type: "uint256",
       },
     ],
@@ -193,6 +111,50 @@ export const huntABI = [
     type: "event",
   },
   {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "teamId",
+        type: "uint256",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "owner",
+        type: "address",
+      },
+      {
+        indexed: false,
+        internalType: "uint256",
+        name: "maxMembers",
+        type: "uint256",
+      },
+    ],
+    name: "TeamCreated",
+    type: "event",
+  },
+  {
+    anonymous: false,
+    inputs: [
+      {
+        indexed: true,
+        internalType: "uint256",
+        name: "teamId",
+        type: "uint256",
+      },
+      {
+        indexed: true,
+        internalType: "address",
+        name: "member",
+        type: "address",
+      },
+    ],
+    name: "TeamJoined",
+    type: "event",
+  },
+  {
     inputs: [
       {
         internalType: "uint256",
@@ -201,15 +163,92 @@ export const huntABI = [
       },
       {
         internalType: "address",
-        name: "_recipient",
+        name: "winner",
         type: "address",
       },
     ],
-    name: "registerForHunt",
+    name: "addWinner",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "string",
+        name: "_name",
+        type: "string",
+      },
+      {
+        internalType: "string",
+        name: "_description",
+        type: "string",
+      },
+      {
+        internalType: "uint256",
+        name: "_startTime",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "_endTime",
+        type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "_clues_blobId",
+        type: "string",
+      },
+      {
+        internalType: "string",
+        name: "_answers_blobId",
+        type: "string",
+      },
+      {
+        internalType: "bool",
+        name: "_teamsEnabled",
+        type: "bool",
+      },
+      {
+        internalType: "uint256",
+        name: "_maxTeamSize",
+        type: "uint256",
+      },
+      {
+        internalType: "string",
+        name: "_theme",
+        type: "string",
+      },
+      {
+        internalType: "string",
+        name: "_nftMetadataURI",
+        type: "string",
+      },
+    ],
+    name: "createHunt",
     outputs: [
       {
         internalType: "uint256",
         name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_huntId",
+        type: "uint256",
+      },
+    ],
+    name: "createTeam",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "teamId",
         type: "uint256",
       },
     ],
@@ -239,7 +278,7 @@ export const huntABI = [
           },
           {
             internalType: "uint256",
-            name: "duration",
+            name: "endTime",
             type: "uint256",
           },
           {
@@ -277,10 +316,41 @@ export const huntABI = [
             name: "nftMetadataURI",
             type: "string",
           },
+          {
+            internalType: "address[]",
+            name: "participants",
+            type: "address[]",
+          },
         ],
-        internalType: "struct ETHunt.HuntInfo[]",
+        internalType: "struct Khoj.HuntInfo[]",
         name: "",
         type: "tuple[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getChainId",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getContractAddress",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
       },
     ],
     stateMutability: "view",
@@ -297,64 +367,268 @@ export const huntABI = [
     name: "getHunt",
     outputs: [
       {
-        internalType: "string",
-        name: "name",
-        type: "string",
+        components: [
+          {
+            internalType: "string",
+            name: "name",
+            type: "string",
+          },
+          {
+            internalType: "string",
+            name: "description",
+            type: "string",
+          },
+          {
+            internalType: "uint256",
+            name: "startTime",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "endTime",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "participantCount",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "clues_blobId",
+            type: "string",
+          },
+          {
+            internalType: "string",
+            name: "answers_blobId",
+            type: "string",
+          },
+          {
+            internalType: "bool",
+            name: "teamsEnabled",
+            type: "bool",
+          },
+          {
+            internalType: "uint256",
+            name: "maxTeamSize",
+            type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "theme",
+            type: "string",
+          },
+          {
+            internalType: "string",
+            name: "nftMetadataURI",
+            type: "string",
+          },
+          {
+            internalType: "address[]",
+            name: "participants",
+            type: "address[]",
+          },
+        ],
+        internalType: "struct Khoj.HuntInfo",
+        name: "",
+        type: "tuple",
       },
-      {
-        internalType: "string",
-        name: "description",
-        type: "string",
-      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
       {
         internalType: "uint256",
-        name: "startedAt",
+        name: "_huntId",
         type: "uint256",
       },
+    ],
+    name: "getHuntTeamCount",
+    outputs: [
       {
         internalType: "uint256",
-        name: "duration",
+        name: "",
         type: "uint256",
       },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
       {
         internalType: "uint256",
-        name: "noOfParticipants",
+        name: "_huntId",
         type: "uint256",
       },
+    ],
+    name: "getHuntTeams",
+    outputs: [
+      {
+        internalType: "uint256[]",
+        name: "",
+        type: "uint256[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_huntId",
+        type: "uint256",
+      },
+    ],
+    name: "getHuntWinners",
+    outputs: [
       {
         internalType: "address[]",
-        name: "winners",
+        name: "",
         type: "address[]",
       },
-      {
-        internalType: "string",
-        name: "clues_blobId",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "answers_blobId",
-        type: "string",
-      },
-      {
-        internalType: "bool",
-        name: "teamsEnabled",
-        type: "bool",
-      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
       {
         internalType: "uint256",
-        name: "maxTeamSize",
+        name: "_huntId",
         type: "uint256",
       },
       {
-        internalType: "string",
-        name: "theme",
-        type: "string",
+        internalType: "address",
+        name: "_participant",
+        type: "address",
+      },
+    ],
+    name: "getParticipantTeamId",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_huntId",
+        type: "uint256",
       },
       {
-        internalType: "string",
-        name: "nftMetadataURI",
-        type: "string",
+        internalType: "address",
+        name: "_user",
+        type: "address",
+      },
+    ],
+    name: "getTeam",
+    outputs: [
+      {
+        components: [
+          {
+            internalType: "uint256",
+            name: "huntId",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "teamId",
+            type: "uint256",
+          },
+          {
+            internalType: "address",
+            name: "owner",
+            type: "address",
+          },
+          {
+            internalType: "uint256",
+            name: "maxMembers",
+            type: "uint256",
+          },
+          {
+            internalType: "uint256",
+            name: "memberCount",
+            type: "uint256",
+          },
+          {
+            internalType: "address[]",
+            name: "members",
+            type: "address[]",
+          },
+        ],
+        internalType: "struct Khoj.TeamInfo",
+        name: "",
+        type: "tuple",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_teamId",
+        type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "_member",
+        type: "address",
+      },
+    ],
+    name: "isTeamMember",
+    outputs: [
+      {
+        internalType: "bool",
+        name: "",
+        type: "bool",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_teamId",
+        type: "uint256",
+      },
+      {
+        internalType: "uint256",
+        name: "_expiry",
+        type: "uint256",
+      },
+      {
+        internalType: "bytes",
+        name: "_signature",
+        type: "bytes",
+      },
+    ],
+    name: "joinWithInvite",
+    outputs: [],
+    stateMutability: "nonpayable",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "nftContract",
+    outputs: [
+      {
+        internalType: "contract KhojNFT",
+        name: "",
+        type: "address",
       },
     ],
     stateMutability: "view",
@@ -373,7 +647,7 @@ export const huntABI = [
         type: "address",
       },
     ],
-    name: "getTokenId",
+    name: "registerForHunt",
     outputs: [
       {
         internalType: "uint256",
@@ -381,69 +655,7 @@ export const huntABI = [
         type: "uint256",
       },
     ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [
-      {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
-    ],
-    name: "hunts",
-    outputs: [
-      {
-        internalType: "string",
-        name: "name",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "description",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "startsAt",
-        type: "uint256",
-      },
-      {
-        internalType: "string",
-        name: "clues_blobId",
-        type: "string",
-      },
-      {
-        internalType: "string",
-        name: "answers_blobId",
-        type: "string",
-      },
-      {
-        internalType: "uint256",
-        name: "duration",
-        type: "uint256",
-      },
-      {
-        internalType: "uint256",
-        name: "noOfParticipants",
-        type: "uint256",
-      },
-    ],
-    stateMutability: "view",
-    type: "function",
-  },
-  {
-    inputs: [],
-    name: "nftContract",
-    outputs: [
-      {
-        internalType: "contract ETHuntNFT",
-        name: "",
-        type: "address",
-      },
-    ],
-    stateMutability: "view",
+    stateMutability: "nonpayable",
     type: "function",
   },
 ] as const;

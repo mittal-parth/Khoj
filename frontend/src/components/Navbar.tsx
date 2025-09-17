@@ -1,8 +1,7 @@
-import { FaEthereum } from "react-icons/fa";
 import { SiPolkadot, SiCoinbase } from "react-icons/si";
 import { Link } from "react-router-dom";
 import WalletWrapper from "@/helpers/WalletWrapper";
-import { SUPPORTED_CHAINS } from "../lib/utils";
+import { SUPPORTED_CHAINS, getChainId } from "../lib/utils";
 import { useState, useEffect } from "react";
 
 // Mapping for user-friendly labels and icons
@@ -38,8 +37,7 @@ export function Navbar() {
     localStorage.setItem("current_network", network);
 
     // Switch the network in the wallet
-    const chainId =
-      SUPPORTED_CHAINS[network as keyof typeof SUPPORTED_CHAINS].id;
+    const chainId = getChainId(network);
     console.log("chainId", chainId);
   };
 
@@ -58,8 +56,11 @@ export function Navbar() {
           {/* Logo/Brand */}
           <div className="flex-shrink-0">
             <Link to="/" className="text-xl font-bold flex items-center gap-2 text-black hover:text-green transition-colors">
-              <FaEthereum className="text-green text-2xl" />
-              Khoj
+              <img 
+                src="/khoj-logo-no-bg.png" 
+                alt="Khoj Logo" 
+                className="h-16 object-contain"
+              />
             </Link>
           </div>
 

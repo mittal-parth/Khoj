@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { huntABI } from "../assets/hunt_abi";
 import { toast } from "sonner";
@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { TransactionButton } from "./TransactionButton";
-import { CONTRACT_ADDRESSES, SUPPORTED_CHAINS } from "../lib/utils";
+import { useNetworkState } from "../lib/utils";
+import { Clue, ClueData, AnswerData, IPFSResponse } from "../types";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 const IPFS_GATEWAY = import.meta.env.VITE_PUBLIC_IPFS_GATEWAY || "harlequin-fantastic-giraffe-234.mypinata.cloud";
@@ -17,30 +18,6 @@ function isValidHexAddress(address: string): address is `0x${string}` {
   return /^0x[0-9a-fA-F]{40}$/.test(address);
 }
 
-interface Clue {
-  id: number;
-  lat: number;
-  long: number;
-  description: string;
-  answer: string;
-}
-
-interface ClueData {
-  id: number;
-  description: string;
-}
-
-interface AnswerData {
-  id: number;
-  answer: string;
-  lat: number;
-  long: number;
-}
-
-interface IPFSResponse {
-  clues_blobId: string;
-  answers_blobId: string;
-}
 
 export function Create() {
   const account = useActiveAccount();
@@ -48,13 +25,20 @@ export function Create() {
 
   const [huntName, setHuntName] = useState("");
   const [description, setDescription] = useState("");
-  const [startDate, setStartDate] = useState(() => {
-    // Set default start date to tomorrow
+  const [startDateTime, setStartDateTime] = useState(() => {
+    // Set default start datetime to tomorrow at 12:00
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split('T')[0];
+    tomorrow.setHours(12, 0, 0, 0);
+    return tomorrow.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
   });
-  const [duration, setDuration] = useState("");
+  const [endDateTime, setEndDateTime] = useState(() => {
+    // Set default end datetime to day after tomorrow at 12:00
+    const dayAfterTomorrow = new Date();
+    dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+    dayAfterTomorrow.setHours(12, 0, 0, 0);
+    return dayAfterTomorrow.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:MM
+  });
   const [clues, setClues] = useState<Clue[]>([]);
   const [currentClue, setCurrentClue] = useState<Partial<Clue>>({
     id: 1,
@@ -79,22 +63,26 @@ export function Create() {
   // New state variables for previously hardcoded fields
   const [teamsEnabled, setTeamsEnabled] = useState(false);
   const [maxTeamSize, setMaxTeamSize] = useState("1");
-  const [theme, setTheme] = useState("general");
+  const [theme, setTheme] = useState("");
 
-  // Add this to get current network from localStorage
-  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
-  console.log("Create: Current Network: ", currentNetwork);
-  const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
-    "0x0000000000000000000000000000000000000000";
+  // Use the reactive network state hook
+  const { currentNetwork, contractAddress, chainId } = useNetworkState();
 
-  // Get chain ID for the current network
-  const chainId =
-    SUPPORTED_CHAINS[currentNetwork as keyof typeof SUPPORTED_CHAINS].id;
-  console.log("Create: Chain ID: ", chainId);
+  // Log network info only when component mounts or network changes
+  useEffect(() => {
+    console.log("Create: Current Network: ", currentNetwork);
+    console.log("Create: Chain ID: ", chainId);
+    console.log("Create: Contract Address: ", contractAddress);
+  }, [currentNetwork, chainId, contractAddress]);
 
   if (!isValidHexAddress(contractAddress)) {
     toast.error("Invalid contract address format");
+    return null;
+  }
+
+  // Check if contract address is the zero address (not deployed)
+  if (contractAddress === "0x0000000000000000000000000000000000000000") {
+    toast.error("Contract not deployed - check environment variables");
     return null;
   }
 
@@ -121,11 +109,12 @@ export function Create() {
   };
 
   const getTransactionArgs = () => {
+    // Check if all required fields are filled (without showing toast errors)
     if (
       !huntName ||
       !description ||
-      !startDate ||
-      !duration ||
+      !startDateTime ||
+      !endDateTime ||
       !cluesCID ||
       !answersCID ||
       !nftMetadataCID
@@ -133,23 +122,40 @@ export function Create() {
       return null;
     }
 
-    // Convert date to YYYYMMDD format
-    const formattedDate = startDate.split("-").join("");
-    // Convert duration to seconds
-    const durationInSeconds = parseInt(duration) * 3600; // Convert hours to seconds
+    // Convert datetime-local inputs to Unix timestamps
+    const startTimestamp = Math.floor(new Date(startDateTime).getTime() / 1000);
+    const endTimestamp = Math.floor(new Date(endDateTime).getTime() / 1000);
 
-    return [
+    // Validate parameters (without showing toast errors)
+    if (huntName.length === 0 || description.length === 0) {
+      return null;
+    }
+    
+    if (cluesCID.length === 0 || answersCID.length === 0) {
+      return null;
+    }
+    
+    if (endTimestamp <= startTimestamp) {
+      return null;
+    }
+
+    const args = [
       huntName,
       description,
-      BigInt(formattedDate),
+      startTimestamp,
+      endTimestamp,
       cluesCID,
       answersCID,
-      BigInt(durationInSeconds),
       teamsEnabled, // teamsEnabled
       BigInt(parseInt(maxTeamSize)), // maxTeamSize
       theme, // theme
       `ipfs://${nftMetadataCID}`, // nftMetadataURI
     ];
+
+    console.log("Transaction args:", args);
+    console.log("Start timestamp:", startTimestamp, "End timestamp:", endTimestamp, "Current time:", Math.floor(Date.now() / 1000));
+    
+    return args;
   };
 
   const handleTransactionSuccess = () => {
@@ -157,9 +163,52 @@ export function Create() {
     resetForm();
   };
 
+  const validateForm = () => {
+    if (huntName.trim().length === 0 || description.trim().length === 0) {
+      toast.error("Hunt name and description cannot be empty");
+      return false;
+    }
+    
+    if (cluesCID.length === 0 || answersCID.length === 0) {
+      toast.error("Both CIDs must be provided");
+      return false;
+    }
+
+    if (teamsEnabled && parseInt(maxTeamSize) < 2) {
+      toast.error("Max team size must be at least 2");
+      return false;
+    }
+    
+    // Validate start and end times
+    const startTimestamp = Math.floor(new Date(startDateTime).getTime() / 1000);
+    const endTimestamp = Math.floor(new Date(endDateTime).getTime() / 1000);
+    
+    if (endTimestamp <= startTimestamp) {
+      toast.error("End time must be after start time");
+      return false;
+    }
+
+    if (!nftMetadataCID) {
+      toast.error("Please upload an NFT image first");
+      return false;
+    }
+
+    return true;
+  };
+
   const handleTransactionError = (error: any) => {
     console.error("Error creating hunt:", error);
-    toast.error(error.message || "Failed to create hunt");
+    console.error("Full error object:", JSON.stringify(error, null, 2));
+    
+    // Try to extract more detailed error information
+    if (error?.cause?.data) {
+      console.error("Error data:", error.cause.data);
+    }
+    if (error?.reason) {
+      console.error("Error reason:", error.reason);
+    }
+    
+    toast.error(error.message || error.reason || "Failed to create hunt");
   };
 
   const testBackendHealth = async () => {
@@ -245,8 +294,8 @@ export function Create() {
     try {
       // Create NFT metadata following OpenSea standard
       const metadata = {
-        name: huntName || "ETHunt NFT",
-        description: description || "Participation NFT for ETHunt",
+        name: huntName || "Khoj NFT",
+        description: description || "Participation NFT for Khoj",
         image: `ipfs://${imageCID}`,
         attributes: [
           {
@@ -348,8 +397,18 @@ export function Create() {
   const resetForm = () => {
     setHuntName("");
     setDescription("");
-    setStartDate("");
-    setDuration("");
+    setStartDateTime(() => {
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(12, 0, 0, 0);
+      return tomorrow.toISOString().slice(0, 16);
+    });
+    setEndDateTime(() => {
+      const dayAfterTomorrow = new Date();
+      dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2);
+      dayAfterTomorrow.setHours(12, 0, 0, 0);
+      return dayAfterTomorrow.toISOString().slice(0, 16);
+    });
     setClues([]);
     setCurrentClue({
       id: 1,
@@ -367,7 +426,7 @@ export function Create() {
     setNftMetadataCID("");
     setTeamsEnabled(false);
     setMaxTeamSize("1");
-    setTheme("general");
+    setTheme("");
   };
 
   const transactionArgs = getTransactionArgs();
@@ -411,25 +470,26 @@ export function Create() {
             />
           </div>
 
-          <div>
-            <Label htmlFor="startDate">Start Date</Label>
-            <Input
-              id="startDate"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="startDateTime">Start Date & Time</Label>
+              <Input
+                id="startDateTime"
+                type="datetime-local"
+                value={startDateTime}
+                onChange={(e) => setStartDateTime(e.target.value)}
+              />
+            </div>
 
-          <div>
-            <Label htmlFor="duration">Duration (hours)</Label>
-            <Input
-              id="duration"
-              type="number"
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              placeholder="Enter duration in hours"
-            />
+            <div>
+              <Label htmlFor="endDateTime">End Date & Time</Label>
+              <Input
+                id="endDateTime"
+                type="datetime-local"
+                value={endDateTime}
+                onChange={(e) => setEndDateTime(e.target.value)}
+              />
+            </div>
           </div>
 
           <div>
@@ -438,7 +498,12 @@ export function Create() {
                 id="teamsEnabled"
                 type="checkbox"
                 checked={teamsEnabled}
-                onChange={(e) => setTeamsEnabled(e.target.checked)}
+                onChange={(e) => {
+                  setTeamsEnabled(e.target.checked);
+                  if (!e.target.checked) {
+                    setMaxTeamSize("1");
+                  }
+                }}
                 className="rounded"
               />
               <Label htmlFor="teamsEnabled">Enable Teams</Label>
@@ -448,20 +513,22 @@ export function Create() {
             </p>
           </div>
 
-          <div>
-            <Label htmlFor="maxTeamSize">Max Team Size</Label>
-            <Input
-              id="maxTeamSize"
-              type="number"
-              min="1"
-              value={maxTeamSize}
-              onChange={(e) => setMaxTeamSize(e.target.value)}
-              placeholder="Enter maximum team size"
-            />
-            <p className="text-xs text-gray-500 mt-1">
-              Maximum number of participants per team
-            </p>
-          </div>
+          {teamsEnabled && (
+            <div>
+              <Label htmlFor="maxTeamSize">Max Team Size</Label>
+              <Input
+                id="maxTeamSize"
+                type="number"
+                min="2"
+                value={maxTeamSize}
+                onChange={(e) => setMaxTeamSize(e.target.value)}
+                placeholder="Enter maximum team size"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Maximum number of participants per team
+              </p>
+            </div>
+          )}
 
           <div>
             <Label htmlFor="theme">Theme</Label>
@@ -469,11 +536,8 @@ export function Create() {
               id="theme"
               value={theme}
               onChange={(e) => setTheme(e.target.value)}
-              placeholder="Enter hunt theme (e.g., general, adventure, mystery)"
+              placeholder="Adventure, tech, or a mix of themes. It can be a word or a phrase and will influence the clues"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Theme or category for this hunt
-            </p>
           </div>
 
           <div className="border-t pt-6">
@@ -544,54 +608,15 @@ export function Create() {
           </div>
 
           <div className="border-t pt-6">
-            <h3 className="text-lg font-semibold mb-4">IPFS Configuration</h3>
 
             <div className="space-y-4">
               <div>
-                <Label htmlFor="cluesCID">Clues CID</Label>
-                <Input
-                  id="cluesCID"
-                  value={cluesCID}
-                  onChange={(e) => setCluesCID(e.target.value)}
-                  placeholder="Enter clues CID"
-                />
               </div>
 
               <div>
-                <Label htmlFor="answersCID">Answers CID</Label>
-                <Input
-                  id="answersCID"
-                  value={answersCID}
-                  onChange={(e) => setAnswersCID(e.target.value)}
-                  placeholder="Enter answers CID"
-                />
               </div>
             </div>
           </div>
-
-          {canCreateHunt ? (
-            <TransactionButton
-              contractAddress={contractAddress}
-              abi={huntABI}
-              functionName="createHunt"
-              args={transactionArgs}
-              text="Create Hunt"
-              className="w-full bg-yellow/40 border border-black text-black hover:bg-orange/90 py-2 rounded-md font-medium"
-              onSuccess={handleTransactionSuccess}
-              onError={handleTransactionError}
-            />
-          ) : (
-            <Button
-              disabled
-              className="w-full bg-gray-300 text-gray-500 py-2 rounded-md font-medium"
-            >
-              {!account
-                ? "Connect Wallet to Create Hunt"
-                : !nftMetadataCID
-                ? "Upload NFT image to continue"
-                : "Fill in all fields to create hunt"}
-            </Button>
-          )}
         </div>
 
         <div className="space-y-6">
@@ -621,7 +646,7 @@ export function Create() {
                     description: e.target.value,
                   }))
                 }
-                placeholder="Enter clue description"
+                placeholder="Enter clue description. Clues will be generated using Generative AI based on the theme and the description of the clue."
               />
             </div>
 
@@ -707,11 +732,35 @@ export function Create() {
                 <p className="text-xs text-green-600">
                   Answers CID: {uploadedCIDs.answers_blobId}
                 </p>
-                <p className="text-xs text-amber-600 mt-2">
-                  Please copy these CIDs to the respective fields in the IPFS
-                  Configuration section
-                </p>
               </div>
+            )}
+          </div>
+
+          {/* Create Hunt Button - Moved to right side */}
+          <div className="mt-8">
+            {canCreateHunt ? (
+              <TransactionButton
+                contractAddress={contractAddress}
+                abi={huntABI}
+                functionName="createHunt"
+                args={transactionArgs}
+                text="Create Hunt"
+                className="w-full bg-yellow/40 border border-black text-black hover:bg-orange/90 py-2 rounded-md font-medium"
+                onSuccess={handleTransactionSuccess}
+                onError={handleTransactionError}
+                onClick={validateForm}
+              />
+            ) : (
+              <Button
+                disabled
+                className="w-full bg-gray-300 text-gray-500 py-2 rounded-md font-medium"
+              >
+                {!account
+                  ? "Connect Wallet to Create Hunt"
+                  : !nftMetadataCID
+                  ? "Upload NFT image to continue"
+                  : "Fill in all fields to create hunt"}
+              </Button>
             )}
           </div>
         </div>
