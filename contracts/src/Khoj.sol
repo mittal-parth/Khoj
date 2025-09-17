@@ -95,6 +95,7 @@ contract Khoj {
 
     constructor(address _nftContractAddress) {
         nftContract = KhojNFT(_nftContractAddress);
+        nextTeamId = 1;
     }
 
     /* Functions */
@@ -112,6 +113,15 @@ contract Khoj {
         string memory _theme, // overall theme of the event that will influence the clues
         string memory _nftMetadataURI // IPFS URI for NFT metadata
     ) public returns (uint256) {
+        require(bytes(_name).length > 0, "Name cannot be empty");
+        require(bytes(_description).length > 0, "Description cannot be empty");
+        require(bytes(_clues_blobId).length > 0, "Clues blob ID cannot be empty");
+        require(bytes(_answers_blobId).length > 0, "Answers blob ID cannot be empty");
+        require(bytes(_nftMetadataURI).length > 0, "NFT metadata URI cannot be empty");
+        require(_endTime > _startTime, "End time cannot be before start time");
+        if (_teamsEnabled) {
+            require(_maxTeamSize > 1, "Invalid team size configuration");
+        }
         hunts.push();
 
         Hunt storage newHunt = hunts[hunts.length - 1];
@@ -162,10 +172,12 @@ contract Khoj {
 
     /* Create a new team for a specific hunt */
     function createTeam(uint256 _huntId) public returns (uint256 teamId) {
-        require(_huntId < hunts.length, "Hunt does not exist");
+        // 1. Check if user is not in any team of the hunt
+        _checkNotInAnyTeam(_huntId);
+
+        // 2. Check if teams are enabled for this hunt
         Hunt storage hunt = hunts[_huntId];
         require(hunt.teamsEnabled, "Teams disabled for this hunt");
-        require(hunt.maxTeamSize > 0, "Invalid team size configuration");
 
         teamId = nextTeamId;
         nextTeamId++;
@@ -244,27 +256,27 @@ contract Khoj {
         // 2. Verify team exists
         require(_teamId < nextTeamId, "Team does not exist");
         Team storage team = teams[_teamId];
-        // address(0) is 0x0000...0000 - default value for non-existent mapping entries
-        // If team wasn't created, owner would be address(0)
-        require(team.owner != address(0), "Team does not exist");
 
         // 3. Verify not already in team
         require(!team.members[msg.sender], "Already in team");
 
-        // 4. Get hunt to check team size limit
+        // Get hunt
         uint256 huntId = team.huntId;
         Hunt storage hunt = hunts[huntId];
 
-        // Verify team not full
+        // 4. User should not be in any other team of the hunt
+        _checkNotInAnyTeam(huntId);
+
+        // 5. Verify team not full
         require(team.memberCount < hunt.maxTeamSize, "Team full");
 
-        // 5. Verify signature
+        // 6. Verify signature
         require(
             verifyInviteSignature(_teamId, _expiry, _signature, team.owner),
             "Invalid signature"
         );
 
-        // 6. Add member
+        // 7. Add member
         team.members[msg.sender] = true;
         team.memberCount++;
         team.membersList.push(msg.sender);
@@ -306,6 +318,12 @@ contract Khoj {
         hunt.winners.push(winner);
     }
 
+    /* Get winners of a hunt */
+    function getHuntWinners(uint256 _huntId) public view returns (address[] memory) {
+        require(_huntId < hunts.length, "Hunt does not exist");
+        return hunts[_huntId].winners;
+    }
+
     /* Get all hunts */
     function getAllHunts() public view returns (HuntInfo[] memory) {
         uint256 length = hunts.length;
@@ -334,24 +352,19 @@ contract Khoj {
 
     /* Get team information for a user in a specific hunt */
     function getTeam(
-        uint256 _huntId
+        uint256 _huntId,
+        address _user
     ) public view returns (TeamInfo memory) {
         require(_huntId < hunts.length, "Hunt does not exist");
         Hunt storage hunt = hunts[_huntId];
 
         // Get the team ID for this user in this hunt
-        uint256 userTeamId = hunt.participantToTeamId[msg.sender];
-        require(
-            userTeamId > 0 || (userTeamId == 0 && teams[0].members[msg.sender]),
-            "You are not in any team for this hunt"
-        );
+        uint256 userTeamId = hunt.participantToTeamId[_user];
+        require(userTeamId > 0, "You are not in any team for this hunt");
 
         Team storage team = teams[userTeamId];
         require(team.owner != address(0), "Team does not exist");
         require(team.huntId == _huntId, "Team hunt mismatch");
-
-        // Only team members can view their team
-        require(team.members[msg.sender], "Access denied");
 
         return TeamInfo({
             huntId: _huntId,
@@ -393,5 +406,19 @@ contract Khoj {
     ) public view returns (uint256) {
         require(_huntId < hunts.length, "Hunt does not exist");
         return hunts[_huntId].participantToTeamId[_participant];
+    }
+
+    /* Check if user is not in any team of the hunt */
+    function _checkNotInAnyTeam(uint256 _huntId) internal view {
+        require(_huntId < hunts.length, "Hunt does not exist");
+        require(hunts[_huntId].participantToTeamId[msg.sender] == 0, "Already in another team of the hunt");
+    }
+
+    function getContractAddress() public view returns (address) {
+        return address(this);
+    }
+
+    function getChainId() public view returns (uint256) {
+        return block.chainid;
     }
 }

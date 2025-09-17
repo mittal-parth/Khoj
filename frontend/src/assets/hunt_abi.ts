@@ -331,6 +331,32 @@ export const huntABI = [
     type: "function",
   },
   {
+    inputs: [],
+    name: "getChainId",
+    outputs: [
+      {
+        internalType: "uint256",
+        name: "",
+        type: "uint256",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [],
+    name: "getContractAddress",
+    outputs: [
+      {
+        internalType: "address",
+        name: "",
+        type: "address",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       {
         internalType: "uint256",
@@ -456,6 +482,25 @@ export const huntABI = [
         name: "_huntId",
         type: "uint256",
       },
+    ],
+    name: "getHuntWinners",
+    outputs: [
+      {
+        internalType: "address[]",
+        name: "",
+        type: "address[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [
+      {
+        internalType: "uint256",
+        name: "_huntId",
+        type: "uint256",
+      },
       {
         internalType: "address",
         name: "_participant",
@@ -479,6 +524,11 @@ export const huntABI = [
         internalType: "uint256",
         name: "_huntId",
         type: "uint256",
+      },
+      {
+        internalType: "address",
+        name: "_user",
+        type: "address",
       },
     ],
     name: "getTeam",
