@@ -1,7 +1,7 @@
 import { SiPolkadot, SiCoinbase } from "react-icons/si";
 import { Link } from "react-router-dom";
 import WalletWrapper from "@/helpers/WalletWrapper";
-import { SUPPORTED_CHAINS } from "../lib/utils";
+import { SUPPORTED_CHAINS, getChainId } from "../lib/utils";
 import { useState, useEffect } from "react";
 
 // Mapping for user-friendly labels and icons
@@ -37,8 +37,7 @@ export function Navbar() {
     localStorage.setItem("current_network", network);
 
     // Switch the network in the wallet
-    const chainId =
-      SUPPORTED_CHAINS[network as keyof typeof SUPPORTED_CHAINS].id;
+    const chainId = getChainId(network);
     console.log("chainId", chainId);
   };
 
