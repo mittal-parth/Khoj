@@ -1,0 +1,24 @@
+{
+  "name": "khoj-contracts",
+  "version": "1.0.0",
+  "description": "Khoj smart contracts with comprehensive test suite",
+  "main": "index.js",
+  "scripts": {
+    "test": "hardhat test",
+    "compile": "hardhat compile",
+    "deploy": "hardhat run scripts/deploy.js"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "^4.9.6",
+    "hardhat": "^2.17.0"
+  },
+  "keywords": [
+    "solidity",
+    "ethereum",
+    "smart-contracts",
+    "testing"
+  ],
+  "author": "",
+  "license": "MIT"
+}

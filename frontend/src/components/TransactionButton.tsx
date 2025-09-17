@@ -2,20 +2,10 @@ import { useState } from "react";
 import { useActiveAccount, useSendTransaction } from "thirdweb/react";
 import { prepareContractCall } from "thirdweb";
 import { client } from "../lib/client";
-import { paseoAssetHub } from "../lib/chains";
+import { baseSepolia } from "../lib/chains";
 import { Button } from "./ui/button";
+import { TransactionButtonProps } from "../types";
 
-interface TransactionButtonProps {
-  contractAddress: string;
-  abi: any;
-  functionName: string;
-  args: any[];
-  text: string;
-  className?: string;
-  disabled?: boolean;
-  onSuccess?: (data: any) => void;
-  onError?: (error: any) => void;
-}
 
 export function TransactionButton({
   contractAddress,
@@ -27,6 +17,7 @@ export function TransactionButton({
   disabled,
   onSuccess,
   onError,
+  onClick,
 }: TransactionButtonProps) {
   const account = useActiveAccount();
   const { mutate: sendTransaction, isPending } = useSendTransaction();
@@ -38,6 +29,11 @@ export function TransactionButton({
       return;
     }
 
+    // Call the onClick handler for validation
+    if (onClick && onClick() === false) {
+      return; // Stop if validation fails
+    }
+
     setIsLoading(true);
 
     try {
@@ -45,7 +41,7 @@ export function TransactionButton({
         contract: {
           address: contractAddress as `0x${string}`,
           abi,
-          chain: paseoAssetHub,
+          chain: baseSepolia,
           client,
         },
         method: functionName,

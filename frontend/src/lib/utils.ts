@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { defineChain } from "viem";
-// import { baseSepolia } from "wagmi/chains";
+import { baseSepolia } from "wagmi/chains";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -37,6 +37,6 @@ export const paseoAssetHub = defineChain({
 
 export const SUPPORTED_CHAINS = {
   // moonbeam: moonbaseAlpha,
-  // base: baseSepolia,
+  base: baseSepolia,
   assetHub: paseoAssetHub,
 };
