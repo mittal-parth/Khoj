@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useActiveAccount, useSendTransaction } from "thirdweb/react";
 import { prepareContractCall } from "thirdweb";
 import { client } from "../lib/client";
-import { baseSepolia } from "../lib/chains";
+import { useNetworkState } from "../lib/utils";
 import { Button } from "./ui/button";
 import { TransactionButtonProps } from "../types";
 
@@ -22,6 +22,9 @@ export function TransactionButton({
   const account = useActiveAccount();
   const { mutate: sendTransaction, isPending } = useSendTransaction();
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Get current chain from reactive network state
+  const { currentChain } = useNetworkState();
 
   const handleTransaction = async () => {
     if (!account) {
@@ -41,7 +44,7 @@ export function TransactionButton({
         contract: {
           address: contractAddress as `0x${string}`,
           abi,
-          chain: baseSepolia,
+          chain: currentChain,
           client,
         },
         method: functionName,

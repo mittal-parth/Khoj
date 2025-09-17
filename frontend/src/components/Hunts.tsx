@@ -12,9 +12,8 @@ import { TransactionButton } from "./TransactionButton";
 import { Button } from "./ui/button.tsx";
 import { Loader } from "./ui/loader";
 import { useState, useEffect, useMemo } from "react";
-import { SUPPORTED_CHAINS, CONTRACT_ADDRESSES } from "../lib/utils";
+import { useNetworkState } from "../lib/utils";
 import { client } from "../lib/client";
-import { paseoAssetHub, baseSepolia } from "../lib/chains";
 import { Hunt, bgColorClasses, textColorClasses, bgColors } from "../types";
 import { buttonStyles } from "../lib/styles.ts";
 
@@ -52,14 +51,8 @@ export function Hunts() {
   // Feature flag for hunt filtering - controlled by environment variable
   const enableHuntFiltering = import.meta.env.VITE_ENABLE_HUNT_FILTERING === 'true';
 
-  // Add this to get current network from localStorage
-  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
-  const rawContractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
-    "0x0000000000000000000000000000000000000000";
-
-  // Get the appropriate chain based on current network
-  const currentChain = currentNetwork === "base" ? baseSepolia : paseoAssetHub;
+  // Use the reactive network state hook
+  const { currentNetwork, contractAddress: rawContractAddress, chainId, currentChain } = useNetworkState();
 
   // Memoize the contract instance to prevent recreation on every render
   const contract = useMemo(() => {
@@ -160,11 +153,10 @@ export function Hunts() {
   }
 
   //get the token getTokenId
-  const chainId =
-    SUPPORTED_CHAINS[currentNetwork as keyof typeof SUPPORTED_CHAINS].id;
+  // chainId is now provided by useNetworkState hook
 
   console.log("Hunts: chainId", chainId);
-  console.log("Hunts: contractAddress", contractAddress);
+  console.log("Hunts: contractAddress", rawContractAddress);
   console.log("NFT Contract Address:", nftContractAddress);
 
 

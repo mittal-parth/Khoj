@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { TransactionButton } from "./TransactionButton";
-import { CONTRACT_ADDRESSES, SUPPORTED_CHAINS } from "../lib/utils";
+import { useNetworkState } from "../lib/utils";
 import { Clue, ClueData, AnswerData, IPFSResponse } from "../types";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
@@ -65,22 +65,14 @@ export function Create() {
   const [maxTeamSize, setMaxTeamSize] = useState("1");
   const [theme, setTheme] = useState("");
 
-  // Add this to get current network from localStorage
-  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
-  const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
-    "0x0000000000000000000000000000000000000000";
-
-  // Get chain ID for the current network
-  const chainId =
-    SUPPORTED_CHAINS[currentNetwork as keyof typeof SUPPORTED_CHAINS].id;
+  // Use the reactive network state hook
+  const { currentNetwork, contractAddress, chainId } = useNetworkState();
 
   // Log network info only when component mounts or network changes
   useEffect(() => {
     console.log("Create: Current Network: ", currentNetwork);
     console.log("Create: Chain ID: ", chainId);
     console.log("Create: Contract Address: ", contractAddress);
-    console.log("Create: All Contract Addresses: ", CONTRACT_ADDRESSES);
   }, [currentNetwork, chainId, contractAddress]);
 
   if (!isValidHexAddress(contractAddress)) {

@@ -17,10 +17,9 @@ import { HuddleRoom } from "./HuddleRoom";
 import { useReadContract, useActiveAccount } from "thirdweb/react";
 import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi";
-import { CONTRACT_ADDRESSES } from "../lib/utils";
+import { useNetworkState } from "../lib/utils";
 import { toast } from "sonner";
 import { client } from "../lib/client";
-import { baseSepolia, paseoAssetHub } from "../lib/chains";
 import { Hunt } from "../types";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
@@ -44,16 +43,13 @@ export function Clue() {
   >("idle");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
 
-  // Add this to get current network from localStorage
-  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
-  const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
-    "0x0000000000000000000000000000000000000000";
+  // Use the reactive network state hook
+  const { contractAddress, currentChain } = useNetworkState();
 
   // Create thirdweb contract instance
   const contract = getContract({
     client,
-    chain: currentNetwork === "base" ? baseSepolia : paseoAssetHub,
+    chain: currentChain,
     address: contractAddress as `0x${string}`,
     abi: huntABI,
   });

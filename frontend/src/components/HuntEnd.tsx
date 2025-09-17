@@ -5,10 +5,9 @@ import { useEffect, useState } from "react";
 import { useReadContract } from "thirdweb/react";
 import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi";
-import { CONTRACT_ADDRESSES } from "../lib/utils";
+import { useNetworkState } from "../lib/utils";
 import { toast } from "sonner";
 import { client } from "../lib/client";
-import { baseSepolia, paseoAssetHub } from "../lib/chains";
 import { Hunt } from "../types";
 
 // Type guard to ensure address is a valid hex string
@@ -20,16 +19,13 @@ export function HuntEnd() {
   const { huntId } = useParams();
   const [progress, setProgress] = useState(0);
 
-  // Get current network and contract address
-  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
-  const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
-    "0x0000000000000000000000000000000000000000";
+  // Use the reactive network state hook
+  const { contractAddress, currentChain } = useNetworkState();
 
   // Create thirdweb contract instance
   const contract = getContract({
     client,
-    chain: currentNetwork === "base" ? baseSepolia : paseoAssetHub,
+    chain: currentChain,
     address: contractAddress as `0x${string}`,
     abi: huntABI,
   });

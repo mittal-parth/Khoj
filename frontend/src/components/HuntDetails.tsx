@@ -14,10 +14,9 @@ import { IoIosPeople } from "react-icons/io";
 import { HuddleRoom } from "./HuddleRoom";
 import { useReadContract, useActiveAccount, useSendTransaction } from "thirdweb/react";
 import { getContract, prepareContractCall, readContract } from "thirdweb";
-import { CONTRACT_ADDRESSES } from "../lib/utils";
+import { useNetworkState } from "../lib/utils";
 import { toast } from "sonner";
 import { client } from "../lib/client";
-import { baseSepolia, paseoAssetHub } from "../lib/chains";
 import QRCode from "react-qr-code";
 import QrScanner from "qr-scanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
@@ -75,11 +74,8 @@ export function HuntDetails() {
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
 
-  // Add this to get current network from localStorage
-  const currentNetwork = localStorage.getItem("current_network") || "assetHub";
-  const contractAddress =
-    CONTRACT_ADDRESSES[currentNetwork as keyof typeof CONTRACT_ADDRESSES] ??
-    "0x0000000000000000000000000000000000000000";
+  // Use the reactive network state hook
+  const { currentNetwork, contractAddress, chainId, currentChain } = useNetworkState();
 
   if (!isValidHexAddress(contractAddress)) {
     toast.error("Invalid contract address format");
@@ -88,7 +84,7 @@ export function HuntDetails() {
 
   const contract = getContract({
     client,
-    chain: currentNetwork === "base" ? baseSepolia : paseoAssetHub,
+    chain: currentChain,
     address: contractAddress as `0x${string}`,
     abi: huntABI,
   });
@@ -140,7 +136,7 @@ export function HuntDetails() {
       contract: {
         address: contractAddress as `0x${string}`,
         abi: huntABI,
-        chain: currentNetwork === "base" ? baseSepolia : paseoAssetHub,
+        chain: currentChain,
         client,
       },
       method: "joinWithInvite",
@@ -401,7 +397,7 @@ export function HuntDetails() {
         contract: {
           address: contractAddress as `0x${string}`,
           abi: huntABI,
-          chain: currentNetwork === "base" ? baseSepolia : paseoAssetHub,
+          chain: currentChain,
           client,
         },
         method: "createTeam",
@@ -512,7 +508,7 @@ export function HuntDetails() {
       const hash = generateInviteHash(
         teamId,
         expiryTime,
-        currentNetwork == "base" ? baseSepolia.id : paseoAssetHub.id,
+        chainId,
         contractAddress
       );
       
