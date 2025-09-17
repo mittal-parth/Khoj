@@ -65,11 +65,11 @@ export function HuntEnd() {
       "You've successfully completed all the challenges and found the treasure! Please contact the organizers for next steps.",
   };
 
-  const handleClaim = async () => {
-    // Add claim logic here
-    console.log(huntId);
-    console.log("Claiming reward...");
-  };
+  // const handleClaim = async () => {
+  //   // Add claim logic here
+  //   console.log(huntId);
+  //   console.log("Claiming reward...");
+  // };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-green/10 to-white pt-20 px-4 mb-20">

@@ -27,6 +27,7 @@ import { huntABI } from "../assets/hunt_abi.ts";
 import { useGenerateRiddles } from "@/hooks/useGenerateRiddles.ts";
 import { Hunt, Team } from "../types";
 import { buttonStyles } from "../lib/styles.ts";
+import { withRetry, MAX_RETRIES } from "@/utils/retryUtils";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -38,12 +39,10 @@ function isValidHexAddress(address: string): address is `0x${string}` {
 export function HuntDetails() {
   const { huntId } = useParams();
   const navigate = useNavigate();
-  // Team status state
-  const [showTeamInfo, setShowTeamInfo] = useState<boolean>(false);
   
   // Team management state
-  const [teamCode, setTeamCode] = useState<string>(""); // Default team code
-  const [activeTab, setActiveTab] = useState<"create" | "join" | "invite">("create");
+  const [joinTeamCode, setJoinTeamCode] = useState<string>(""); // For joining existing teams
+  const [activeTab, setActiveTab] = useState<"create" | "join">("create");
   const [hasCamera, setHasCamera] = useState(false);
   const [scanResult, setScanResult] = useState<string | null>(null);
   
@@ -51,6 +50,9 @@ export function HuntDetails() {
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
   const [showInviteWarning, setShowInviteWarning] = useState(false);
+  
+  // Join team loading state
+  const [isJoiningTeam, setIsJoiningTeam] = useState(false);
   
   
   // Video reference for QR scanner
@@ -68,6 +70,10 @@ export function HuntDetails() {
   
   // Local loading state for immediate button feedback
   const [isStartingHunt, setIsStartingHunt] = useState(false);
+  
+  // Retry state for decrypt-clues API call
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // Add this to get current network from localStorage
   const currentNetwork = localStorage.getItem("current_network") || "assetHub";
@@ -94,13 +100,15 @@ export function HuntDetails() {
     params: [BigInt(huntId || 0)],
   }) as { data: Hunt | undefined; isLoading: boolean };
 
-  const { data: teamData, error: teamError } = useReadContract({
+  const { data: teamData, error: teamError, refetch: refetchTeamData } = useReadContract({
     contract,
     method: "getTeam",
-    params: [BigInt(huntId || 0)],
-  }) as { data: Team | undefined; error: Error | undefined };
+    params: [BigInt(huntId || 0), userWallet as `0x${string}`],
+    queryOptions: { enabled: !!userWallet }, // Only call when userWallet is available
+  }) as { data: Team | undefined; error: Error | undefined; refetch: () => void };
 
   const joinTeam = async (signature: string, teamId: string, expiry: number) => {
+    setIsJoiningTeam(true);
     try {
       console.log("[joinWithInvite] invoked", {
         teamId,
@@ -154,6 +162,9 @@ export function HuntDetails() {
             result,
           });
           toast.success("Team joined successfully!");
+          // Refetch team data to show updated team info
+          refetchTeamData();
+          setIsJoiningTeam(false);
         },
         onError: (error) => {
           const anyErr = error as any;
@@ -162,16 +173,20 @@ export function HuntDetails() {
           if (anyErr?.data?.message) console.error("[joinWithInvite] data.message:", anyErr.data.message);
           if (anyErr?.shortMessage) console.error("[joinWithInvite] shortMessage:", anyErr.shortMessage);
           toast.error("Failed to join team");
+          setIsJoiningTeam(false);
         }
       });
     } catch (err) {
       console.error("[joinWithInvite] Unexpected error before send", err);
       toast.error("Failed to prepare join transaction");
+      setIsJoiningTeam(false);
     }
   }
 
   const handleHuntStart = async () => {
     setIsStartingHunt(true);
+    setRetryCount(0);
+    setIsRetrying(false);
     
     if (!userWallet) {
       toast.error("Please connect your wallet first");
@@ -185,19 +200,20 @@ export function HuntDetails() {
       return;
     }
 
-    try {
-      // Check if user is registered by looking at the participants array
-      const isRegistered = huntData?.participants?.includes(userWallet) ?? false;
+    // Check if user is registered by looking at the participants array
+    const isRegistered = huntData?.participants?.includes(userWallet) ?? false;
 
-      if (!isRegistered) {
-        toast.error(
-          "You are not eligible for this hunt. Please register or check the requirements."
-        );
-        setIsStartingHunt(false);
-        return;
-      }
+    if (!isRegistered) {
+      toast.error(
+        "You are not eligible for this hunt. Please register or check the requirements."
+      );
+      setIsStartingHunt(false);
+      return;
+    }
 
+    const decryptCluesOperation = async (): Promise<void> => {
       console.log("Hunt ID:", huntId, huntData.clues_blobId, huntData.answers_blobId);
+      
       const headersList = {
         Accept: "*/*",
         "Content-Type": "application/json",
@@ -215,6 +231,13 @@ export function HuntDetails() {
         headers: headersList,
       });
 
+      if (!response.ok) {
+        const errorText = await response.text();
+        const error = new Error(`HTTP ${response.status}: ${errorText}`);
+        (error as any).status = response.status;
+        throw error;
+      }
+
       const data = await response.text();
       const clues = JSON.parse(data);
 
@@ -222,10 +245,26 @@ export function HuntDetails() {
 
       await fetchRiddles(clues, huntId || "0", huntData?.theme || "");
       navigate(`/hunt/${huntId}/clue/1`);
+    };
+
+    try {
+      await withRetry(decryptCluesOperation, {
+        onRetry: (attempt, error) => {
+          console.error(`Decrypt Clues Error (attempt ${attempt}):`, error);
+          setIsRetrying(true);
+          setRetryCount(attempt);
+        }
+      });
+      
+      // Reset retry state on success
+      setRetryCount(0);
+      setIsRetrying(false);
     } catch (error) {
       console.error("Error starting hunt:", error);
       toast.error("Failed to start hunt");
+    } finally {
       setIsStartingHunt(false);
+      setIsRetrying(false);
     }
   };
   
@@ -246,15 +285,17 @@ export function HuntDetails() {
           const scannedCode = result.data;
           if (scannedCode && scannedCode.trim() !== '') {
             const inviteData = decodeBase58Invite(scannedCode);
-            setScanResult(inviteData.teamId);
-            setTeamCode(inviteData.teamId);
-            setInviteCode(inviteData.teamId);
+            setScanResult(scannedCode);
+            setJoinTeamCode(scannedCode);
             scanner.stop();
             setHasCamera(false); // Hide camera after successful scan
             toast.success("QR code scanned successfully!");
 
             // Join team asynchronously
-            joinTeam(inviteData.signature, inviteData.teamId, inviteData.expiry).catch(error => {
+            joinTeam(inviteData.signature, inviteData.teamId, inviteData.expiry).then(() => {
+              // Additional refetch after successful QR join
+              setTimeout(() => refetchTeamData(), 1000);
+            }).catch(error => {
               console.error("Error joining team:", error);
               toast.error("Failed to join team");
             });
@@ -306,18 +347,25 @@ export function HuntDetails() {
     console.log("Team error:", teamError.message);
   }
   
-  // Generate a new team code when the dialog is opened
+  // Check if user is already in a team
+  const isUserInTeam = teamData && teamData.members && teamData.members.includes(userWallet as `0x${string}`);
+  
+  // Reset join team code when switching tabs
   useEffect(() => {
-    if (activeTab === 'create' && teamData?.teamId) {
-      setTeamCode(teamData.teamId.toString());
+    if (activeTab === 'join') {
+      setJoinTeamCode("");
+      setScanResult(null);
     }
-  }, [activeTab, teamData]);
+  }, [activeTab]);
   
 
   // Monitor teamData changes for debugging
   useEffect(() => {
     console.log("🔄 teamData changed:", teamData);
-  }, [teamData]);
+    console.log("Account:", account);
+    console.log("User Wallet:", userWallet);
+    console.log("Team Error:", teamError?.message);
+  }, [teamData, account, userWallet, teamError]);
 
   // Show loading state while hunt data is being fetched
   if (huntLoading) {
@@ -367,6 +415,9 @@ export function HuntDetails() {
           console.log("✅ Transaction successful!");
           toast.success("Team created successfully!");
           
+          // Refetch team data immediately
+          refetchTeamData();
+          
           // The createTeam function returns the teamId directly, but we can't access return values from transactions
           // However, the contract emits a TeamCreated event with the teamId
           // We need to wait for the transaction to be mined and then get the teamId from the event
@@ -375,10 +426,13 @@ export function HuntDetails() {
             // TODO: We can listen for the TeamCreated event instead of using getParticipantTeamId as a fallback
             console.log("⏳ Waiting for transaction to be mined...");
             
-            // Wait a bit for the transaction to be mined
-            setTimeout(async () => {
+            // Wait a bit for the transaction to be mined, then try multiple times if needed
+            let attempts = 0;
+            const maxAttempts = 5;
+            const checkTeamId = async () => {
+              attempts++;
               try {
-                console.log("🔍 Getting teamId after transaction is mined...");
+                console.log(`🔍 Getting teamId after transaction is mined... (attempt ${attempts}/${maxAttempts})`);
                 const teamId = await readContract({
                   contract,
                   method: "getParticipantTeamId",
@@ -389,17 +443,30 @@ export function HuntDetails() {
                 if (teamId && teamId.toString() !== "0") {
                   console.log("✅ Found teamId:", teamId.toString());
                   await generateInviteAfterTeamCreation(teamId.toString());
+                  // Refetch again after invite generation
+                  refetchTeamData();
+                } else if (attempts < maxAttempts) {
+                  console.log(`❌ No teamId found yet, retrying in 2 seconds... (${attempts}/${maxAttempts})`);
+                  setTimeout(checkTeamId, 2000);
                 } else {
-                  console.log("❌ No teamId found for user (teamId is 0 or undefined)");
+                  console.log("❌ No teamId found for user after all attempts");
                   toast.error("Team created but could not generate invite. Please try again.");
                   setIsGeneratingInvite(false);
                 }
               } catch (error) {
                 console.error("❌ Error getting teamId after mining:", error);
-                toast.error("Team created but could not generate invite. Please try again.");
-                setIsGeneratingInvite(false);
+                if (attempts < maxAttempts) {
+                  console.log(`Retrying in 2 seconds... (${attempts}/${maxAttempts})`);
+                  setTimeout(checkTeamId, 2000);
+                } else {
+                  toast.error("Team created but could not generate invite. Please try again.");
+                  setIsGeneratingInvite(false);
+                }
               }
-            }, 3000); // Wait 3 seconds for transaction to be mined
+            };
+            
+            // Start checking after 2 seconds
+            setTimeout(checkTeamId, 2000);
             
           } catch (error) {
             console.error("❌ Error in transaction success handler:", error);
@@ -469,10 +536,6 @@ export function HuntDetails() {
       setInviteCode(encodedInvite);
       setShowInviteWarning(true);
       
-      
-      // Update teamCode for display purposes
-      setTeamCode(teamId);
-      console.log("TeamCode updated to:", teamId);
       console.log("✅ Invite generation completed successfully!");
       
     } catch (error) {
@@ -544,151 +607,15 @@ export function HuntDetails() {
               <div className="mt-6">
                 <h2 className="text-lg font-medium mb-4">Team Management</h2>
                 
-                {/* Conditional rendering based on team data and user actions */}
-                {!teamData || (teamData && teamData.owner === userWallet && !showTeamInfo) ? (
-                  // Show tabs when user is not in a team
-                  <Tabs defaultValue="create" onValueChange={(value) => setActiveTab(value as "create" | "join" | "invite")}>
-                    <TabsList className="grid w-full grid-cols-2 mb-4">
-                      <TabsTrigger value="create">Create</TabsTrigger>
-                      <TabsTrigger value="join">Join Team</TabsTrigger>
-                    </TabsList>
-                  
-                  {/* Create Team Tab */}
-                  {/* <TabsContent value="create" className="mt-4">
-                    <div className="flex flex-col items-center justify-center space-y-4">
-                      <div className="bg-white p-4 rounded-lg border">
-                        <QRCode value={teamCode} size={200} />
-                      </div>
-                      <p className="text-center text-sm">Share this QR code with your teammates to join your team</p>
-                      <p className="text-center font-bold">Team Code: {teamCode}</p>
-                    </div>
-                  </TabsContent> */}
-                  
-                  {/* Join Team Tab */}
-                  <TabsContent value="join" className="mt-4">
-                    <div className="flex flex-col items-center justify-center space-y-4">
-                      <div className="w-full max-w-md">
-                        <div className="mb-4">
-                          <p className="text-sm mb-2">Scan a team QR code or enter a team code below:</p>
-                          <div className="flex space-x-2">
-                            <input
-                              type="text"
-                              value={teamCode}
-                              onChange={(e) => setTeamCode(e.target.value)}
-                              placeholder="Enter team code"
-                              className="flex-1 p-2 border rounded"
-                            />
-                            <Button onClick={() => startScanner()} className="flex items-center space-x-1">
-                              <BsQrCode />
-                              <span>Scan</span>
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        {true && (
-                          <div className={`relative w-full aspect-square mb-4 max-w-[250px] m-auto ${hasCamera ? "" : "hidden"}`}>
-                            <video ref={videoRef} className="w-full h-full object-cover rounded-lg" />
-                            <Button 
-                              onClick={() => {
-                                if (qrScanner) {
-                                  qrScanner.stop();
-                                  setHasCamera(false);
-                                }
-                              }} 
-                              className={`absolute bottom-2 right-2 ${buttonStyles.danger}`}
-                              size="sm"
-                            >
-                              Stop Scanner
-                            </Button>
-                          </div>
-                        )}
-                        
-                        {scanResult && (
-                          <div className="p-3 bg-green-50 border border-green-200 rounded-lg mb-4">
-                            <p className="text-sm text-green-800 font-medium">QR Code scanned successfully!</p>
-                            <p className="text-xs text-green-700 mt-1">Team code: {scanResult}</p>
-                          </div>
-                        )}
-                        
-                        <Button 
-                            className="w-full" 
-                            onClick={async () => {
-                                const inviteData = decodeBase58Invite(teamCode);
-                                await joinTeam(inviteData.signature, inviteData.teamId, inviteData.expiry);
-                              }}
-                            >
-                          Join Team
-                        </Button>
-                      </div>
-                    </div>
-                  </TabsContent>
-                  
-                  {/* Invite Tab */}
-                  <TabsContent value="create" className="mt-4">
-                    <div className="flex flex-col items-center justify-center space-y-4">
-                      {!inviteCode ? (
-                        <div className="w-full max-w-md">
-                          <p className="text-sm mb-4">Generate a invite code for your team. This code will expire after the hunt starts.</p>
-                          <Button 
-                            className="w-full" 
-                            onClick={generateMultiUseInvite}
-                            disabled={isGeneratingInvite}
-                          >
-                            {isGeneratingInvite ? "Generating..." : "Generate Invite Code"}
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="w-full max-w-md">
-                          {showInviteWarning && (
-                            <Alert variant="warning" className="mb-4">
-                              <BsExclamationTriangle className="h-4 w-4" />
-                              <AlertTitle>Important!</AlertTitle>
-                              <AlertDescription>
-                                This invite code will only be shown once. Please take a screenshot or save it now.
-                              </AlertDescription>
-                            </Alert>
-                          )}
-                          
-                          <div className="bg-white p-4 rounded-lg border mb-4">
-                            <QRCode value={inviteCode} size={200} className="w-full" />
-                          </div>
-                          
-                          <div className="flex items-center space-x-2 mb-4">
-                            <input
-                              type="text"
-                              value={inviteCode}
-                              readOnly
-                              className="flex-1 p-2 border rounded bg-gray-50"
-                            />
-                            <Button 
-                              onClick={() => {
-                                navigator.clipboard.writeText(inviteCode);
-                                toast.success("Invite code copied to clipboard");
-                              }}
-                              className="flex items-center space-x-1"
-                            >
-                              <BsLink45Deg />
-                              <span>Copy</span>
-                            </Button>
-                          </div>
-                          
-                          <div className="text-xs text-gray-500 text-center">
-                            This invite code is saved and can be reused
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </TabsContent>
-                </Tabs>
-                ) : (
-                  // Show team data when user is in a team and hasn't created it themselves OR when showTeamInfo is true
+                {/* Show team info if user is already in a team */}
+                {isUserInTeam ? (
                   <div className="border-t-2 border-gray-200 pt-4">
                     <h3 className="text-lg font-semibold mb-4">Your Team</h3>
                     <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Members:</span>
-                          <span className="font-medium">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxMembers?.toString() || '0'}</span>
-                        </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Members:</span>
+                        <span className="font-medium">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxMembers?.toString() || '0'}</span>
+                      </div>
                       <div className="flex justify-between items-center">
                         <span className="text-gray-600">Team Owner:</span>
                         <span className="font-medium text-sm">{teamData?.owner ? `${teamData.owner.slice(0, 6)}...${teamData.owner.slice(-4)}` : 'Unknown'}</span>
@@ -698,11 +625,11 @@ export function HuntDetails() {
                         <div className="flex gap-3 flex-wrap">
                           {(teamData?.members || []).map((member, index) => (
                             <div key={index} className="flex flex-col items-center gap-3">
-                                <img 
-                                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${member}`}
-                                  alt="Member Avatar"
-                                  className={`w-12 h-12 rounded-full p-1 bg-slate-200 ${member === teamData?.owner ? "border-2 border-slate-800" : ""}`}
-                                />
+                              <img 
+                                src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${member}`}
+                                alt="Member Avatar"
+                                className={`w-12 h-12 rounded-full p-1 bg-slate-200 ${member === teamData?.owner ? "border-2 border-slate-800" : ""}`}
+                              />
                               <div className="flex-1">
                                 <span className="text-xs font-medium text-gray-500">
                                   {member ? `${member.slice(0, 4)}...${member.slice(-4)}` : 'Unknown Member'}
@@ -715,8 +642,164 @@ export function HuntDetails() {
                           )}
                         </div>
                       </div>
+                      
+                      {/* Show invite QR code if user is the team owner and has generated one */}
+                      {teamData?.owner === userWallet && inviteCode && (
+                        <div className="mt-6 border-t pt-4">
+                          <h4 className="text-md font-medium mb-3">Team Invite Code</h4>
+                          <div className="flex flex-col items-center space-y-4">
+                            <div className="bg-white p-4 rounded-lg border">
+                              <QRCode value={inviteCode} size={150} />
+                            </div>
+                            <div className="flex items-center space-x-2 w-full max-w-md">
+                              <input
+                                type="text"
+                                value={inviteCode}
+                                readOnly
+                                className="flex-1 p-2 border rounded bg-gray-50 text-xs"
+                              />
+                              <Button 
+                                onClick={() => {
+                                  navigator.clipboard.writeText(inviteCode);
+                                  toast.success("Invite code copied to clipboard");
+                                }}
+                                className="flex items-center space-x-1"
+                                size="sm"
+                              >
+                                <BsLink45Deg />
+                                <span>Copy</span>
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
+                ) : (
+                  // Show create/join options when user is not in a team
+                  <Tabs defaultValue="create" onValueChange={(value) => setActiveTab(value as "create" | "join")}>
+                    <TabsList className="grid w-full grid-cols-2 mb-4">
+                      <TabsTrigger value="create">Create Team</TabsTrigger>
+                      <TabsTrigger value="join">Join Team</TabsTrigger>
+                    </TabsList>
+                  
+                    {/* Create Team Tab */}
+                    <TabsContent value="create" className="mt-4">
+                      <div className="flex flex-col items-center justify-center space-y-4">
+                        {!inviteCode ? (
+                          <div className="w-full max-w-md">
+                            <p className="text-sm mb-4">Create a new team and generate an invite code for your teammates.</p>
+                            <Button 
+                              className="w-full" 
+                              onClick={generateMultiUseInvite}
+                              disabled={isGeneratingInvite}
+                            >
+                              {isGeneratingInvite ? "Creating Team..." : "Create Team & Generate Invite"}
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="w-full max-w-md">
+                            {showInviteWarning && (
+                              <Alert variant="warning" className="mb-4">
+                                <BsExclamationTriangle className="h-4 w-4" />
+                                <AlertTitle>Important!</AlertTitle>
+                                <AlertDescription>
+                                  This invite code will only be shown once. Please take a screenshot or save it now.
+                                </AlertDescription>
+                              </Alert>
+                            )}
+                            
+                            <div className="bg-white p-4 rounded-lg border mb-4">
+                              <QRCode value={inviteCode} size={200} className="w-full" />
+                            </div>
+                            
+                            <div className="flex items-center space-x-2 mb-4">
+                              <input
+                                type="text"
+                                value={inviteCode}
+                                readOnly
+                                className="flex-1 p-2 border rounded bg-gray-50"
+                              />
+                              <Button 
+                                onClick={() => {
+                                  navigator.clipboard.writeText(inviteCode);
+                                  toast.success("Invite code copied to clipboard");
+                                }}
+                                className="flex items-center space-x-1"
+                              >
+                                <BsLink45Deg />
+                                <span>Copy</span>
+                              </Button>
+                            </div>
+                            
+                            <div className="text-xs text-gray-500 text-center">
+                              Share this code with your teammates to join your team
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </TabsContent>
+                    
+                    {/* Join Team Tab */}
+                    <TabsContent value="join" className="mt-4">
+                      <div className="flex flex-col items-center justify-center space-y-4">
+                        <div className="w-full max-w-md">
+                          <div className="mb-4">
+                            <p className="text-sm mb-2">Scan a team QR code or enter an invite code below:</p>
+                            <div className="flex space-x-2">
+                              <input
+                                type="text"
+                                value={joinTeamCode}
+                                onChange={(e) => setJoinTeamCode(e.target.value)}
+                                placeholder="Enter invite code"
+                                className="flex-1 p-2 border rounded"
+                              />
+                              <Button onClick={() => startScanner()} className="flex items-center space-x-1">
+                                <BsQrCode />
+                                <span>Scan</span>
+                              </Button>
+                            </div>
+                          </div>
+                          
+                          {true && (
+                            <div className={`relative w-full aspect-square mb-4 max-w-[250px] m-auto ${hasCamera ? "" : "hidden"}`}>
+                              <video ref={videoRef} className="w-full h-full object-cover rounded-lg" />
+                              <Button 
+                                onClick={() => {
+                                  if (qrScanner) {
+                                    qrScanner.stop();
+                                    setHasCamera(false);
+                                  }
+                                }} 
+                                className={`absolute bottom-2 right-2 ${buttonStyles.danger}`}
+                                size="sm"
+                              >
+                                Stop Scanner
+                              </Button>
+                            </div>
+                          )}
+                          
+                          {scanResult && (
+                            <div className="p-3 bg-green-50 border border-green-200 rounded-lg mb-4">
+                              <p className="text-sm text-green-800 font-medium">QR Code scanned successfully!</p>
+                              <p className="text-xs text-green-700 mt-1">Invite code: {scanResult}</p>
+                            </div>
+                          )}
+                          
+                          <Button 
+                            className="w-full" 
+                            onClick={async () => {
+                              const inviteData = decodeBase58Invite(joinTeamCode);
+                              await joinTeam(inviteData.signature, inviteData.teamId, inviteData.expiry);
+                            }}
+                            disabled={!joinTeamCode || isJoiningTeam}
+                          >
+                            {isJoiningTeam ? "Joining Team..." : "Join Team"}
+                          </Button>
+                        </div>
+                      </div>
+                    </TabsContent>
+                  </Tabs>
                 )}
               </div>
               )}
@@ -725,19 +808,6 @@ export function HuntDetails() {
           <div className="mt-8 border-t pt-6 p-6 flex flex-col w-full">
             <div className="flex items-center justify-between mb-4"></div>
             
-            {/* Toggle button for team owner only - only show if teams are enabled */}
-            {huntData?.teamsEnabled && teamData && teamData.owner === userWallet && (
-              <Button
-                type="button"
-                size="lg"
-                onClick={() => setShowTeamInfo(!showTeamInfo)}
-                className={cn(
-                  `w-full text-white mb-4 ${buttonStyles.team}`
-                )}
-              >
-                {showTeamInfo ? "Back to Create/Join" : "View Team Info"}
-              </Button>
-            )}
             
             {/* Start Hunt button - always visible */}
             <Button
@@ -749,7 +819,12 @@ export function HuntDetails() {
                 `w-full text-white ${buttonStyles.primary}`
               )}
             >
-              {(isStartingHunt || isGeneratingRiddles) ? "Starting Hunt..." : "Start Hunt"}
+              {isRetrying 
+                ? `Retrying... (${retryCount}/${MAX_RETRIES})`
+                : (isStartingHunt || isGeneratingRiddles) 
+                  ? "Starting Hunt..." 
+                  : "Start Hunt"
+              }
             </Button>
           </div>
         </div>
