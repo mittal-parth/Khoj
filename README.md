@@ -215,6 +215,24 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 Built with ❤️ by Team Khoj
 
+## 📝 Creating a Hunt via UI
+
+You can create new hunts by going to `/create-hunt` and filling the form.
+
+### Steps
+
+1. Choose the right network (currently supports Base and Polkadot Moonbeam)
+2. Enter the hunt details
+3. Check the "Teams Enabled" checkbox if you want to enable teams
+3.1 If teams are enabled, enter the max team size
+4. Add clue by adding description and answer and coordinates of the clue
+5. Once all clues are added, add NFT Image for the hunt
+6. Click on "Create Hunt" button
+
+
+
+
+
 ## 📝 Creating a Hunt via Remix
 
 You can create a new hunt directly on-chain using the [Remix IDE](https://remix.ethereum.org/) and the `Khoj.sol` smart contract. This is useful for admins or sponsors who want to launch a new treasure hunt with custom parameters.
