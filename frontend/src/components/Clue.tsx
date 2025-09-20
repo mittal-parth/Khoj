@@ -23,6 +23,7 @@ import { client } from "../lib/client";
 import { Hunt } from "../types";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
+const MAX_ATTEMPTS = parseInt(import.meta.env.VITE_MAX_CLUE_ATTEMPTS || "6", 10);
 
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
@@ -37,7 +38,7 @@ export function Clue() {
     longitude: number;
   } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [attempts, setAttempts] = useState(3);
+  const [attempts, setAttempts] = useState(MAX_ATTEMPTS);
   const [verificationState, setVerificationState] = useState<
     "idle" | "verifying" | "success" | "error"
   >("idle");
@@ -331,7 +332,7 @@ export function Clue() {
                 {location ? "Location detected" : "Detecting location..."}
               </div>
               <div className="text-gray-600">
-                Attempts remaining: {attempts}/3
+                Attempts remaining: {attempts}/{MAX_ATTEMPTS}
               </div>
             </div>
 
