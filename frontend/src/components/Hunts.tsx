@@ -117,11 +117,15 @@ export function Hunts() {
 
       try {
         // Check registration status by looking at the participants array
-        processedHunts.forEach((hunt, processedIndex) => {
-          // Check if the current user's address is in the participants array
-          // If participants array doesn't exist, fall back to false
-          const isRegistered = hunt.participants?.includes(address) ?? false;
-          registrationStatus[processedIndex] = isRegistered;
+        processedHunts.forEach((hunt) => {
+          // Find the original index for this hunt to use as the key
+          const originalIndex = hunts.findIndex(h => h === hunt);
+          if (originalIndex !== -1) {
+            // Check if the current user's address is in the participants array
+            // If participants array doesn't exist, fall back to false
+            const isRegistered = hunt.participants?.includes(address) ?? false;
+            registrationStatus[originalIndex] = isRegistered;
+          }
         });
 
         setHuntRegistrations(registrationStatus);
@@ -133,7 +137,7 @@ export function Hunts() {
     };
 
     checkRegistrationStatus();
-  }, [address, processedHunts]); // Simplified dependencies
+  }, [address, processedHunts, hunts]); // Added hunts to dependencies since we use it in findIndex
 
   // Early returns after all hooks
   if (!isValidHexAddress(rawContractAddress)) {
@@ -160,19 +164,19 @@ export function Hunts() {
   console.log("NFT Contract Address:", nftContractAddress);
 
 
-  const handleRegisterSuccess = (data: any, huntIndex: number) => {
+  const handleRegisterSuccess = (data: any, originalHuntIndex: number) => {
     console.log("Register success: ", data);
     toast.success("Successfully registered for hunt!");
 
-    // Update registration status for this specific hunt
+    // Update registration status for this specific hunt using the original index
     setHuntRegistrations((prev) => ({
       ...prev,
-      [huntIndex]: true,
+      [originalHuntIndex]: true,
     }));
 
     // give a little delay
     setTimeout(() => {
-      navigate(`/hunt/${huntIndex}`);
+      navigate(`/hunt/${originalHuntIndex}`);
     }, 2000);
     // Note: The participants array will be updated when the component re-renders
     // and fetches fresh data from the contract, so no need to manually update it here
@@ -290,13 +294,13 @@ export function Hunts() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mx-2">
           {processedHunts.map((hunt: Hunt, index: number) => {
-          const buttonConfig = getButtonConfig(hunt, index);
           // Find the original index for contract interactions
           const originalIndex = hunts.findIndex(h => h === hunt);
+          const buttonConfig = getButtonConfig(hunt, originalIndex);
 
           return (
             <div
-              key={index}
+              key={originalIndex} // Use originalIndex as key for better React reconciliation
               className="flex 
             bg-white rounded-lg
             border-black 
@@ -371,7 +375,7 @@ export function Hunts() {
                       buttonConfig.disabled
                     }
                     onError={(error) => console.log(error)}
-                    onSuccess={(data) => handleRegisterSuccess(data, index)}
+                    onSuccess={(data) => handleRegisterSuccess(data, originalIndex)}
                   />
                 ) : (
                   <Button
