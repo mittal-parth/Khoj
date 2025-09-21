@@ -27,6 +27,7 @@ import { useGenerateRiddles } from "@/hooks/useGenerateRiddles.ts";
 import { Hunt, Team } from "../types";
 import { buttonStyles } from "../lib/styles.ts";
 import { withRetry, MAX_RETRIES } from "@/utils/retryUtils";
+import { FiRefreshCw } from "react-icons/fi";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -96,12 +97,12 @@ export function HuntDetails() {
     params: [BigInt(huntId || 0)],
   }) as { data: Hunt | undefined; isLoading: boolean };
 
-  const { data: teamData, error: teamError, refetch: refetchTeamData } = useReadContract({
+  const { data: teamData, error: teamError, refetch: refetchTeamData, isLoading: teamDataLoading } = useReadContract({
     contract,
     method: "getTeam",
     params: [BigInt(huntId || 0), userWallet as `0x${string}`],
     queryOptions: { enabled: !!userWallet }, // Only call when userWallet is available
-  }) as { data: Team | undefined; error: Error | undefined; refetch: () => void };
+  }) as { data: Team | undefined; error: Error | undefined; refetch: () => void; isLoading: boolean };
 
   const joinTeam = async (signature: string, teamId: string, expiry: number) => {
     setIsJoiningTeam(true);
@@ -548,6 +549,7 @@ export function HuntDetails() {
     <div className="min-h-screen bg-gray-50 pt-20 px-4 mb-[90px]">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] justify-between relative flex flex-col">
+        <div>
           <div className="bg-green p-6 text-white">
             <div className="flex items-center justify-center">
               <h1 className="text-2xl font-bold text-white">
@@ -565,7 +567,7 @@ export function HuntDetails() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Date and Time */}
                   <div className="flex items-center gap-2">
-                    <BsCalendar2DateFill className="w-5 h-5 text-green" />
+                    <BsCalendar2DateFill className="w-8 h-8 text-green" />
                     <div>
                       <p className="text-sm text-gray-600">Date & Time</p>
                       <p className="text-sm font-medium text-gray-800">
@@ -576,7 +578,7 @@ export function HuntDetails() {
                   
                   {/* Participants */}
                   <div className="flex items-center gap-2">
-                    <IoIosPeople className="w-5 h-5 text-green" />
+                    <IoIosPeople className="w-8 h-8 text-green" />
                     <div>
                       <p className="text-sm text-gray-600">Participants</p>
                       <p className="text-sm font-medium text-gray-800">
@@ -587,7 +589,7 @@ export function HuntDetails() {
                   
                   {/* Teams Status */}
                   <div className="flex items-center gap-2">
-                    <TbUsersGroup className="w-5 h-5 text-green" />
+                    <TbUsersGroup className="w-8 h-8 text-green" />
                     <div>
                       <p className="text-sm text-gray-600">Teams</p>
                       <p className="text-sm font-medium text-gray-800">
@@ -601,8 +603,13 @@ export function HuntDetails() {
               {/* Team Management Section - Only show if teams are enabled */}
               {huntData?.teamsEnabled && (
               <div className="mt-6">
-                <h2 className="text-lg font-medium mb-4">Team Management</h2>
-                
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg font-medium">Team Management</h2>
+                  <span className="flex items-center gap-2">
+                    <span onClick={refetchTeamData} className={`cursor-pointer bg-green p-1 rounded-lg text-white h-8 w-8 content-center`}><FiRefreshCw className={teamDataLoading ? 'animate-spin m-auto' : 'm-auto'} /></span>
+                    <span onClick={refetchTeamData} className="cursor-pointer bg-gray-50 hover:bg-gray-200 border border-gray-200 p-1 px-4 rounded-lg hidden sm:block">Refresh</span>
+                  </span>
+                </div>
                 {/* Show team info if user is already in a team */}
                 {isUserInTeam ? (
                   <div className="border-t-2 border-gray-200 pt-4">
@@ -801,6 +808,7 @@ export function HuntDetails() {
               )}
             </div>
           )}
+          </div>
           <div className="mt-8 border-t pt-6 p-6 flex flex-col w-full">
             <div className="flex items-center justify-between mb-4"></div>
             
