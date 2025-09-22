@@ -137,7 +137,7 @@ export function Hunts() {
     };
 
     checkRegistrationStatus();
-  }, [address, processedHunts, hunts]); // Added hunts to dependencies since we use it in findIndex
+  }, [address, processedHunts, hunts]);
 
   // Early returns after all hooks
   if (!isValidHexAddress(rawContractAddress)) {
@@ -300,7 +300,7 @@ export function Hunts() {
 
           return (
             <div
-              key={originalIndex} // Use originalIndex as key for better React reconciliation
+              key={originalIndex}
               className="flex 
             bg-white rounded-lg
             border-black 
