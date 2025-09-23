@@ -567,7 +567,7 @@ export function HuntDetails() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Date and Time */}
                   <div className="flex items-center gap-2">
-                    <BsCalendar2DateFill className="w-8 h-8 text-green" />
+                    <BsCalendar2DateFill className="w-6 h-6 text-green" />
                     <div>
                       <p className="text-sm text-gray-600">Date & Time</p>
                       <p className="text-sm font-medium text-gray-800">
@@ -578,7 +578,7 @@ export function HuntDetails() {
                   
                   {/* Participants */}
                   <div className="flex items-center gap-2">
-                    <IoIosPeople className="w-8 h-8 text-green" />
+                    <IoIosPeople className="w-6 h-6 text-green" />
                     <div>
                       <p className="text-sm text-gray-600">Participants</p>
                       <p className="text-sm font-medium text-gray-800">
@@ -589,7 +589,7 @@ export function HuntDetails() {
                   
                   {/* Teams Status */}
                   <div className="flex items-center gap-2">
-                    <TbUsersGroup className="w-8 h-8 text-green" />
+                    <TbUsersGroup className="w-6 h-6 text-green" />
                     <div>
                       <p className="text-sm text-gray-600">Teams</p>
                       <p className="text-sm font-medium text-gray-800">
@@ -603,81 +603,83 @@ export function HuntDetails() {
               {/* Team Management Section - Only show if teams are enabled */}
               {huntData?.teamsEnabled && (
               <div className="mt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-medium">Team Management</h2>
-                  <span className="flex items-center gap-2">
-                    <span onClick={refetchTeamData} className={`cursor-pointer bg-green p-1 rounded-lg text-white h-8 w-8 content-center`}><FiRefreshCw className={teamDataLoading ? 'animate-spin m-auto' : 'm-auto'} /></span>
-                    <span onClick={refetchTeamData} className="cursor-pointer bg-gray-50 hover:bg-gray-200 border border-gray-200 p-1 px-4 rounded-lg hidden sm:block">Refresh</span>
-                  </span>
-                </div>
                 {/* Show team info if user is already in a team */}
                 {isUserInTeam ? (
-                  <div className="border-t-2 border-gray-200 pt-4">
-                    <h3 className="text-lg font-semibold mb-4">Your Team</h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Members:</span>
-                        <span className="font-medium">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxMembers?.toString() || '0'}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Team Owner:</span>
-                        <span className="font-medium text-sm">{teamData?.owner ? `${teamData.owner.slice(0, 6)}...${teamData.owner.slice(-4)}` : 'Unknown'}</span>
-                      </div>
-                      <div className="mt-4">
-                        <span className="text-gray-600 block mb-2">Team Members:</span>
-                        <div className="flex gap-3 flex-wrap">
-                          {(teamData?.members || []).map((member, index) => (
-                            <div key={index} className="flex flex-col items-center gap-3">
-                              <img 
-                                src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${member}`}
-                                alt="Member Avatar"
-                                className={`w-12 h-12 rounded-full p-1 bg-slate-200 ${member === teamData?.owner ? "border-2 border-slate-800" : ""}`}
-                              />
-                              <div className="flex-1">
-                                <span className="text-xs font-medium text-gray-500">
-                                  {member ? `${member.slice(0, 4)}...${member.slice(-4)}` : 'Unknown Member'}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                          {(!teamData?.members || teamData.members.length === 0) && (
-                            <div className="text-sm text-gray-500 italic">No members found</div>
-                          )}
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-medium">Team Management</h2>
+                    <span className="flex items-center gap-2">
+                      <span onClick={refetchTeamData} className={`cursor-pointer bg-green p-1 rounded-lg text-white h-6 w-6 content-center`}><FiRefreshCw className={teamDataLoading ? 'animate-spin m-auto' : 'm-auto'} /></span>
+                      <span onClick={refetchTeamData} className="cursor-pointer bg-gray-50 hover:bg-gray-200 border border-gray-200 p-1 px-4 rounded-lg hidden sm:block">Refresh</span>
+                    </span>
+                  </div>
+                    <div className="border-t-2 border-gray-200 pt-4">
+                      <h3 className="text-lg font-semibold mb-4">Your Team</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Members:</span>
+                          <span className="font-medium">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxMembers?.toString() || '0'}</span>
                         </div>
-                      </div>
-                      
-                      {/* Show invite QR code if user is the team owner and has generated one */}
-                      {teamData?.owner === userWallet && inviteCode && (
-                        <div className="mt-6 border-t pt-4">
-                          <h4 className="text-md font-medium mb-3">Team Invite Code</h4>
-                          <div className="flex flex-col items-center space-y-4">
-                            <div className="bg-white p-4 rounded-lg border">
-                              <QRCode value={inviteCode} size={150} />
-                            </div>
-                            <div className="flex items-center space-x-2 w-full max-w-md">
-                              <input
-                                type="text"
-                                value={inviteCode}
-                                readOnly
-                                className="flex-1 p-2 border rounded bg-gray-50 text-xs"
-                              />
-                              <Button 
-                                onClick={() => {
-                                  navigator.clipboard.writeText(inviteCode);
-                                  toast.success("Invite code copied to clipboard");
-                                }}
-                                className="flex items-center space-x-1"
-                                size="sm"
-                              >
-                                <BsLink45Deg />
-                                <span>Copy</span>
-                              </Button>
-                            </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Team Owner:</span>
+                          <span className="font-medium text-sm">{teamData?.owner ? `${teamData.owner.slice(0, 6)}...${teamData.owner.slice(-4)}` : 'Unknown'}</span>
+                        </div>
+                        <div className="mt-4">
+                          <span className="text-gray-600 block mb-2">Team Members:</span>
+                          <div className="flex gap-3 flex-wrap">
+                            {(teamData?.members || []).map((member, index) => (
+                              <div key={index} className="flex flex-col items-center gap-3">
+                                <img 
+                                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${member}`}
+                                  alt="Member Avatar"
+                                  className={`w-12 h-12 rounded-full p-1 bg-slate-200 ${member === teamData?.owner ? "border-2 border-slate-800" : ""}`}
+                                />
+                                <div className="flex-1">
+                                  <span className="text-xs font-medium text-gray-500">
+                                    {member ? `${member.slice(0, 4)}...${member.slice(-4)}` : 'Unknown Member'}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                            {(!teamData?.members || teamData.members.length === 0) && (
+                              <div className="text-sm text-gray-500 italic">No members found</div>
+                            )}
                           </div>
                         </div>
-                      )}
+                        
+                        {/* Show invite QR code if user is the team owner and has generated one */}
+                        {teamData?.owner === userWallet && inviteCode && (
+                          <div className="mt-6 border-t pt-4">
+                            <h4 className="text-md font-medium mb-3">Team Invite Code</h4>
+                            <div className="flex flex-col items-center space-y-4">
+                              <div className="bg-white p-4 rounded-lg border">
+                                <QRCode value={inviteCode} size={150} />
+                              </div>
+                              <div className="flex items-center space-x-2 w-full max-w-md">
+                                <input
+                                  type="text"
+                                  value={inviteCode}
+                                  readOnly
+                                  className="flex-1 p-2 border rounded bg-gray-50 text-xs"
+                                />
+                                <Button 
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(inviteCode);
+                                    toast.success("Invite code copied to clipboard");
+                                  }}
+                                  className="flex items-center space-x-1"
+                                  size="sm"
+                                >
+                                  <BsLink45Deg />
+                                  <span>Copy</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 ) : (
                   // Show create/join options when user is not in a team
                   <Tabs defaultValue="create" onValueChange={(value) => setActiveTab(value as "create" | "join")}>
