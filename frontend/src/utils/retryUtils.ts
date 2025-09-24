@@ -1,5 +1,5 @@
 // Retry configuration
-export const MAX_RETRIES = 5;
+export const MAX_RETRIES = 6;
 export const INITIAL_DELAY = 500; // 0.5 seconds
 export const BACKOFF_MULTIPLIER = 2;
 

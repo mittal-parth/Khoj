@@ -421,6 +421,7 @@ export function HuntDetails() {
             // Wait for the transaction to be mined and then get the teamId
             // TODO: We can listen for the TeamCreated event instead of using getParticipantTeamId as a fallback
             console.log("⏳ Waiting for transaction to be mined...");
+            const waitToastId = toast.loading("Waiting for on-chain confirmation and teamId...");
             
             const getTeamIdOperation = async (): Promise<string> => {
               console.log("🔍 Getting teamId after transaction is mined...");
@@ -436,7 +437,7 @@ export function HuntDetails() {
                 return teamId.toString();
               } else {
                 // Throw an error to trigger retry with exponential backoff
-                throw new Error("TeamId not found yet - transaction may not be mined");
+                throw new Error("temporarily unavailable: teamId not found yet - transaction may not be mined");
               }
             };
 
@@ -447,17 +448,20 @@ export function HuntDetails() {
               onRetry: (attempt, error) => {
                 console.log(`❌ No teamId found yet, retrying... (attempt ${attempt}/${MAX_RETRIES})`);
                 console.error("Retry due to error:", error.message);
+                // Update the loading toast with progress
+                toast.loading(`Still waiting for confirmation... (attempt ${attempt + 1}/${MAX_RETRIES})`, { id: waitToastId });
               }
             });
 
             // If we get here, teamId was successfully retrieved
+            toast.success("Confirmed on-chain. Generating invite...", { id: waitToastId });
             await generateInviteAfterTeamCreation(teamId);
             // Refetch again after invite generation
             refetchTeamData();
             
           } catch (error) {
             console.error("❌ Error getting teamId after all attempts:", error);
-            toast.error("Team created but could not generate invite. Please try again.");
+            toast.error("Team created but could not generate invite. Please try again.", { id: undefined });
             setIsGeneratingInvite(false);
           }
         },
