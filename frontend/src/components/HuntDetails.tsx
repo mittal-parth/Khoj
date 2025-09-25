@@ -20,7 +20,8 @@ import { client } from "../lib/client";
 import QRCode from "react-qr-code";
 import QrScanner from "qr-scanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { generateInviteHash, encodeInviteToBase58, calculateInviteExpiry, decodeBase58Invite, signMessageWithEIP191 } from "../helpers/inviteUtils";
+import { generateInviteHash, encodeInviteToBase58, calculateInviteExpiry, decodeBase58Invite, signMessageWithEIP191 } from "../utils/inviteUtils.ts";
+import { extractTeamIdFromTransactionLogs } from "../utils/transactionUtils.ts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { huntABI } from "../assets/hunt_abi.ts";
 import { useGenerateRiddles } from "@/hooks/useGenerateRiddles.ts";
@@ -407,62 +408,74 @@ export function HuntDetails() {
       console.log("📤 Sending transaction...");
       // Execute the transaction and get the result
       sendTransaction(transaction as any, {
-        onSuccess: async () => {
-          console.log("✅ Transaction successful!");
+        onSuccess: async (result) => {
+          console.log("✅ Transaction successful!:", result.transactionHash);
           toast.success("Team created successfully!");
           
           // Refetch team data immediately
           refetchTeamData();
           
-          // The createTeam function returns the teamId directly, but we can't access return values from transactions
-          // However, the contract emits a TeamCreated event with the teamId
-          // We need to wait for the transaction to be mined and then get the teamId from the event
           try {
-            // Wait for the transaction to be mined and then get the teamId
-            // TODO: We can listen for the TeamCreated event instead of using getParticipantTeamId as a fallback
-            console.log("⏳ Waiting for transaction to be mined...");
-            const waitToastId = toast.loading("Waiting for on-chain confirmation and teamId...");
+            console.log("⏳ Extracting teamId from transaction logs...");
+            const waitToastId = toast.loading("Getting transaction receipt and doing the magic...");
             
-            const getTeamIdOperation = async (): Promise<string> => {
-              console.log("🔍 Getting teamId after transaction is mined...");
-              const teamId = await readContract({
-                contract,
-                method: "getParticipantTeamId",
-                params: [BigInt(huntId || 0), userWallet as `0x${string}`],
-              });
-              console.log("TeamId from getParticipantTeamId:", teamId);
-              
-              if (teamId && teamId.toString() !== "0") {
-                console.log("✅ Found teamId:", teamId.toString());
-                return teamId.toString();
-              } else {
-                // Throw an error to trigger retry with exponential backoff
-                throw new Error("temporarily unavailable: teamId not found yet - transaction may not be mined");
-              }
-            };
+            // Extract teamId from transaction logs
+            const teamId = await extractTeamIdFromTransactionLogs(
+              result.transactionHash,
+              contractAddress,
+              currentChain
+            );
 
-            // Use retryUtils with exponential backoff and initial delay for transaction mining
-            const teamId = await withRetry(getTeamIdOperation, {
-              maxRetries: MAX_RETRIES,
-              initialDelay: 2000, // Start with 2 seconds like the original logic
-              onRetry: (attempt, error) => {
-                console.log(`❌ No teamId found yet, retrying... (attempt ${attempt}/${MAX_RETRIES})`);
-                console.error("Retry due to error:", error.message);
-                // Update the loading toast with progress
-                toast.loading(`Still waiting for confirmation... (attempt ${attempt + 1}/${MAX_RETRIES})`, { id: waitToastId });
-              }
-            });
-
-            // If we get here, teamId was successfully retrieved
-            toast.success("Confirmed on-chain. Generating invite...", { id: waitToastId });
+            // Success! We have the teamId from the logs
+            toast.success("Generating invite...", { id: waitToastId });
             await generateInviteAfterTeamCreation(teamId);
             // Refetch again after invite generation
             refetchTeamData();
             
           } catch (error) {
-            console.error("❌ Error getting teamId after all attempts:", error);
-            toast.error("Team created but could not generate invite. Please try again.", { id: undefined });
-            setIsGeneratingInvite(false);
+            console.error("❌ Error extracting teamId from transaction logs:", error);
+            console.log("⚠️ Falling back to getParticipantTeamId method...");
+            
+            // Fallback to the original method if parsing logs fails
+            try {
+              const waitToastId = toast.loading("Its taking longer than expected...");
+              
+              const getTeamIdOperation = async (): Promise<string> => {
+                console.log("🔍 Getting teamId from getParticipantTeamId...");
+                const teamId = await readContract({
+                  contract,
+                  method: "getParticipantTeamId",
+                  params: [BigInt(huntId || 0), userWallet as `0x${string}`],
+                });
+                console.log("TeamId from getParticipantTeamId:", teamId);
+                
+                if (teamId && teamId.toString() !== "0") {
+                  console.log("✅ Found teamId:", teamId.toString());
+                  return teamId.toString();
+                } else {
+                  throw new Error("temporarily unavailable: teamId not found yet - transaction may not be mined");
+                }
+              };
+
+              const teamId = await withRetry(getTeamIdOperation, {
+                maxRetries: MAX_RETRIES,
+                initialDelay: 2000,
+                onRetry: (attempt, error) => {
+                  console.log(`❌ No teamId found yet, retrying... (attempt ${attempt}/${MAX_RETRIES})`);
+                  console.error("Retry due to error:", error.message);
+                  toast.loading(`Still waiting for confirmation... (attempt ${attempt + 1}/${MAX_RETRIES})`, { id: waitToastId });
+                }
+              });
+
+              toast.success("Confirmed on-chain. Generating invite...", { id: waitToastId });
+              await generateInviteAfterTeamCreation(teamId);
+              refetchTeamData();
+              
+            } catch (fallbackError) {
+              console.error("❌ Fallback method also failed:", fallbackError);
+              toast.error("Team created but could not generate invite. Please try again.", { id: undefined });
+              setIsGeneratingInvite(false);
+            }
           }
         },
         onError: (error) => {
