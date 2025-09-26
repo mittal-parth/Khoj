@@ -1,6 +1,6 @@
 import { SiPolkadot, SiCoinbase } from "react-icons/si";
 import { Link } from "react-router-dom";
-import WalletWrapper from "@/helpers/WalletWrapper";
+import WalletWrapper from "@/components/WalletWrapper";
 import { SUPPORTED_CHAINS, getChainId } from "../lib/utils";
 import { useState, useEffect } from "react";
 
