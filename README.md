@@ -151,6 +151,31 @@ cd ../contracts && npm install  # Takes ~15 seconds
    ```
    Required variables: `VITE_PUBLIC_THIRDWEB_CLIENT_ID`, `VITE_PUBLIC_HUDDLE_PROJECT_ID`, `VITE_PUBLIC_HUDDLE_API_KEY`, `VITE_PUBLIC_TRUE_NETWORK_SECRET_KEY`, contract addresses for Base/Moonbase/Asset Hub, `VITE_PUBLIC_BACKEND_URL`, `VITE_PUBLIC_GEMINI_API_KEY`
 
+### Running the Application
+
+After completing the setup, you can run each component:
+
+1. **Backend Server**:
+   ```bash
+   cd backend
+   npm start
+   ```
+   The backend server will be available at `http://localhost:8000`
+
+2. **Frontend Development Server**:
+   ```bash
+   cd frontend
+   npm run dev
+   ```
+   The frontend will be available at `http://localhost:5173`
+
+3. **Smart Contracts Testing**:
+   ```bash
+   cd contracts
+   npx hardhat test
+   ```
+   For more detailed contract testing options, refer to the [contracts README](/contracts/README.md)
+
 
 ## 👥 Team
 
