@@ -48,71 +48,12 @@ import {
   stopStreaming,
 } from "./huddle.js";
 import { GoogleGenAI, Type } from "@google/genai";
+import { withRetry } from "./retry-utils.js";
+
 const MAX_DISTANCE_IN_METERS = parseFloat(process.env.MAX_DISTANCE_IN_METERS) || 60;
 
 // Gemini configuration
 const GEMINI_MODEL = "gemini-2.5-flash";
-
-// Retry utility functions
-const MAX_RETRIES = 6;
-const INITIAL_DELAY = 500; // 0.5 seconds
-const BACKOFF_MULTIPLIER = 2;
-
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-const isRetryableError = (error) => {
-  if (error.code === 'NETWORK_ERROR' || 
-      error.code === 'TIMEOUT' || 
-      error.status === 429 || 
-      error.status === 500 || 
-      error.status === 502 || 
-      error.status === 503 || 
-      error.status === 504) {
-    return true;
-  }
-  
-  const errorMessage = error.message?.toLowerCase() || '';
-  return errorMessage.includes('network') || 
-         errorMessage.includes('timeout') || 
-         errorMessage.includes('rate limit') ||
-         errorMessage.includes('temporarily unavailable') ||
-         errorMessage.includes('service unavailable') ||
-         errorMessage.includes('fetch');
-};
-
-const withRetry = async (operation, options = {}) => {
-  const {
-    maxRetries = MAX_RETRIES,
-    initialDelay = INITIAL_DELAY,
-    backoffMultiplier = BACKOFF_MULTIPLIER,
-  } = options;
-
-  let lastError;
-
-  for (let attempt = 0; attempt < maxRetries; attempt++) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error;
-      
-      if (attempt < maxRetries - 1 && isRetryableError(error)) {
-        const delay = initialDelay * Math.pow(backoffMultiplier, attempt);
-        console.log(`Retrying in ${delay}ms... (attempt ${attempt + 2}/${maxRetries})`);
-        await sleep(delay);
-      } else {
-        if (attempt >= maxRetries - 1) {
-          const finalError = error instanceof Error ? error : new Error("Unknown error");
-          finalError.message = `Failed after ${maxRetries} attempts: ${finalError.message}`;
-          throw finalError;
-        } else {
-          throw error;
-        }
-      }
-    }
-  }
-
-  throw lastError;
-};
 
 const corsOptions = {
   origin: "*", // Temporarily allow all origins for debugging
