@@ -9,26 +9,29 @@ import { HuntDetails } from "./components/HuntDetails";
 import { Footer } from "./components/Footer";
 import { About } from "./components/About";
 import { Create } from "./components/Create";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 function App() {
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-yellow/10">
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<Hunts />} />
-          <Route path="/hunt/:huntId/clue/:clueId" element={<Clue />} />
-          <Route path="/hunt/:huntId/end" element={<HuntEnd />} />
-          <Route path="/hunt/:huntId" element={<HuntDetails />} />
-          <Route path="/profile" element={<Rewards />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/hunt/create" element={<Create />} />
-        </Routes>
-        <div className="md:hidden">
-          <Footer />
+    <ErrorBoundary>
+      <BrowserRouter>
+        <div className="min-h-screen bg-yellow/10">
+          <Navbar />
+          <Routes>
+            <Route path="/" element={<Hunts />} />
+            <Route path="/hunt/:huntId/clue/:clueId" element={<Clue />} />
+            <Route path="/hunt/:huntId/end" element={<HuntEnd />} />
+            <Route path="/hunt/:huntId" element={<HuntDetails />} />
+            <Route path="/profile" element={<Rewards />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/hunt/create" element={<Create />} />
+          </Routes>
+          <div className="md:hidden">
+            <Footer />
+          </div>
         </div>
-      </div>
-    </BrowserRouter>
+      </BrowserRouter>
+    </ErrorBoundary>
   );
 }
 
