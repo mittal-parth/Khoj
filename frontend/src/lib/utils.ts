@@ -38,7 +38,7 @@ export const isContractSupportedNetwork = (networkName: string) => {
 
 // Helper function to get current network from localStorage with fallback
 export const getCurrentNetwork = () => {
-  return localStorage.getItem("current_network") || "assetHub";
+  return localStorage.getItem("current_network") || "moonbeam";
 };
 
 // Helper function to get contract address for current network

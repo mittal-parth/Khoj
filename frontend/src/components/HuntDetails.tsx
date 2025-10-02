@@ -20,13 +20,15 @@ import { client } from "../lib/client";
 import QRCode from "react-qr-code";
 import QrScanner from "qr-scanner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
-import { generateInviteHash, encodeInviteToBase58, calculateInviteExpiry, decodeBase58Invite, signMessageWithEIP191 } from "../helpers/inviteUtils";
+import { generateInviteHash, encodeInviteToBase58, calculateInviteExpiry, decodeBase58Invite, signMessageWithEIP191 } from "../utils/inviteUtils.ts";
+import { extractTeamIdFromTransactionLogs } from "../utils/transactionUtils.ts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { huntABI } from "../assets/hunt_abi.ts";
 import { useGenerateRiddles } from "@/hooks/useGenerateRiddles.ts";
 import { Hunt, Team } from "../types";
 import { buttonStyles } from "../lib/styles.ts";
 import { withRetry, MAX_RETRIES } from "@/utils/retryUtils";
+import { FiRefreshCw } from "react-icons/fi";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -96,12 +98,12 @@ export function HuntDetails() {
     params: [BigInt(huntId || 0)],
   }) as { data: Hunt | undefined; isLoading: boolean };
 
-  const { data: teamData, error: teamError, refetch: refetchTeamData } = useReadContract({
+  const { data: teamData, error: teamError, refetch: refetchTeamData, isLoading: teamDataLoading } = useReadContract({
     contract,
     method: "getTeam",
     params: [BigInt(huntId || 0), userWallet as `0x${string}`],
     queryOptions: { enabled: !!userWallet }, // Only call when userWallet is available
-  }) as { data: Team | undefined; error: Error | undefined; refetch: () => void };
+  }) as { data: Team | undefined; error: Error | undefined; refetch: () => void; isLoading: boolean };
 
   const joinTeam = async (signature: string, teamId: string, expiry: number) => {
     setIsJoiningTeam(true);
@@ -407,28 +409,40 @@ export function HuntDetails() {
       console.log("📤 Sending transaction...");
       // Execute the transaction and get the result
       sendTransaction(transaction as any, {
-        onSuccess: async (_) => {
-          console.log("✅ Transaction successful!");
+        onSuccess: async (result) => {
+          console.log("✅ Transaction successful!:", result.transactionHash);
           toast.success("Team created successfully!");
           
           // Refetch team data immediately
           refetchTeamData();
           
-          // The createTeam function returns the teamId directly, but we can't access return values from transactions
-          // However, the contract emits a TeamCreated event with the teamId
-          // We need to wait for the transaction to be mined and then get the teamId from the event
           try {
-            // Wait for the transaction to be mined and then get the teamId
-            // TODO: We can listen for the TeamCreated event instead of using getParticipantTeamId as a fallback
-            console.log("⏳ Waiting for transaction to be mined...");
+            console.log("⏳ Extracting teamId from transaction logs...");
+            const waitToastId = toast.loading("Getting transaction receipt and doing the magic...");
             
-            // Wait a bit for the transaction to be mined, then try multiple times if needed
-            let attempts = 0;
-            const maxAttempts = 5;
-            const checkTeamId = async () => {
-              attempts++;
-              try {
-                console.log(`🔍 Getting teamId after transaction is mined... (attempt ${attempts}/${maxAttempts})`);
+            // Extract teamId from transaction logs
+            const teamId = await extractTeamIdFromTransactionLogs(
+              result.transactionHash,
+              contractAddress,
+              currentChain
+            );
+
+            // Success! We have the teamId from the logs
+            toast.success("Generating invite...", { id: waitToastId });
+            await generateInviteAfterTeamCreation(teamId);
+            // Refetch again after invite generation
+            refetchTeamData();
+            
+          } catch (error) {
+            console.error("❌ Error extracting teamId from transaction logs:", error);
+            console.log("⚠️ Falling back to getParticipantTeamId method...");
+            
+            // Fallback to the original method if parsing logs fails
+            try {
+              const waitToastId = toast.loading("Its taking longer than expected...");
+              
+              const getTeamIdOperation = async (): Promise<string> => {
+                console.log("🔍 Getting teamId from getParticipantTeamId...");
                 const teamId = await readContract({
                   contract,
                   method: "getParticipantTeamId",
@@ -438,36 +452,31 @@ export function HuntDetails() {
                 
                 if (teamId && teamId.toString() !== "0") {
                   console.log("✅ Found teamId:", teamId.toString());
-                  await generateInviteAfterTeamCreation(teamId.toString());
-                  // Refetch again after invite generation
-                  refetchTeamData();
-                } else if (attempts < maxAttempts) {
-                  console.log(`❌ No teamId found yet, retrying in 2 seconds... (${attempts}/${maxAttempts})`);
-                  setTimeout(checkTeamId, 2000);
+                  return teamId.toString();
                 } else {
-                  console.log("❌ No teamId found for user after all attempts");
-                  toast.error("Team created but could not generate invite. Please try again.");
-                  setIsGeneratingInvite(false);
+                  throw new Error("temporarily unavailable: teamId not found yet - transaction may not be mined");
                 }
-              } catch (error) {
-                console.error("❌ Error getting teamId after mining:", error);
-                if (attempts < maxAttempts) {
-                  console.log(`Retrying in 2 seconds... (${attempts}/${maxAttempts})`);
-                  setTimeout(checkTeamId, 2000);
-                } else {
-                  toast.error("Team created but could not generate invite. Please try again.");
-                  setIsGeneratingInvite(false);
+              };
+
+              const teamId = await withRetry(getTeamIdOperation, {
+                maxRetries: MAX_RETRIES,
+                initialDelay: 2000,
+                onRetry: (attempt, error) => {
+                  console.log(`❌ No teamId found yet, retrying... (attempt ${attempt}/${MAX_RETRIES})`);
+                  console.error("Retry due to error:", error.message);
+                  toast.loading(`Still waiting for confirmation... (attempt ${attempt + 1}/${MAX_RETRIES})`, { id: waitToastId });
                 }
-              }
-            };
-            
-            // Start checking after 2 seconds
-            setTimeout(checkTeamId, 2000);
-            
-          } catch (error) {
-            console.error("❌ Error in transaction success handler:", error);
-            toast.error("Team created but could not generate invite. Please try again.");
-            setIsGeneratingInvite(false);
+              });
+
+              toast.success("Confirmed on-chain. Generating invite...", { id: waitToastId });
+              await generateInviteAfterTeamCreation(teamId);
+              refetchTeamData();
+              
+            } catch (fallbackError) {
+              console.error("❌ Fallback method also failed:", fallbackError);
+              toast.error("Team created but could not generate invite. Please try again.", { id: undefined });
+              setIsGeneratingInvite(false);
+            }
           }
         },
         onError: (error) => {
@@ -548,6 +557,7 @@ export function HuntDetails() {
     <div className="min-h-screen bg-gray-50 pt-20 px-4 mb-[90px]">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] justify-between relative flex flex-col">
+        <div>
           <div className="bg-green p-6 text-white">
             <div className="flex items-center justify-center">
               <h1 className="text-2xl font-bold text-white">
@@ -565,7 +575,7 @@ export function HuntDetails() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Date and Time */}
                   <div className="flex items-center gap-2">
-                    <BsCalendar2DateFill className="w-5 h-5 text-green" />
+                    <BsCalendar2DateFill className="w-6 h-6 text-green" />
                     <div>
                       <p className="text-sm text-gray-600">Date & Time</p>
                       <p className="text-sm font-medium text-gray-800">
@@ -576,7 +586,7 @@ export function HuntDetails() {
                   
                   {/* Participants */}
                   <div className="flex items-center gap-2">
-                    <IoIosPeople className="w-5 h-5 text-green" />
+                    <IoIosPeople className="w-6 h-6 text-green" />
                     <div>
                       <p className="text-sm text-gray-600">Participants</p>
                       <p className="text-sm font-medium text-gray-800">
@@ -587,7 +597,7 @@ export function HuntDetails() {
                   
                   {/* Teams Status */}
                   <div className="flex items-center gap-2">
-                    <TbUsersGroup className="w-5 h-5 text-green" />
+                    <TbUsersGroup className="w-6 h-6 text-green" />
                     <div>
                       <p className="text-sm text-gray-600">Teams</p>
                       <p className="text-sm font-medium text-gray-800">
@@ -601,76 +611,83 @@ export function HuntDetails() {
               {/* Team Management Section - Only show if teams are enabled */}
               {huntData?.teamsEnabled && (
               <div className="mt-6">
-                <h2 className="text-lg font-medium mb-4">Team Management</h2>
-                
                 {/* Show team info if user is already in a team */}
                 {isUserInTeam ? (
-                  <div className="border-t-2 border-gray-200 pt-4">
-                    <h3 className="text-lg font-semibold mb-4">Your Team</h3>
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Members:</span>
-                        <span className="font-medium">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxMembers?.toString() || '0'}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Team Owner:</span>
-                        <span className="font-medium text-sm">{teamData?.owner ? `${teamData.owner.slice(0, 6)}...${teamData.owner.slice(-4)}` : 'Unknown'}</span>
-                      </div>
-                      <div className="mt-4">
-                        <span className="text-gray-600 block mb-2">Team Members:</span>
-                        <div className="flex gap-3 flex-wrap">
-                          {(teamData?.members || []).map((member, index) => (
-                            <div key={index} className="flex flex-col items-center gap-3">
-                              <img 
-                                src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${member}`}
-                                alt="Member Avatar"
-                                className={`w-12 h-12 rounded-full p-1 bg-slate-200 ${member === teamData?.owner ? "border-2 border-slate-800" : ""}`}
-                              />
-                              <div className="flex-1">
-                                <span className="text-xs font-medium text-gray-500">
-                                  {member ? `${member.slice(0, 4)}...${member.slice(-4)}` : 'Unknown Member'}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                          {(!teamData?.members || teamData.members.length === 0) && (
-                            <div className="text-sm text-gray-500 italic">No members found</div>
-                          )}
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-medium">Team Management</h2>
+                    <span className="flex items-center gap-2">
+                      <span onClick={refetchTeamData} className={`cursor-pointer bg-green p-1 rounded-lg text-white h-6 w-6 content-center`}><FiRefreshCw className={teamDataLoading ? 'animate-spin m-auto' : 'm-auto'} /></span>
+                      <span onClick={refetchTeamData} className="cursor-pointer bg-gray-50 hover:bg-gray-200 border border-gray-200 p-1 px-4 rounded-lg hidden sm:block">Refresh</span>
+                    </span>
+                  </div>
+                    <div className="border-t-2 border-gray-200 pt-4">
+                      <h3 className="text-lg font-semibold mb-4">Your Team</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Members:</span>
+                          <span className="font-medium">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxMembers?.toString() || '0'}</span>
                         </div>
-                      </div>
-                      
-                      {/* Show invite QR code if user is the team owner and has generated one */}
-                      {teamData?.owner === userWallet && inviteCode && (
-                        <div className="mt-6 border-t pt-4">
-                          <h4 className="text-md font-medium mb-3">Team Invite Code</h4>
-                          <div className="flex flex-col items-center space-y-4">
-                            <div className="bg-white p-4 rounded-lg border">
-                              <QRCode value={inviteCode} size={150} />
-                            </div>
-                            <div className="flex items-center space-x-2 w-full max-w-md">
-                              <input
-                                type="text"
-                                value={inviteCode}
-                                readOnly
-                                className="flex-1 p-2 border rounded bg-gray-50 text-xs"
-                              />
-                              <Button 
-                                onClick={() => {
-                                  navigator.clipboard.writeText(inviteCode);
-                                  toast.success("Invite code copied to clipboard");
-                                }}
-                                className="flex items-center space-x-1"
-                                size="sm"
-                              >
-                                <BsLink45Deg />
-                                <span>Copy</span>
-                              </Button>
-                            </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-gray-600">Team Owner:</span>
+                          <span className="font-medium text-sm">{teamData?.owner ? `${teamData.owner.slice(0, 6)}...${teamData.owner.slice(-4)}` : 'Unknown'}</span>
+                        </div>
+                        <div className="mt-4">
+                          <span className="text-gray-600 block mb-2">Team Members:</span>
+                          <div className="flex gap-3 flex-wrap">
+                            {(teamData?.members || []).map((member, index) => (
+                              <div key={index} className="flex flex-col items-center gap-3">
+                                <img 
+                                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${member}`}
+                                  alt="Member Avatar"
+                                  className={`w-12 h-12 rounded-full p-1 bg-slate-200 ${member === teamData?.owner ? "border-2 border-slate-800" : ""}`}
+                                />
+                                <div className="flex-1">
+                                  <span className="text-xs font-medium text-gray-500">
+                                    {member ? `${member.slice(0, 4)}...${member.slice(-4)}` : 'Unknown Member'}
+                                  </span>
+                                </div>
+                              </div>
+                            ))}
+                            {(!teamData?.members || teamData.members.length === 0) && (
+                              <div className="text-sm text-gray-500 italic">No members found</div>
+                            )}
                           </div>
                         </div>
-                      )}
+                        
+                        {/* Show invite QR code if user is the team owner and has generated one */}
+                        {teamData?.owner === userWallet && inviteCode && (
+                          <div className="mt-6 border-t pt-4">
+                            <h4 className="text-md font-medium mb-3">Team Invite Code</h4>
+                            <div className="flex flex-col items-center space-y-4">
+                              <div className="bg-white p-4 rounded-lg border">
+                                <QRCode value={inviteCode} size={150} />
+                              </div>
+                              <div className="flex items-center space-x-2 w-full max-w-md">
+                                <input
+                                  type="text"
+                                  value={inviteCode}
+                                  readOnly
+                                  className="flex-1 p-2 border rounded bg-gray-50 text-xs"
+                                />
+                                <Button 
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(inviteCode);
+                                    toast.success("Invite code copied to clipboard");
+                                  }}
+                                  className="flex items-center space-x-1"
+                                  size="sm"
+                                >
+                                  <BsLink45Deg />
+                                  <span>Copy</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </>
                 ) : (
                   // Show create/join options when user is not in a team
                   <Tabs defaultValue="create" onValueChange={(value) => setActiveTab(value as "create" | "join")}>
@@ -801,6 +818,7 @@ export function HuntDetails() {
               )}
             </div>
           )}
+          </div>
           <div className="mt-8 border-t pt-6 p-6 flex flex-col w-full">
             <div className="flex items-center justify-between mb-4"></div>
             
