@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { useState, useEffect } from "react";
-import { paseoAssetHub, baseSepolia, moonbaseAlpha } from "./chains";
+import { paseoAssetHub, baseSepolia, moonbaseAlpha, flowTestnet } from "./chains";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -11,6 +11,7 @@ export const CONTRACT_ADDRESSES = {
   moonbeam: import.meta.env.VITE_PUBLIC_MOONBASE_ALPHA_CONTRACT_ADDRESS,
   base: import.meta.env.VITE_PUBLIC_BASE_CONTRACT_ADDRESS,
   assetHub: import.meta.env.VITE_PUBLIC_ASSET_HUB_CONTRACT_ADDRESS,
+  flow: import.meta.env.VITE_PUBLIC_FLOW_CONTRACT_ADDRESS,
 } as const;
 
 
@@ -18,6 +19,7 @@ export const SUPPORTED_CHAINS = {
   moonbeam: moonbaseAlpha,
   base: baseSepolia,
   assetHub: paseoAssetHub,
+  flow: flowTestnet,
 };
 
 // Helper function to get chain by network name
@@ -26,6 +28,7 @@ export const getChainByNetwork = (networkName: string) => {
     base: baseSepolia,
     moonbeam: moonbaseAlpha,
     assetHub: paseoAssetHub,
+    flow: flowTestnet,
   };
   
   return chainMap[networkName] || paseoAssetHub; // Default to paseoAssetHub
@@ -44,8 +47,15 @@ export const getCurrentNetwork = () => {
 // Helper function to get contract address for current network
 export const getContractAddress = (networkName?: string) => {
   const network = networkName || getCurrentNetwork();
-  return CONTRACT_ADDRESSES[network as keyof typeof CONTRACT_ADDRESSES] ?? 
-    "0x0000000000000000000000000000000000000000";
+  const address = CONTRACT_ADDRESSES[network as keyof typeof CONTRACT_ADDRESSES];
+  
+  // Check if the environment variable is undefined or empty
+  if (!address || address === "undefined" || address === "") {
+    console.warn(`Contract address not configured for network: ${network}`);
+    return "0x0000000000000000000000000000000000000000";
+  }
+  
+  return address;
 };
 
 // Helper function to get chain ID for current network

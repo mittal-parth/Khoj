@@ -49,3 +49,19 @@ export const moonbaseAlpha = defineChain({
   }],
   testnet: true,
 });
+
+export const flowTestnet = defineChain({
+  id: 545,
+  name: "Flow EVM Testnet",
+  nativeCurrency: {
+    decimals: 18,
+    name: "Flow",
+    symbol: "FLOW",
+  },
+  rpc: "https://testnet.evm.nodes.onflow.org",
+  blockExplorers: [{
+      name: "FlowScan",
+      url: "https://evm-testnet.flowscan.io",
+  }],
+  testnet: true,
+});

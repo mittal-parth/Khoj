@@ -1,6 +1,6 @@
 import { ConnectButton } from "thirdweb/react";
 import { client } from "../lib/client";
-import { paseoAssetHub, baseSepolia, moonbaseAlpha } from "../lib/chains";
+import { paseoAssetHub, baseSepolia, moonbaseAlpha, flowTestnet } from "../lib/chains";
 import { WalletWrapperParams } from "../types";
 
 
@@ -11,7 +11,7 @@ export default function WalletWrapper({
   return (
     <ConnectButton
       client={client}
-      chains={[paseoAssetHub, baseSepolia, moonbaseAlpha]}
+      chains={[paseoAssetHub, baseSepolia, moonbaseAlpha, flowTestnet]}
       connectButton={{
         label: text || "Connect Wallet",
         className: className,

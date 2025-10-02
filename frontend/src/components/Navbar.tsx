@@ -1,4 +1,4 @@
-import { SiPolkadot, SiCoinbase } from "react-icons/si";
+import { SiPolkadot, SiCoinbase, SiMlflow } from "react-icons/si";
 import { Link } from "react-router-dom";
 import WalletWrapper from "@/components/WalletWrapper";
 import { SUPPORTED_CHAINS, getChainId } from "../lib/utils";
@@ -13,6 +13,17 @@ const NETWORK_META: Record<string, { label: string; icon: JSX.Element }> = {
   base: {
     label: "Base",
     icon: <SiCoinbase className="w-5 h-5 text-blue-500" />,
+  },
+  flow: {
+    label: "Flow",
+    icon: (
+      <img
+        src="/flow.svg"
+        alt="Flow Logo"
+        className="w-5 h-5"
+        style={{ display: "inline-block", verticalAlign: "middle" }}
+      />
+    ),
   },
   assetHub: {
     label: "Paseo AssetHub",
