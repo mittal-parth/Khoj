@@ -11,6 +11,7 @@ export function calc(): i64 {
   // Access attestation values directly
   const currentTries = huntAttestation.numberOfTries;
   const currentTimestamp = huntAttestation.timestamp;
+  const currentTimeTaken = huntAttestation.timeTaken;
 
   // Track the latest timestamp
   if (currentTimestamp > latestTimestamp) {
@@ -23,13 +24,27 @@ export function calc(): i64 {
   // Base points for completing clue (max 100)
   attestationScore += 100;
 
-  // Efficiency points based on tries (max 50)
+  // Efficiency points based on tries (max 40)
   if (currentTries == 1) {
-    attestationScore += 50; // Perfect solve
+    attestationScore += 40; // Perfect solve
   } else if (currentTries == 2) {
-    attestationScore += 25; // Good solve
+    attestationScore += 20; // Good solve
   } else if (currentTries == 3) {
-    attestationScore += 10; // Regular solve
+    attestationScore += 8; // Regular solve
+  }
+
+  // Time efficiency points based on time taken (max 30)
+  // Assuming optimal time is 60 seconds, with diminishing returns
+  if (currentTimeTaken <= 60) {
+    attestationScore += 30; // Excellent time
+  } else if (currentTimeTaken <= 120) {
+    attestationScore += 20; // Good time
+  } else if (currentTimeTaken <= 300) {
+    attestationScore += 10; // Average time
+  } else if (currentTimeTaken <= 600) {
+    attestationScore += 5; // Slow but acceptable
+  } else {
+    attestationScore += 1; // Very slow but still completed
   }
 
   // Add to running totals
@@ -41,9 +56,9 @@ export function calc(): i64 {
     return 0;
   }
 
-  // Calculate average score per clue (out of 150 possible points per clue)
+  // Calculate average score per clue (out of 170 possible points per clue: 100 base + 40 tries + 30 time)
   // Multiply by 10 first to maintain precision in integer division
-  const averageScore: i64 = (totalScore * 10) / (totalClues * 150);
+  const averageScore: i64 = (totalScore * 10) / (totalClues * 170);
 
   // Apply time decay factor to encourage continued participation
   // Reduce score by 10% for every 30 days of inactivity
