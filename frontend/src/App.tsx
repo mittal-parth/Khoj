@@ -9,11 +9,9 @@ import { HuntDetails } from "./components/HuntDetails";
 import { Footer } from "./components/Footer";
 import { About } from "./components/About";
 import { Create } from "./components/Create";
-import { ErrorBoundary } from "./components/ErrorBoundary";
 
 function App() {
   return (
-    <ErrorBoundary>
       <BrowserRouter>
         <div className="min-h-screen bg-yellow/10">
           <Navbar />
@@ -31,7 +29,6 @@ function App() {
           </div>
         </div>
       </BrowserRouter>
-    </ErrorBoundary>
   );
 }
 
