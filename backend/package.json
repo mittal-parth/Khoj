@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google/genai": "^1.21.0",
     "@huddle01/server-sdk": "^2.5.4",
     "@lit-protocol/auth-helpers": "^6.4.10",
     "@lit-protocol/constants": "^6.4.10",
