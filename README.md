@@ -176,7 +176,6 @@ After completing the setup, you can run each component:
    ```
    For more detailed contract testing options, refer to the [contracts README](/contracts/README.md)
 
-    <ErrorBoundary>
 
 ## 👥 Team
 
