@@ -47,7 +47,13 @@ import {
   startStreaming,
   stopStreaming,
 } from "./huddle.js";
+import { GoogleGenAI, Type } from "@google/genai";
+import { withRetry } from "./retry-utils.js";
+
 const MAX_DISTANCE_IN_METERS = parseFloat(process.env.MAX_DISTANCE_IN_METERS) || 60;
+
+// Gemini configuration
+const GEMINI_MODEL = "gemini-2.5-flash";
 
 const corsOptions = {
   origin: "*", // Temporarily allow all origins for debugging
@@ -773,6 +779,113 @@ app.post("/livestreams/stop", async (req, res) => {
   console.log("Backend bodyData: ", bodyData);
   await stopStreaming(bodyData.roomId);
   res.send({ message: "Streaming stopped" });
+});
+
+// Generate riddles endpoint
+app.post("/generate-riddles", async (req, res) => {
+  try {
+    const { locations, theme } = req.body;
+
+    // Validate input
+    if (!locations || !Array.isArray(locations) || locations.length === 0) {
+      return res.status(400).json({
+        error: "Missing required field: locations (must be a non-empty array)",
+      });
+    }
+
+    if (!theme || typeof theme !== "string") {
+      return res.status(400).json({
+        error: "Missing required field: theme (must be a string)",
+      });
+    }
+
+    // Check for Gemini API key
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(500).json({
+        error: "Gemini API key not configured on server",
+      });
+    }
+
+    // Initialize Gemini client
+    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+    // Generate riddles with retry logic
+    const generateRiddlesOperation = async () => {
+      const prompt = `You are a riddle generator creating a JSON array of treasure hunt riddles.
+          Rules:
+          1. You will create exactly ${locations.length} riddles.
+          2. Each riddle should lead to one of these locations: ${locations.join(", ")}.
+          3. Each riddle must incorporate the following themes: ${theme}.
+          4. Do not include the actual location names in the riddle text.
+          5. Provide a subtle hint for each riddle that aids the solver but does not directly reveal the answer.
+          6. Output only valid JSON in this exact structure (no extra text, no explanations):`;
+
+      const aiResponse = await ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                riddle: {
+                  type: Type.STRING,
+                },
+                hint: {
+                  type: Type.STRING,
+                },
+              },
+              propertyOrdering: ["riddle", "hint"],
+            },
+          },
+        },
+      });
+
+      if (!aiResponse.text) {
+        throw new Error("Unexpected response format from AI - no text content");
+      }
+
+      const content = aiResponse.text;
+      
+      // Validate JSON before parsing
+      let parsedRiddles;
+      try {
+        parsedRiddles = JSON.parse(content);
+      } catch (jsonError) {
+        throw new Error(`Invalid JSON response from AI: ${jsonError.message}`);
+      }
+
+      // Validate the structure of parsed riddles
+      if (!Array.isArray(parsedRiddles)) {
+        throw new Error("AI response is not an array");
+      }
+
+      // Validate each riddle has required properties
+      for (let i = 0; i < parsedRiddles.length; i++) {
+        const riddle = parsedRiddles[i];
+        if (!riddle.riddle || !riddle.hint || typeof riddle.riddle !== 'string' || typeof riddle.hint !== 'string') {
+          throw new Error(`Invalid riddle structure at index ${i}`);
+        }
+      }
+
+      return parsedRiddles;
+    };
+
+    const riddles = await withRetry(generateRiddlesOperation);
+
+    res.json({
+      success: true,
+      riddles,
+    });
+  } catch (error) {
+    console.error("Error generating riddles:", error);
+    res.status(500).json({
+      error: "Failed to generate riddles",
+      message: error.message,
+    });
+  }
 });
 
 // Add health check endpoint for Docker
