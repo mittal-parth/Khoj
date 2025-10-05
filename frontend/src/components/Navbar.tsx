@@ -14,6 +14,17 @@ const NETWORK_META: Record<string, { label: string; icon: JSX.Element }> = {
     label: "Base",
     icon: <SiCoinbase className="w-5 h-5 text-blue-500" />,
   },
+  flow: {
+    label: "Flow",
+    icon: (
+      <img
+        src="/flow.svg"
+        alt="Flow Logo"
+        className="w-5 h-5"
+        style={{ display: "inline-block", verticalAlign: "middle" }}
+      />
+    ),
+  },
   assetHub: {
     label: "Paseo AssetHub",
     icon: <SiPolkadot className="w-5 h-5 text-pink-600" />,

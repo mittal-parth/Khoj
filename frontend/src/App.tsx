@@ -12,23 +12,23 @@ import { Create } from "./components/Create";
 
 function App() {
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-yellow/10">
-        <Navbar />
-        <Routes>
-          <Route path="/" element={<Hunts />} />
-          <Route path="/hunt/:huntId/clue/:clueId" element={<Clue />} />
-          <Route path="/hunt/:huntId/end" element={<HuntEnd />} />
-          <Route path="/hunt/:huntId" element={<HuntDetails />} />
-          <Route path="/profile" element={<Rewards />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/hunt/create" element={<Create />} />
-        </Routes>
-        <div className="md:hidden">
-          <Footer />
+      <BrowserRouter>
+        <div className="min-h-screen bg-yellow/10">
+          <Navbar />
+          <Routes>
+            <Route path="/" element={<Hunts />} />
+            <Route path="/hunt/:huntId/clue/:clueId" element={<Clue />} />
+            <Route path="/hunt/:huntId/end" element={<HuntEnd />} />
+            <Route path="/hunt/:huntId" element={<HuntDetails />} />
+            <Route path="/profile" element={<Rewards />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/hunt/create" element={<Create />} />
+          </Routes>
+          <div className="md:hidden">
+            <Footer />
+          </div>
         </div>
-      </div>
-    </BrowserRouter>
+      </BrowserRouter>
   );
 }
 
