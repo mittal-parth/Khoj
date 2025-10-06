@@ -43,6 +43,8 @@ export function Clue() {
     "idle" | "verifying" | "success" | "error"
   >("idle");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
 
   // Use the reactive network state hook
   const { contractAddress, currentChain } = useNetworkState();
@@ -90,6 +92,39 @@ export function Clue() {
         }
       );
     }
+
+    // Initialize or restore per-clue timer start
+    const clueTimerKey = `hunt_${huntId}_clue_${clueId}_start`;
+    const storedStart = localStorage.getItem(clueTimerKey);
+    const startTimestamp = storedStart ? Number(storedStart) : Date.now();
+    if (!storedStart) {
+      localStorage.setItem(clueTimerKey, String(startTimestamp));
+    }
+
+    // Compute per-clue duration from hunt duration if available
+    const totalDurationSeconds = huntDetails ? Number(huntDetails[3] ?? 0) : 0;
+    const riddles = JSON.parse(
+      localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
+    );
+    const totalClues = Array.isArray(riddles) ? riddles.length : 0;
+    const perClueDuration = totalClues > 0 && totalDurationSeconds > 0
+      ? Math.max(1, Math.floor(totalDurationSeconds / totalClues))
+      : 0;
+
+    // Tick every second
+    const tick = () => {
+      const now = Date.now();
+      const elapsed = Math.floor((now - startTimestamp) / 1000);
+      setElapsedSeconds(elapsed);
+      if (perClueDuration > 0) {
+        setTimeLeft(Math.max(0, perClueDuration - elapsed));
+      } else {
+        setTimeLeft(null);
+      }
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
   }, [clueId, huntId, navigate]);
 
   if (!isValidHexAddress(contractAddress)) {
@@ -115,6 +150,7 @@ export function Clue() {
         timestamp: Math.floor(Date.now() / 1000), // Current timestamp in seconds
         clueNumber: parseInt(clueId || "0"),
         numberOfTries: attempts,
+        timeTaken: elapsedSeconds,
       });
       console.log("Attestation created:", output);
       await api.network.disconnect();
@@ -315,6 +351,11 @@ export function Clue() {
               <div className="text-2xl font-bold flex-shrink-0">
                 # {currentClue}/{currentClueData?.length}
               </div>
+              {timeLeft !== null && (
+                <div className="text-xl font-mono">
+                  {`${String(Math.floor(timeLeft / 60)).padStart(2, "0")}:${String(timeLeft % 60).padStart(2, "0")}`}
+                </div>
+              )}
             </div>
           </div>
 
@@ -347,7 +388,8 @@ export function Clue() {
                 disabled={
                   !location ||
                   verificationState === "verifying" ||
-                  verificationState === "success"
+                  verificationState === "success" ||
+                  (timeLeft !== null && timeLeft <= 0)
                 }
               >
                 {verificationState === "success" && (

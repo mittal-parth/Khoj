@@ -14,12 +14,14 @@ class HUNTATTESTATIONSCHEMA {
   numberOfTries: u32;
   huntId: u32;
   clueNumber: u32;
+  timeTaken: u32;
 
   constructor() {
     this.timestamp = readMemory<u64>(0);
     this.numberOfTries = readMemory<u32>(8);
     this.huntId = readMemory<u32>(12);
     this.clueNumber = readMemory<u32>(16);
+    this.timeTaken = readMemory<u32>(20);
   }
 }
 
