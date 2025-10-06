@@ -13,7 +13,7 @@ export default function WalletWrapper({
       client={client}
       chains={[paseoAssetHub, baseSepolia, moonbaseAlpha, flowTestnet]}
       connectButton={{
-        label: text || "Connect Wallet",
+        label: text || "Get Started",
         className: className,
       }}
       appMetadata={{

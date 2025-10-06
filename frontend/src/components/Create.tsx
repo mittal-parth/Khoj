@@ -756,7 +756,7 @@ export function Create() {
                 className="w-full bg-gray-300 text-gray-500 py-2 rounded-md font-medium"
               >
                 {!account
-                  ? "Connect Wallet to Create Hunt"
+                  ? "Get Started to Create Hunt"
                   : !nftMetadataCID
                   ? "Upload NFT image to continue"
                   : "Fill in all fields to create hunt"}

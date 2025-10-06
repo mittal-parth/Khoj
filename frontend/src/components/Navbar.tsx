@@ -132,7 +132,7 @@ export function Navbar() {
               className="bg-yellow border-2 border-black text-black rounded-md
                 hover:bg-orange hover:border-orange px-3 py-2 text-xs md:text-sm font-semibold
                 transition-all duration-300 transform hover:scale-105"
-              text="Connect Wallet"
+              text="Get Started"
               withWalletAggregator={true}
             />
           </div>
