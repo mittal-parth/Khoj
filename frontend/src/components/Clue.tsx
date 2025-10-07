@@ -365,7 +365,7 @@ export function Clue() {
           </div>
         </div>
 
-        {huntId && <HuddleRoom huntId={huntId} />}
+        {huntId && huntData?.teamsEnabled && <HuddleRoom huntId={huntId} />}
       </div>
     </div>
   );
