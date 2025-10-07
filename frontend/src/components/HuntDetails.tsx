@@ -843,7 +843,7 @@ export function HuntDetails() {
           </div>
         </div>
 
-        {huntId && <HuddleRoom huntId={huntId} teamId={teamData?.teamId?.toString()} />}
+        {huntId && huntData?.teamsEnabled && <HuddleRoom huntId={huntId} teamId={teamData?.teamId?.toString()} />}
       </div>
     </div>
   );
