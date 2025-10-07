@@ -4,25 +4,33 @@ import { AccessToken, Role } from '@huddle01/server-sdk/auth';
  
 const recorder = new Recorder(process.env.HUDDLE_PROJECT_ID, process.env.HUDDLE_API_KEY);
 
-export const getRoomId = async () => {
+export const getRoomId = async (teamId) => {
   const api = new API({
     apiKey: process.env.HUDDLE_API_KEY,
   });
  
+  const roomMetadata = {
+    'title': 'Huddle01 Meeting',
+  };
+  
+  // Add teamId to metadata if provided for team-gated rooms
+  if (teamId) {
+    roomMetadata['teamId'] = teamId;
+  }
+  
   const newRoom = await api.createRoom({
     roomLocked: true,
-    metadata: JSON.stringify({
-      'title': 'Huddle01 Meeting',
-    })
+    metadata: JSON.stringify(roomMetadata)
   });
  
   return newRoom.roomId;
 };
 
 
-export async function getToken(roomId) {
+export async function getToken(roomId, teamId) {
     console.log(roomId);
-     const accessToken = new AccessToken({
+    
+    const tokenOptions = {
          apiKey: process.env.HUDDLE_API_KEY,
          roomId: roomId,
          //available roles: Role.HOST, Role.CO_HOST, Role.SPEAKER, Role.LISTENER, Role.GUEST - depending on the privileges you want to give to the user
@@ -41,9 +49,16 @@ export async function getToken(roomId) {
                canSendData: true,
                canUpdateMetadata: true,
              }
-       });
-       console.log(accessToken.toJwt());
-       return accessToken.toJwt();
+    };
+    
+    // Add teamId as a custom claim for token gating if provided
+    if (teamId) {
+      tokenOptions.metadata = { teamId: teamId };
+    }
+    
+    const accessToken = new AccessToken(tokenOptions);
+    console.log(accessToken.toJwt());
+    return accessToken.toJwt();
     
  }
 
