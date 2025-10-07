@@ -151,6 +151,42 @@ cd ../contracts && npm install  # Takes ~15 seconds
    ```
    Required variables: `VITE_PUBLIC_THIRDWEB_CLIENT_ID`, `VITE_PUBLIC_HUDDLE_PROJECT_ID`, `VITE_PUBLIC_TRUE_NETWORK_SECRET_KEY`, contract addresses for Base/Moonbase/AssetHub/Flow, `VITE_PUBLIC_BACKEND_URL`, `VITE_PUBLIC_GEMINI_API_KEY`
 
+### Khoj API keys setup
+
+-> Huddle01 API key and ProjectID:
+1.	Go to https://docs.huddle01.com/docs
+2.	Navigate to API’s and click on “Get an API key”
+3.	click on “Go to Huddle01 Developer Dashboard”
+4.	Signin with your credentials 
+5.	Choose a name for your hub and create one 
+6.	Lastly click on “Production ready API key” – It will give you the API key 
+7.	It will give you the project ID and the API key.
+
+-> Private key of metamask wallet:
+1.	Download the metamask extension from the chrome web store - https://chromewebstore.google.com/detail/metamask/nkbihfbeogaeaoehlefnkodbefgpgknn?hl=en&pli=1
+2.	Create an account
+3.	Navigate to account details and click on private key 
+4.	Copy your private key 
+Note: NEVER SHARE YOUR PRIVATE KEY OR PUSH IT ON GIT
+
+-> Pinata JWT and gateway:
+1.	Visit Pinata.cloud and login with your existing credentials or create a new account.
+2.	Go to developer tab and navigate to “API keys” section
+3.	Click API keys and create a new API key.
+4.	Enter a name for your API key and create a new API key.
+5.	From the IFPS section navigate to “Gateways” and copy.
+
+### Example .env file 
+HUDDLE_PROJECT_ID=your_project_id
+HUDDLE_API_KEY=your_api_key
+PRIVATE_KEY=your_wallet_private_key
+PINATA_JWT=your_pinata_jwt_token
+PINATA_GATEWAY=https://gateway.pinata.cloud
+HOST=localhost
+PORT=3000
+MAX_DISTANCE_IN_METERS=10000
+
+
 ### Running the Application
 
 After completing the setup, you can run each component:
