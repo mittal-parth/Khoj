@@ -20,7 +20,7 @@ import { HuddleRoomConfig, HuddleRoomProps } from "../types";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
-export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
+export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId, teamId }) => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isVideoMinimized, setIsVideoMinimized] = useState(false);
@@ -46,7 +46,12 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
   useEffect(() => {
     const initializeRoom = async () => {
       try {
-        const storedConfig = localStorage.getItem(`huntId_${huntId}`);
+        // Use teamId in storage key to create team-specific rooms
+        const storageKey = teamId 
+          ? `huntId_${huntId}_teamId_${teamId}` 
+          : `huntId_${huntId}`;
+        
+        const storedConfig = localStorage.getItem(storageKey);
         const huddleRoomConfig: HuddleRoomConfig | null = storedConfig
           ? JSON.parse(storedConfig)
           : null;
@@ -57,6 +62,7 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
             headers: {
               "Content-Type": "application/json",
             },
+            body: JSON.stringify({ teamId }), // Send teamId to backend
             cache: "no-cache",
           });
 
@@ -67,8 +73,8 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
           const data = await response.json();
           const roomId = data.roomId;
           const token = data.token;
-          const huddleRoomConfig = JSON.stringify({ roomId, token });
-          localStorage.setItem(`huntId_${huntId}`, huddleRoomConfig);
+          const huddleRoomConfig = JSON.stringify({ roomId, token, teamId });
+          localStorage.setItem(storageKey, huddleRoomConfig);
 
           setRoomId(roomId);
           setToken(token);
@@ -87,7 +93,7 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
       leaveRoom();
       setHasJoinedRoom(false);
     };
-  }, [huntId, leaveRoom]);
+  }, [huntId, teamId, leaveRoom]);
 
   const handleStreamStop = async () => {
     try {

@@ -6,10 +6,12 @@ export interface HuddleVideoProps {
 export interface HuddleRoomConfig {
   roomId: string;
   token: string;
+  teamId?: string;
 }
 
 export interface HuddleRoomProps {
   huntId: string;
+  teamId?: string;
 }
 
 export interface RemotePeerProps {
