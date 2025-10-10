@@ -1,8 +1,9 @@
 import { SiPolkadot, SiCoinbase } from "react-icons/si";
 import { Link } from "react-router-dom";
 import WalletWrapper from "@/components/WalletWrapper";
-import { SUPPORTED_CHAINS, getChainId } from "../lib/utils";
+import { SUPPORTED_CHAINS, getChainByNetwork, getNetworkByChainId } from "../lib/utils";
 import { useState, useEffect } from "react";
+import { useActiveWalletChain, useSwitchActiveWalletChain } from "thirdweb/react";
 
 // Mapping for user-friendly labels and icons
 const NETWORK_META: Record<string, { label: string; icon: JSX.Element }> = {
@@ -35,6 +36,10 @@ export function Navbar() {
   const [currentNetwork, setCurrentNetwork] = useState<string>(
     Object.keys(SUPPORTED_CHAINS)[0]
   );
+  
+  // Get the active wallet chain and switch function from thirdweb
+  const activeWalletChain = useActiveWalletChain();
+  const switchChain = useSwitchActiveWalletChain();
 
   // Initialize from localStorage
   useEffect(() => {
@@ -43,13 +48,29 @@ export function Navbar() {
       setCurrentNetwork(stored);
   }, []);
 
-  const handleNetworkChange = (network: string) => {
+  // Sync dropdown with wallet chain changes
+  useEffect(() => {
+    if (activeWalletChain) {
+      const networkName = getNetworkByChainId(activeWalletChain.id);
+      if (networkName !== currentNetwork) {
+        setCurrentNetwork(networkName);
+        localStorage.setItem("current_network", networkName);
+      }
+    }
+  }, [activeWalletChain, currentNetwork]);
+
+  const handleNetworkChange = async (network: string) => {
     setCurrentNetwork(network);
     localStorage.setItem("current_network", network);
 
     // Switch the network in the wallet
-    const chainId = getChainId(network);
-    console.log("chainId", chainId);
+    try {
+      const chain = getChainByNetwork(network);
+      await switchChain(chain);
+      console.log("Switched to chain:", chain.name);
+    } catch (error) {
+      console.error("Failed to switch chain:", error);
+    }
   };
 
   const renderSelectedNetwork = () => {
