@@ -1,7 +1,7 @@
 import { SiPolkadot, SiCoinbase } from "react-icons/si";
 import { Link } from "react-router-dom";
 import WalletWrapper from "@/components/WalletWrapper";
-import { SUPPORTED_CHAINS, getChainByNetwork } from "../lib/utils";
+import { SUPPORTED_CHAINS, getChainByNetwork, getNetworkByChainId } from "../lib/utils";
 import { useState, useEffect } from "react";
 import { useActiveWalletChain, useSwitchActiveWalletChain } from "thirdweb/react";
 
@@ -51,10 +51,7 @@ export function Navbar() {
   // Sync dropdown with wallet chain changes
   useEffect(() => {
     if (activeWalletChain) {
-      // Find the network name by comparing chain IDs
-      const networkName = Object.keys(SUPPORTED_CHAINS).find(
-        (key) => SUPPORTED_CHAINS[key as keyof typeof SUPPORTED_CHAINS].id === activeWalletChain.id
-      );
+      const networkName = getNetworkByChainId(activeWalletChain.id);
       
       if (networkName && networkName !== currentNetwork) {
         setCurrentNetwork(networkName);
