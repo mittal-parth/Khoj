@@ -104,13 +104,6 @@ export function Clue() {
   );
 
 
-  const getUserScore = async () => {
-    // Placeholder function - True Network score calculation removed
-    // TODO: Implement this correctly using sign protocol
-    console.log("User score calculation placeholder - True Network removed");
-    return 7; // Placeholder score
-  };
-
   const createAttestation = async () => {
     if (!teamData || !userWallet || !huntId || !clueId) {
       console.log("Missing required data for attestation:", {
@@ -232,12 +225,6 @@ export function Clue() {
             navigate(`/hunt/${huntId}/clue/${nextClueId}`);
           } else {
             // He has completed all clues
-            try {
-              const score = await getUserScore();
-              localStorage.setItem("trust_score", score.toString());
-            } catch (error) {
-              console.error("Failed to get user score:", error);
-            }
             navigate(`/hunt/${huntId}/end`);
           }
         }, 500);

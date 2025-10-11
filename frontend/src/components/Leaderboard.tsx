@@ -231,7 +231,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
           <div className="mt-4 pt-3 border-t border-gray-200 px-4 pb-4">
             <div className="text-xs text-gray-500 text-center">
               <p>
-                <strong>Scoring:</strong> Lower scores are better. Rankings update in real-time.
+                <strong>Scoring:</strong> Score = (Time in minutes) + (Attempts × 5). Lower scores rank higher. Rankings update in real-time.
               </p>
             </div>
           </div>

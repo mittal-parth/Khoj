@@ -5,13 +5,14 @@ import { Confetti } from "./ui/confetti";
 import { Button } from "./ui/button";
 import { Leaderboard } from "./Leaderboard";
 import { useEffect, useState } from "react";
-import { useReadContract } from "thirdweb/react";
+import { useReadContract, useActiveAccount } from "thirdweb/react";
 import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi";
 import { useNetworkState } from "../lib/utils";
 import { toast } from "sonner";
 import { client } from "../lib/client";
-import { Hunt } from "../types";
+import { Hunt, Team } from "../types";
+import { fetchTeamCombinedScore } from "../utils/leaderboardUtils";
 
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
@@ -22,6 +23,9 @@ export function HuntEnd() {
   const { huntId } = useParams();
   const [progress, setProgress] = useState(0);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [teamScore, setTeamScore] = useState<number | null>(null);
+  const [isLoadingScore, setIsLoadingScore] = useState(true);
+  const [hasShownConfetti, setHasShownConfetti] = useState(false);
 
   // Use the reactive network state hook
   const { contractAddress, currentChain } = useNetworkState();
@@ -34,6 +38,9 @@ export function HuntEnd() {
     abi: huntABI,
   });
 
+  const account = useActiveAccount();
+  const userWallet = account?.address;
+
   // Get hunt details from contract - now returns HuntInfo struct directly
   const { data: huntData } = useReadContract({
     contract,
@@ -41,16 +48,53 @@ export function HuntEnd() {
     params: [BigInt(huntId || 0)],
   }) as { data: Hunt | undefined };
 
-  const trustScore = localStorage.getItem("trust_score") || "6.5";
-  const score = parseInt(trustScore);
+  // Fetch team data to get teamId
+  const { data: teamData } = useReadContract({
+    contract,
+    method: "getTeam",
+    params: [BigInt(huntId || 0), userWallet as `0x${string}`],
+    queryOptions: { enabled: !!userWallet },
+  }) as { data: Team | undefined };
+
+  // Fetch team score from leaderboard
+  useEffect(() => {
+    const loadTeamScore = async () => {
+      if (!huntId || !teamData) {
+        setIsLoadingScore(false);
+        return;
+      }
+
+      try {
+        const score = await fetchTeamCombinedScore(huntId, teamData.teamId);
+        setTeamScore(score);
+        // Trigger confetti only once when score is successfully loaded
+        if (!hasShownConfetti) {
+          setHasShownConfetti(true);
+        }
+      } catch (error) {
+        console.error("Error fetching team score:", error);
+        setTeamScore(0.0);
+      } finally {
+        setIsLoadingScore(false);
+      }
+    };
+
+    loadTeamScore();
+  }, [huntId, teamData]);
+
+  // Use dynamic score or show loading state
+  const trustScore = teamScore !== null ? teamScore.toString() : "...";
+  const score = teamScore !== null ? teamScore : 0;
 
   useEffect(() => {
-    // Animate the progress from 0 to the actual score
-    const timer = setTimeout(() => {
-      setProgress(score);
-    }, 100);
-    return () => clearTimeout(timer);
-  }, [score]);
+    // Only animate progress when score is actually loaded (not loading)
+    if (!isLoadingScore && teamScore !== null) {
+      const timer = setTimeout(() => {
+        setProgress(score);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [score, isLoadingScore, teamScore]);
 
   if (!isValidHexAddress(contractAddress)) {
     toast.error("Invalid contract address format");
@@ -135,33 +179,35 @@ export function HuntEnd() {
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-5xl font-bold text-green">
-                      {trustScore}
+                      {isLoadingScore ? "Generating Score..." : trustScore}
                     </span>
                   </div>
                 </div>
               </div>
               <div className="text-sm text-gray-500 text-center mt-4">
-                by True Network
+                Score = (Time in minutes) + (Attempts × 5)
               </div>
             </div>
 
-            {/* Confetti Effect */}
-            <Confetti
-              style={{
-                position: "fixed",
-                width: "100%",
-                height: "100%",
-                top: 0,
-                left: 0,
-                zIndex: 0,
-                pointerEvents: "none",
-              }}
-              options={{
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 },
-              }}
-            />
+            {/* Confetti Effect - Only show when score is loaded and confetti hasn't been shown yet */}
+            {hasShownConfetti && !isLoadingScore && (
+              <Confetti
+                style={{
+                  position: "fixed",
+                  width: "100%",
+                  height: "100%",
+                  top: 0,
+                  left: 0,
+                  zIndex: 0,
+                  pointerEvents: "none",
+                }}
+                options={{
+                  particleCount: 100,
+                  spread: 70,
+                  origin: { y: 0.6 },
+                }}
+              />
+            )}
 
             {/* Success Message */}
             <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
