@@ -19,7 +19,7 @@ import { huntABI } from "../assets/hunt_abi";
 import { useNetworkState } from "../lib/utils";
 import { toast } from "sonner";
 import { client } from "../lib/client";
-import { Hunt } from "../types";
+import { Hunt, Team } from "../types";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 const MAX_ATTEMPTS = parseInt(import.meta.env.VITE_MAX_CLUE_ATTEMPTS || "6", 10);
@@ -63,6 +63,18 @@ export function Clue() {
   }) as { data: Hunt | undefined };
 
   const account = useActiveAccount();
+  const userWallet = account?.address;
+
+  // Fetch team data for attestation
+  const { data: teamData } = useReadContract({
+    contract,
+    method: "getTeam",
+    params: [BigInt(huntId || 0), userWallet as `0x${string}`],
+    queryOptions: { enabled: !!userWallet },
+  }) as { data: Team | undefined };
+
+  // Track attempts for attestation
+  const [attemptCount, setAttemptCount] = useState(0);
 
   useEffect(() => {
     setVerificationState("idle");
@@ -99,6 +111,50 @@ export function Clue() {
     return 7; // Placeholder score
   };
 
+  const createAttestation = async () => {
+    if (!teamData || !userWallet || !huntId || !clueId) {
+      console.log("Missing required data for attestation:", {
+        teamData: !!teamData,
+        userWallet: !!userWallet,
+        huntId: !!huntId,
+        clueId: !!clueId,
+      });
+      return;
+    }
+
+    try {
+      const attestationData = {
+        teamId: teamData.teamId.toString(),
+        huntId: parseInt(huntId),
+        clueIndex: parseInt(clueId),
+        teamLeaderAddress: teamData.owner,
+        solverAddress: userWallet,
+        attemptCount: attemptCount + 1, // +1 because this is the successful attempt
+      };
+
+      console.log("Creating attestation:", attestationData);
+
+      const response = await fetch(`${BACKEND_URL}/attest-clue`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(attestationData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Attestation failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Attestation created successfully:", result);
+      toast.success("Clue solve recorded!");
+    } catch (error) {
+      console.error("Failed to create attestation:", error);
+      toast.error("Failed to record clue solve");
+    }
+  };
+
   const handleVerify = async (e: React.FormEvent) => {
     console.log("handleVerify called");
     e.preventDefault();
@@ -118,10 +174,6 @@ export function Clue() {
     console.log("huntData: ", huntData);
     console.log("=== DEBUGGING REQUEST ===");
     console.log("Current location state:", location);
-    console.log("Location type:", typeof location);
-    console.log("Location keys:", Object.keys(location));
-    console.log("huntData:", huntData);
-    console.log("huntData.answers_blobId:", huntData.answers_blobId);
     console.log("clueId param:", clueId);
     console.log("Number(clueId):", Number(clueId));
 
@@ -157,15 +209,16 @@ export function Clue() {
       const data = await response.json();
       console.log("=== BACKEND RESPONSE ===");
       console.log("Full response data:", data);
-      console.log("Response data type:", typeof data);
-      console.log("Response data keys:", Object.keys(data));
       console.log("data.isClose:", data.isClose);
-      console.log("data.isClose type:", typeof data.isClose);
 
       const isCorrect = data.isClose;
 
       if (isCorrect == "true") {
-        // TODO: Create attestation when clue is solved
+        // Increment attempt count for attestation
+        setAttemptCount(prev => prev + 1);
+        
+        // Create attestation when clue is solved
+        await createAttestation();
 
         setVerificationState("success");
         setShowSuccessMessage(true);
@@ -191,6 +244,7 @@ export function Clue() {
       } else {
         setVerificationState("error");
         setAttempts((prev) => prev - 1);
+        setAttemptCount(prev => prev + 1); // Increment attempt count even for failed attempts
       }
     } catch (error) {
       console.error("Verification failed:", error);

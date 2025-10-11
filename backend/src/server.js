@@ -505,14 +505,6 @@ export async function run() {
     // { id: "clue2", lat: 12.7041, long: 77.1025 },
   ];
 
-  const clueId = "clue1";
-  const cLat = 12.9716; // Same as clue1 for a positive match
-  const cLong = 77.5946;
-
-  //check for negative match
-  const farLong = 10.5946; // Far away longitude for negative match
-  const farLat = 10.9716; // Far away latitude for negative match
-
   // Encrypt the clues array
   const { ciphertext, dataToEncryptHash } = await encryptRunServerMode(
     JSON.stringify(clues),
@@ -529,15 +521,6 @@ export async function run() {
     // clueId
   );
   console.log("Positive Match Result:", result);
-
-  // Test Lit clue verify function with negative match
-  // const clueResult = await decryptRunServerMode(
-  //   "bb41eeeedb7789a3482cc74a1ac8d84effb2a508b753948130e3958c39004120",
-  //   "ptDRCbVUal2Y37ATZ7da3OSRb9OXLL08YQ2osDpIEMyOP9lFrGPf+bf1a4AfDWZZljZfjZ0d0EMZ9yvcgCcnCFaRycj70c8zQkI2bmGmAaQgNMFGV6+3PUWQ2uxnj1RLZcGZnjAhfKyvPNAkaZqkU+4C",
-  //   userAddress
-
-  // );
-  // console.log("Clues Result:", clueResult);
 }
 
 app.post("/encrypt", async (req, res) => {
@@ -891,7 +874,7 @@ app.post("/generate-riddles", async (req, res) => {
 });
 
 // Attest clue solve endpoint
-app.post("/api/attest-clue", async (req, res) => {
+app.post("/attest-clue", async (req, res) => {
   try {
     const { teamId, huntId, clueIndex, teamLeaderAddress, solverAddress, attemptCount } = req.body;
 
@@ -935,7 +918,7 @@ app.post("/api/attest-clue", async (req, res) => {
 });
 
 // Leaderboard endpoint
-app.get("/api/leaderboard/:huntId", async (req, res) => {
+app.get("/leaderboard/:huntId", async (req, res) => {
   try {
     const huntId = parseInt(req.params.huntId);
     

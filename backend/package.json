@@ -6,8 +6,8 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "huddle": "node huddle.js"
+    "start": "node src/server.js",
+    "huddle": "node src/services/huddle.js"
   },
   "author": "",
   "license": "ISC",

@@ -1,100 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import { FaTrophy, FaMedal } from "react-icons/fa";
 import { BsTrophyFill } from "react-icons/bs";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
-// Mock leaderboard data based on the structure from leaderboard.js
-const mockLeaderboardData = [
-  {
-    rank: 1,
-    teamId: 1,
-    teamLeaderAddress: "0x1234567890abcdef1234567890abcdef12345678",
-    totalTime: 1200, // 20 minutes in seconds
-    totalAttempts: 8,
-    cluesCompleted: 5,
-    solvers: ["0x1234567890abcdef1234567890abcdef12345678", "0xabcdef1234567890abcdef1234567890abcdef12"],
-    solverCount: 2,
-    combinedScore: 28.0, // (1200/60) + (8*5) = 20 + 40 = 60, but optimized scoring
-  },
-  {
-    rank: 2,
-    teamId: 2,
-    teamLeaderAddress: "0xabcdef1234567890abcdef1234567890abcdef12",
-    totalTime: 1500, // 25 minutes
-    totalAttempts: 12,
-    cluesCompleted: 5,
-    solvers: ["0xabcdef1234567890abcdef1234567890abcdef12"],
-    solverCount: 1,
-    combinedScore: 45.0,
-  },
-  {
-    rank: 3,
-    teamId: 3,
-    teamLeaderAddress: "0x9876543210fedcba9876543210fedcba98765432",
-    totalTime: 1800, // 30 minutes
-    totalAttempts: 15,
-    cluesCompleted: 4,
-    solvers: ["0x9876543210fedcba9876543210fedcba98765432", "0xfedcba9876543210fedcba9876543210fedcba98", "0x1111111111111111111111111111111111111111"],
-    solverCount: 3,
-    combinedScore: 60.0,
-  },
-  {
-    rank: 4,
-    teamId: 4,
-    teamLeaderAddress: "0x2222222222222222222222222222222222222222",
-    totalTime: 2100, // 35 minutes
-    totalAttempts: 18,
-    cluesCompleted: 4,
-    solvers: ["0x2222222222222222222222222222222222222222", "0x3333333333333333333333333333333333333333"],
-    solverCount: 2,
-    combinedScore: 75.0,
-  },
-  {
-    rank: 5,
-    teamId: 5,
-    teamLeaderAddress: "0x4444444444444444444444444444444444444444",
-    totalTime: 2400, // 40 minutes
-    totalAttempts: 20,
-    cluesCompleted: 3,
-    solvers: ["0x4444444444444444444444444444444444444444"],
-    solverCount: 1,
-    combinedScore: 100.0,
-  },
-  {
-    rank: 6,
-    teamId: 6,
-    teamLeaderAddress: "0x5555555555555555555555555555555555555555",
-    totalTime: 2700, // 45 minutes
-    totalAttempts: 22,
-    cluesCompleted: 3,
-    solvers: ["0x5555555555555555555555555555555555555555", "0x6666666666666666666666666666666666666666"],
-    solverCount: 2,
-    combinedScore: 125.0,
-  },
-  {
-    rank: 7,
-    teamId: 7,
-    teamLeaderAddress: "0x7777777777777777777777777777777777777777",
-    totalTime: 3000, // 50 minutes
-    totalAttempts: 25,
-    cluesCompleted: 2,
-    solvers: ["0x7777777777777777777777777777777777777777"],
-    solverCount: 1,
-    combinedScore: 150.0,
-  },
-  {
-    rank: 8,
-    teamId: 8,
-    teamLeaderAddress: "0x8888888888888888888888888888888888888888",
-    totalTime: 3300, // 55 minutes
-    totalAttempts: 28,
-    cluesCompleted: 2,
-    solvers: ["0x8888888888888888888888888888888888888888", "0x9999999999999999999999999999999999999999", "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"],
-    solverCount: 3,
-    combinedScore: 175.0,
-  },
-];
+const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
+
+// Leaderboard data interface based on backend response
+interface LeaderboardEntry {
+  rank: number;
+  teamId: number;
+  teamLeaderAddress: string;
+  totalTime: number;
+  totalAttempts: number;
+  cluesCompleted: number;
+  solvers: string[];
+  solverCount: number;
+  combinedScore: number;
+}
+
 
 interface LeaderboardProps {
   huntId?: string;
@@ -105,6 +30,45 @@ interface LeaderboardProps {
 
 export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardProps) {
   const [hoveredTeam, setHoveredTeam] = useState<number | null>(null);
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch leaderboard data when component opens
+  useEffect(() => {
+    if (isOpen && huntId) {
+      fetchLeaderboard();
+    }
+  }, [isOpen, huntId]);
+
+  const fetchLeaderboard = async () => {
+    if (!huntId) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await fetch(`${BACKEND_URL}/leaderboard/${huntId}`);
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch leaderboard: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.leaderboard && Array.isArray(data.leaderboard)) {
+        setLeaderboardData(data.leaderboard);
+      } else {
+        setLeaderboardData([]);
+      }
+    } catch (err) {
+      console.error("Error fetching leaderboard:", err);
+      setError(err instanceof Error ? err.message : "Failed to fetch leaderboard");
+      toast.error("Failed to load leaderboard");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -135,9 +99,24 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-lg w-[90vw] !bg-white rounded-xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-center text-green">
+          <DialogTitle className="text-xl font-bold text-center text-green flex items-center justify-center">
             <BsTrophyFill className="inline-block mr-2" />
             Leaderboard
+            <button 
+              onClick={fetchLeaderboard}
+              disabled={isLoading}
+              className="ml-4 p-1 rounded hover:bg-gray-100 disabled:opacity-50"
+              title="Refresh leaderboard"
+            >
+              <svg 
+                className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
           </DialogTitle>
         </DialogHeader>
 
@@ -162,9 +141,35 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
           {/* Scrollable Content */}
           <div className="overflow-y-auto flex-1 px-2">
             <div className="space-y-2">
+              {/* Loading State */}
+              {isLoading && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-gray-500">Loading leaderboard...</div>
+                </div>
+              )}
+
+              {/* Error State */}
+              {error && !isLoading && (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="text-red-500 mb-2">Failed to load leaderboard</div>
+                  <button 
+                    onClick={fetchLeaderboard}
+                    className="text-blue-500 hover:text-blue-700 underline"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
+
+              {/* Empty State */}
+              {!isLoading && !error && leaderboardData.length === 0 && (
+                <div className="flex items-center justify-center py-8">
+                  <div className="text-gray-500">No teams have solved any clues yet</div>
+                </div>
+              )}
 
               {/* Leaderboard Entries */}
-              {mockLeaderboardData.map((team) => (
+              {!isLoading && !error && leaderboardData.map((team) => (
                 <div
                   key={team.teamId}
                   className={cn(
