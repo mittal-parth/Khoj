@@ -1,6 +1,9 @@
 import { useParams } from "react-router-dom";
 import { FaCoins, FaRegClock, FaCheckCircle } from "react-icons/fa";
+import { BsBarChartFill } from "react-icons/bs";
 import { Confetti } from "./ui/confetti";
+import { Button } from "./ui/button";
+import { Leaderboard } from "./Leaderboard";
 import { useEffect, useState } from "react";
 import { useReadContract } from "thirdweb/react";
 import { getContract } from "thirdweb";
@@ -18,6 +21,7 @@ function isValidHexAddress(address: string): address is `0x${string}` {
 export function HuntEnd() {
   const { huntId } = useParams();
   const [progress, setProgress] = useState(0);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
 
   // Use the reactive network state hook
   const { contractAddress, currentChain } = useNetworkState();
@@ -73,7 +77,16 @@ export function HuntEnd() {
         <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black">
           {/* Header */}
           <div className="bg-green p-6 text-white">
-            <h1 className="text-xl font-bold my-4">{huntInfo.title}</h1>
+            <div className="flex items-center justify-between">
+              <h1 className="text-xl font-bold my-4">{huntInfo.title}</h1>
+              <Button
+                onClick={() => setIsLeaderboardOpen(true)}
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 p-2"
+                size="sm"
+              >
+                <BsBarChartFill className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
 
           {/* Success Content */}
@@ -180,6 +193,14 @@ export function HuntEnd() {
             </Button> */}
           </div>
         </div>
+        
+        {/* Leaderboard Modal */}
+        <Leaderboard 
+          huntId={huntId} 
+          huntName={huntData?.name}
+          isOpen={isLeaderboardOpen} 
+          onClose={() => setIsLeaderboardOpen(false)} 
+        />
       </div>
     </div>
   );

@@ -6,12 +6,13 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "huddle": "node huddle.js"
+    "start": "node src/server.js",
+    "huddle": "node src/services/huddle.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@ethsign/sp-sdk": "^1.2.7",
     "@google/genai": "^1.21.0",
     "@huddle01/server-sdk": "^2.5.4",
     "@lit-protocol/auth-helpers": "^6.4.10",
