@@ -11,9 +11,6 @@ import {
   BsArrowRepeat,
   BsBarChartFill,
 } from "react-icons/bs";
-import { config, getTrueNetworkInstance } from "../../true-network/true.config";
-import { huntAttestationSchema } from "@/schemas/huntSchema";
-import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
 import { HuddleRoom } from "./HuddleRoom";
 import { Leaderboard } from "./Leaderboard";
 import { useReadContract, useActiveAccount } from "thirdweb/react";
@@ -66,20 +63,9 @@ export function Clue() {
   }) as { data: Hunt | undefined };
 
   const account = useActiveAccount();
-  const userWallet = account?.address;
 
   useEffect(() => {
     setVerificationState("idle");
-
-    // Progress validation: prevent skipping ahead
-    const progressKey = `hunt_progress_${huntId}`;
-    let progress = JSON.parse(localStorage.getItem(progressKey) || "[]");
-    // Only allow access to the next unsolved clue or any previous clue
-    const allowedClue = (progress.length || 0) + 1;
-    if (currentClue > allowedClue) {
-      navigate(`/hunt/${huntId}/clue/${allowedClue}`);
-      return;
-    }
 
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -105,41 +91,12 @@ export function Clue() {
     localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
   );
 
-  const createHuntAttestation = async () => {
-    try {
-      const api = await getTrueNetworkInstance();
-      if (!userWallet) {
-        toast.error("Wallet not connected");
-        setIsSubmitting(false);
-        return;
-      }
-      const output = await huntAttestationSchema.attest(api, userWallet, {
-        huntId: parseInt(huntId || "0"),
-        timestamp: Math.floor(Date.now() / 1000), // Current timestamp in seconds
-        clueNumber: parseInt(clueId || "0"),
-        numberOfTries: attempts,
-      });
-      console.log("Attestation created:", output);
-      await api.network.disconnect();
-    } catch (error) {
-      setIsSubmitting(false);
-      console.error("Failed to create attestation:", error);
-    }
-  };
 
   const getUserScore = async () => {
-    const api = await getTrueNetworkInstance();
-    if (!userWallet) {
-      throw new Error("Wallet not connected");
-    }
-    const score = await runAlgo(
-      api.network,
-      config.issuer.hash,
-      api.account,
-      userWallet,
-      config.algorithm?.id ?? 0
-    );
-    return score;
+    // Placeholder function - True Network score calculation removed
+    // TODO: Implement this correctly using sign protocol
+    console.log("User score calculation placeholder - True Network removed");
+    return 7; // Placeholder score
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -208,15 +165,7 @@ export function Clue() {
       const isCorrect = data.isClose;
 
       if (isCorrect == "true") {
-        // Update progress in localStorage
-        const progressKey = `hunt_progress_${huntId}`;
-        let progress = JSON.parse(localStorage.getItem(progressKey) || "[]");
-        if (!progress.includes(currentClue)) {
-          progress.push(currentClue);
-          localStorage.setItem(progressKey, JSON.stringify(progress));
-        }
-        // Create attestation when clue is solved
-        await createHuntAttestation();
+        // TODO: Create attestation when clue is solved
 
         setVerificationState("success");
         setShowSuccessMessage(true);
