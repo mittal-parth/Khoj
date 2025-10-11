@@ -9,11 +9,13 @@ import {
   BsCheckCircle,
   BsXCircle,
   BsArrowRepeat,
+  BsBarChartFill,
 } from "react-icons/bs";
 import { config, getTrueNetworkInstance } from "../../true-network/true.config";
 import { huntAttestationSchema } from "@/schemas/huntSchema";
 import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
 import { HuddleRoom } from "./HuddleRoom";
+import { Leaderboard } from "./Leaderboard";
 import { useReadContract, useActiveAccount } from "thirdweb/react";
 import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi";
@@ -43,6 +45,7 @@ export function Clue() {
     "idle" | "verifying" | "success" | "error"
   >("idle");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
 
   // Use the reactive network state hook
   const { contractAddress, currentChain } = useNetworkState();
@@ -312,8 +315,17 @@ export function Clue() {
           <div className="bg-green p-6 text-white">
             <div className="flex items-center justify-between my-4">
               <h1 className="text-xl font-bold flex-1 break-words">{huntData?.name}</h1>
-              <div className="text-2xl font-bold flex-shrink-0">
-                # {currentClue}/{currentClueData?.length}
+              <div className="flex items-center space-x-4">
+                <div className="text-2xl font-bold flex-shrink-0">
+                  # {currentClue}/{currentClueData?.length}
+                </div>
+                <Button
+                  onClick={() => setIsLeaderboardOpen(true)}
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30 p-2"
+                  size="sm"
+                >
+                  <BsBarChartFill className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           </div>
@@ -366,6 +378,14 @@ export function Clue() {
         </div>
 
         {huntId && <HuddleRoom huntId={huntId} />}
+        
+        {/* Leaderboard Modal */}
+        <Leaderboard 
+          huntId={huntId} 
+          huntName={huntData?.name}
+          isOpen={isLeaderboardOpen} 
+          onClose={() => setIsLeaderboardOpen(false)} 
+        />
       </div>
     </div>
   );
