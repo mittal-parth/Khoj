@@ -31,7 +31,19 @@ export const getChainByNetwork = (networkName: string) => {
     flow: flowTestnet,
   };
   
-  return chainMap[networkName] || paseoAssetHub; // Default to paseoAssetHub
+  return chainMap[networkName] || moonbaseAlpha; // Default to moonbaseAlpha
+};
+
+// Helper function to get network name by chain ID
+export const getNetworkByChainId = (chainId: number): string | undefined => {
+  const chainIdMap: Record<number, string> = {
+    [baseSepolia.id]: "base",
+    [moonbaseAlpha.id]: "moonbeam",
+    [paseoAssetHub.id]: "assetHub",
+    [flowTestnet.id]: "flow",
+  };
+  
+  return chainIdMap[chainId];
 };
 
 // Helper function to check if network supports contracts (base and moonbeam do)
