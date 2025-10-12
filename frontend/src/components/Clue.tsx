@@ -105,9 +105,8 @@ export function Clue() {
 
 
   const createAttestation = async () => {
-    if (!teamData || !userWallet || !huntId || !clueId) {
+    if (!userWallet || !huntId || !clueId) {
       console.log("Missing required data for attestation:", {
-        teamData: !!teamData,
         userWallet: !!userWallet,
         huntId: !!huntId,
         clueId: !!clueId,
@@ -117,10 +116,10 @@ export function Clue() {
 
     try {
       const attestationData = {
-        teamId: teamData.teamId.toString(),
+        teamIdentifier: teamData?.teamId?.toString() || userWallet.toString(), // user wallet is the team id for solo users
         huntId: parseInt(huntId),
         clueIndex: parseInt(clueId),
-        teamLeaderAddress: teamData.owner,
+        teamLeaderAddress: teamData?.owner || userWallet.toString(), // Use userWallet as fallback for solo users
         solverAddress: userWallet,
         attemptCount: attemptCount + 1, // +1 because this is the successful attempt
       };

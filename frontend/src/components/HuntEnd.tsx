@@ -65,7 +65,7 @@ export function HuntEnd() {
       }
 
       try {
-        const score = await fetchTeamCombinedScore(huntId, teamData.teamId);
+        const score = await fetchTeamCombinedScore(huntId, teamData?.teamId || userWallet as `0x${string}`);
         setTeamScore(score);
         // Trigger confetti only once when score is successfully loaded
         if (!hasShownConfetti) {

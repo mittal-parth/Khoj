@@ -10,7 +10,7 @@ const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 // Leaderboard data interface based on backend response
 interface LeaderboardEntry {
   rank: number;
-  teamId: number;
+  teamIdentifier: string;
   teamLeaderAddress: string;
   totalTime: number;
   totalAttempts: number;
@@ -29,7 +29,7 @@ interface LeaderboardProps {
 }
 
 export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardProps) {
-  const [hoveredTeam, setHoveredTeam] = useState<number | null>(null);
+  const [hoveredTeam, setHoveredTeam] = useState<string | null>(null);
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -171,7 +171,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
               {/* Leaderboard Entries */}
               {!isLoading && !error && leaderboardData.map((team) => (
                 <div
-                  key={team.teamId}
+                  key={team.teamIdentifier}
                   className={cn(
                     "grid grid-cols-4 gap-2 p-3 rounded-lg border transition-colors hover:bg-gray-50",
                     team.rank === 1 ? "!border-yellow-400" :
@@ -193,12 +193,15 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                     <div className="min-w-0 flex-1 relative">
                       <div 
                         className="font-medium text-sm text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
-                        onClick={() => setHoveredTeam(hoveredTeam === team.teamId ? null : team.teamId)}
+                        onClick={() => setHoveredTeam(hoveredTeam === team.teamIdentifier ? null : team.teamIdentifier)}
                         title="Click to see team leader address"
                       >
-                        Team #{team.teamId}
+                        {team.teamIdentifier.startsWith('0x') ? 
+                          `Solo: ${formatAddress(team.teamIdentifier)}` : 
+                          `Team #${team.teamIdentifier}`
+                        }
                       </div>
-                      {hoveredTeam === team.teamId && (
+                      {hoveredTeam === team.teamIdentifier && (
                         <div className="absolute top-full left-0 mt-1 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-20 whitespace-nowrap">
                           Leader: {formatAddress(team.teamLeaderAddress)}
                           <div className="absolute -top-1 left-2 w-2 h-2 bg-gray-800 transform rotate-45"></div>

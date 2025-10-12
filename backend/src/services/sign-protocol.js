@@ -26,7 +26,7 @@ const CLUE_SCHEMA = {
   name: "Khoj Clue Solve",
   description: "Attestation for when a team solves a clue in a Khoj hunt",
   data: [
-    { name: "teamId", type: "uint256" },
+    { name: "teamIdentifier", type: "string" },
     { name: "huntId", type: "uint256" },
     { name: "clueIndex", type: "uint256" },
     { name: "teamLeaderAddress", type: "address" },
@@ -36,7 +36,7 @@ const CLUE_SCHEMA = {
   ],
 };
 
-const schemaId = process.env.SIGN_SCHEMA_ID;
+let schemaId = process.env.SIGN_SCHEMA_ID;
 
 /**
  * Create the schema for clue solving attestations
@@ -61,7 +61,7 @@ export async function createClueSchema() {
 
 /**
  * Create an attestation when a team solves a clue
- * @param {number} teamId - The team ID
+ * @param {string} teamIdentifier - The team identifier (teamId for teams, wallet address for solo users)
  * @param {number} huntId - The hunt ID
  * @param {number} clueIndex - The clue index (1-based)
  * @param {string} teamLeaderAddress - The team leader's wallet address
@@ -70,7 +70,7 @@ export async function createClueSchema() {
  * @returns {Promise<Object>} The attestation result
  */
 export async function attestClueSolved(
-  teamId,
+  teamIdentifier,
   huntId,
   clueIndex,
   teamLeaderAddress,
@@ -86,7 +86,7 @@ export async function attestClueSolved(
     const indexingValue = getIndexingValue(huntId);
 
     console.log("Creating attestation for clue solve:", {
-      teamId,
+      teamIdentifier,
       huntId,
       clueIndex,
       teamLeaderAddress,
@@ -97,7 +97,7 @@ export async function attestClueSolved(
     });
 
     const attestationData = {
-      teamId: teamId.toString(),
+      teamIdentifier: teamIdentifier.toString(),
       huntId: huntId.toString(),
       clueIndex: clueIndex.toString(),
       teamLeaderAddress,
@@ -141,10 +141,8 @@ export async function queryAttestationsForHunt(huntId) {
       indexingValue: getIndexingValue(huntId)
     });
 
-    console.log(`Query result:`, result);
-
     if (!result) {
-      console.log(`No attestations found for hunt ${huntId}`);
+      console.warn(`No attestations found for hunt ${huntId}`);
       return [];
     }
 

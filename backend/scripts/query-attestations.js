@@ -18,7 +18,7 @@ console.log(attestations);
 for (const attestation of attestations.rows) {
   const data = JSON.parse(attestation.data);
   console.log(data);
-  console.log(data.teamId);
+  console.log(data.teamIdentifier);
   console.log(data.huntId);
   console.log(data.clueIndex);
   console.log(data.teamLeaderAddress);

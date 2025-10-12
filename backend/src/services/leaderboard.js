@@ -20,16 +20,16 @@ export function calculateLeaderboard(attestations) {
     return [];
   }
 
-  // Group attestations by teamId
+  // Group attestations by teamIdentifier
   const teamData = new Map();
   
   for (const attestation of attestations) {
     const data = JSON.parse(attestation.data);
-    const teamId = parseInt(data.teamId);
+    const teamIdentifier = data.teamIdentifier;
     
-    if (!teamData.has(teamId)) {
-      teamData.set(teamId, {
-        teamId,
+    if (!teamData.has(teamIdentifier)) {
+      teamData.set(teamIdentifier, {
+        teamIdentifier,
         teamLeaderAddress: data.teamLeaderAddress,
         clues: [],
         totalAttempts: 0,
@@ -37,7 +37,7 @@ export function calculateLeaderboard(attestations) {
       });
     }
     
-    const team = teamData.get(teamId);
+    const team = teamData.get(teamIdentifier);
     team.clues.push({
       clueIndex: parseInt(data.clueIndex),
       timestamp: parseInt(data.timestamp),
@@ -51,7 +51,7 @@ export function calculateLeaderboard(attestations) {
   // Calculate metrics and create leaderboard
   const leaderboard = [];
   
-  for (const [teamId, team] of teamData) {
+  for (const [teamIdentifier, team] of teamData) {
     // Sort clues by timestamp to get first and last solve times
     team.clues.sort((a, b) => a.timestamp - b.timestamp);
     
@@ -68,7 +68,7 @@ export function calculateLeaderboard(attestations) {
     const combinedScore = (totalTime / 60) + (team.totalAttempts * 5);
     
     leaderboard.push({
-      teamId,
+      teamIdentifier,
       teamLeaderAddress: team.teamLeaderAddress,
       totalTime,
       totalAttempts: team.totalAttempts,

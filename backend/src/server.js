@@ -879,14 +879,17 @@ app.post("/attest-clue", async (req, res) => {
     const { teamId, huntId, clueIndex, teamLeaderAddress, solverAddress, attemptCount } = req.body;
 
     // Validate required fields
-    if (!teamId || !huntId || !clueIndex || !teamLeaderAddress || !solverAddress || attemptCount === undefined) {
+    if (!huntId || !clueIndex || !teamLeaderAddress || !solverAddress || attemptCount === undefined) {
       return res.status(400).json({
-        error: "Missing required fields: teamId, huntId, clueIndex, teamLeaderAddress, solverAddress, attemptCount",
+        error: "Missing required fields: huntId, clueIndex, teamLeaderAddress, solverAddress, attemptCount",
       });
     }
 
+    // Use teamId if provided, otherwise use solverAddress as teamIdentifier for solo users
+    const teamIdentifier = teamId || solverAddress;
+
     console.log("Creating attestation for clue solve:", {
-      teamId,
+      teamIdentifier,
       huntId,
       clueIndex,
       teamLeaderAddress,
@@ -895,7 +898,7 @@ app.post("/attest-clue", async (req, res) => {
     });
 
     const attestationInfo = await attestClueSolved(
-      teamId,
+      teamIdentifier,
       huntId,
       clueIndex,
       teamLeaderAddress,
