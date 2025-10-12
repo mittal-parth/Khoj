@@ -5,7 +5,10 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch",
+    "test:leaderboard": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/leaderboard.test.js",
+    "test:sign-protocol": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/sign-protocol.test.js",
     "start": "node src/server.js",
     "huddle": "node src/services/huddle.js"
   },
@@ -30,6 +33,7 @@
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+    "jest": "^30.2.0",
     "prettier": "3.6.2"
   }
 }

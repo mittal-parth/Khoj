@@ -876,17 +876,14 @@ app.post("/generate-riddles", async (req, res) => {
 // Attest clue solve endpoint
 app.post("/attest-clue", async (req, res) => {
   try {
-    const { teamId, huntId, clueIndex, teamLeaderAddress, solverAddress, attemptCount } = req.body;
+    const { teamIdentifier, huntId, clueIndex, teamLeaderAddress, solverAddress, attemptCount } = req.body;
 
     // Validate required fields
-    if (!huntId || !clueIndex || !teamLeaderAddress || !solverAddress || attemptCount === undefined) {
+    if (!huntId || !clueIndex || !teamLeaderAddress || !teamIdentifier || !solverAddress || attemptCount === undefined) {
       return res.status(400).json({
-        error: "Missing required fields: huntId, clueIndex, teamLeaderAddress, solverAddress, attemptCount",
+        error: "Missing required fields: huntId, clueIndex, teamLeaderAddress, teamIdentifier, solverAddress, attemptCount",
       });
     }
-
-    // Use teamId if provided, otherwise use solverAddress as teamIdentifier for solo users
-    const teamIdentifier = teamId || solverAddress;
 
     console.log("Creating attestation for clue solve:", {
       teamIdentifier,
