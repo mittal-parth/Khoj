@@ -1,6 +1,6 @@
 import express from "express";
 // Import our patch for Lit Protocol
-import { getWebCrypto } from './lit-protocol-patch.js';
+import { getWebCrypto } from './services/lit-protocol-patch.js';
 
 // Make sure crypto is available in the global scope
 if (typeof global.crypto === 'undefined' || !global.crypto.subtle) {
@@ -39,16 +39,18 @@ import { LitNetwork } from "@lit-protocol/constants";
 import dotenv from "dotenv";
 import cors from "cors";
 
-import { readObject, storeString, storeFile } from "./pinata.js";
+import { readObject, storeString, storeFile } from "./services/pinata.js";
 import multer from "multer";
 import {
   getRoomId,
   getToken,
   startStreaming,
   stopStreaming,
-} from "./huddle.js";
+} from "./services/huddle.js";
 import { GoogleGenAI, Type } from "@google/genai";
-import { withRetry } from "./retry-utils.js";
+import { withRetry } from "./utils/retry-utils.js";
+import { attestClueSolved, queryAttestationsForHunt } from "./services/sign-protocol.js";
+import { calculateLeaderboardForHunt } from "./services/leaderboard.js";
 
 const MAX_DISTANCE_IN_METERS = parseFloat(process.env.MAX_DISTANCE_IN_METERS) || 60;
 
@@ -503,14 +505,6 @@ export async function run() {
     // { id: "clue2", lat: 12.7041, long: 77.1025 },
   ];
 
-  const clueId = "clue1";
-  const cLat = 12.9716; // Same as clue1 for a positive match
-  const cLong = 77.5946;
-
-  //check for negative match
-  const farLong = 10.5946; // Far away longitude for negative match
-  const farLat = 10.9716; // Far away latitude for negative match
-
   // Encrypt the clues array
   const { ciphertext, dataToEncryptHash } = await encryptRunServerMode(
     JSON.stringify(clues),
@@ -527,15 +521,6 @@ export async function run() {
     // clueId
   );
   console.log("Positive Match Result:", result);
-
-  // Test Lit clue verify function with negative match
-  // const clueResult = await decryptRunServerMode(
-  //   "bb41eeeedb7789a3482cc74a1ac8d84effb2a508b753948130e3958c39004120",
-  //   "ptDRCbVUal2Y37ATZ7da3OSRb9OXLL08YQ2osDpIEMyOP9lFrGPf+bf1a4AfDWZZljZfjZ0d0EMZ9yvcgCcnCFaRycj70c8zQkI2bmGmAaQgNMFGV6+3PUWQ2uxnj1RLZcGZnjAhfKyvPNAkaZqkU+4C",
-  //   userAddress
-
-  // );
-  // console.log("Clues Result:", clueResult);
 }
 
 app.post("/encrypt", async (req, res) => {
@@ -883,6 +868,90 @@ app.post("/generate-riddles", async (req, res) => {
     console.error("Error generating riddles:", error);
     res.status(500).json({
       error: "Failed to generate riddles",
+      message: error.message,
+    });
+  }
+});
+
+// Attest clue solve endpoint
+app.post("/attest-clue", async (req, res) => {
+  try {
+    const { teamIdentifier, huntId, clueIndex, teamLeaderAddress, solverAddress, attemptCount } = req.body;
+
+    // Validate required fields
+    if (!huntId || !clueIndex || !teamLeaderAddress || !teamIdentifier || !solverAddress || attemptCount === undefined) {
+      return res.status(400).json({
+        error: "Missing required fields: huntId, clueIndex, teamLeaderAddress, teamIdentifier, solverAddress, attemptCount",
+      });
+    }
+
+    console.log("Creating attestation for clue solve:", {
+      teamIdentifier,
+      huntId,
+      clueIndex,
+      teamLeaderAddress,
+      solverAddress,
+      attemptCount,
+    });
+
+    const attestationInfo = await attestClueSolved(
+      teamIdentifier,
+      huntId,
+      clueIndex,
+      teamLeaderAddress,
+      solverAddress,
+      attemptCount
+    );
+
+    res.json({
+      success: true,
+      attestationId: attestationInfo.attestationId,
+      message: "Attestation created successfully",
+    });
+  } catch (error) {
+    console.error("Error creating attestation:", error);
+    res.status(500).json({
+      error: "Failed to create attestation",
+      message: error.message,
+    });
+  }
+});
+
+// Leaderboard endpoint
+app.get("/leaderboard/:huntId", async (req, res) => {
+  try {
+    const huntId = parseInt(req.params.huntId);
+    
+    if (isNaN(huntId)) {
+      return res.status(400).json({
+        error: "Invalid hunt ID",
+      });
+    }
+
+    console.log(`Fetching leaderboard for hunt ${huntId}...`);
+
+    // Query all attestations for this hunt
+    const attestations = await queryAttestationsForHunt(huntId);
+    
+    if (attestations.length === 0) {
+      return res.json({
+        huntId,
+        leaderboard: [],
+        message: "No teams have solved any clues yet"
+      });
+    }
+
+    // Use the extracted leaderboard calculation function
+    const rankedLeaderboard = calculateLeaderboardForHunt(attestations, huntId);
+
+    res.json({
+      huntId,
+      leaderboard: rankedLeaderboard,
+    });
+  } catch (error) {
+    console.error("Error fetching leaderboard:", error);
+    res.status(500).json({
+      error: "Failed to fetch leaderboard",
       message: error.message,
     });
   }

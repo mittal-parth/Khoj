@@ -143,7 +143,20 @@ cd ../contracts && npm install  # Takes ~15 seconds
    ```bash
    cd backend && cp .env.example .env
    ```
-   Required variables: `HUDDLE_PROJECT_ID`, `HUDDLE_API_KEY`, `PRIVATE_KEY`, `PINATA_JWT`, `PINATA_GATEWAY`, `HOST`, `PORT`, `MAX_DISTANCE_IN_METERS`
+   Required variables:
+   - `HUDDLE_PROJECT_ID` - Project ID of your Huddle Project to have video calls
+   - `HUDDLE_API_KEY` - Huddle API Key
+   - `PRIVATE_KEY` - Private key of the funded wallet for Lit Protocol usage
+   - `PINATA_JWT` - Pinata JWT token for IPFS file storage
+   - `PINATA_GATEWAY` - Pinata gateway URL for accessing stored files
+   - `HOST` - Server host address
+   - `PORT` - Server port number
+   - `MAX_DISTANCE_IN_METERS` - Adjustable proximity radius for clue verification
+   - `GEMINI_API_KEY` - API Key from GCP to create AI generated clues
+   - `SIGN_WALLET_PUBLIC_ADDRESS` - Wallet address of the funded wallet for signing attestations. Create using create-wallet.js if not
+   - `SIGN_WALLET_PRIVATE_KEY` - Private key of funded wallet for signing attestations
+   - `SIGN_API_KEY` - API key from https://developer.sign.global/
+   - `SIGN_SCHEMA_ID` - Schema ID (generated after first schema creation)
 
 2. **Frontend environment**:
    ```bash

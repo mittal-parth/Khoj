@@ -29,6 +29,8 @@ import { Hunt, Team } from "../types";
 import { buttonStyles } from "../lib/styles.ts";
 import { withRetry, MAX_RETRIES } from "@/utils/retryUtils";
 import { FiRefreshCw } from "react-icons/fi";
+import { BsBarChartFill } from "react-icons/bs";
+import { Leaderboard } from "./Leaderboard";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -54,6 +56,9 @@ export function HuntDetails() {
   
   // Join team loading state
   const [isJoiningTeam, setIsJoiningTeam] = useState(false);
+  
+  // Leaderboard state
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   
   
   // Video reference for QR scanner
@@ -559,10 +564,17 @@ export function HuntDetails() {
         <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] justify-between relative flex flex-col">
         <div>
           <div className="bg-green p-6 text-white">
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-between">
               <h1 className="text-2xl font-bold text-white">
                 {huntData?.name || 'Hunt Details'}
               </h1>
+              <Button
+                onClick={() => setIsLeaderboardOpen(true)}
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 p-2"
+                size="sm"
+              >
+                <BsBarChartFill className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 
@@ -844,6 +856,14 @@ export function HuntDetails() {
         </div>
 
         {huntId && <HuddleRoom huntId={huntId} />}
+        
+        {/* Leaderboard Modal */}
+        <Leaderboard 
+          huntId={huntId} 
+          huntName={huntData?.name}
+          isOpen={isLeaderboardOpen} 
+          onClose={() => setIsLeaderboardOpen(false)} 
+        />
       </div>
     </div>
   );

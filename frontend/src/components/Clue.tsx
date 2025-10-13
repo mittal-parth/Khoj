@@ -9,18 +9,17 @@ import {
   BsCheckCircle,
   BsXCircle,
   BsArrowRepeat,
+  BsBarChartFill,
 } from "react-icons/bs";
-import { config, getTrueNetworkInstance } from "../../true-network/true.config";
-import { huntAttestationSchema } from "@/schemas/huntSchema";
-import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
 import { HuddleRoom } from "./HuddleRoom";
+import { Leaderboard } from "./Leaderboard";
 import { useReadContract, useActiveAccount } from "thirdweb/react";
 import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi";
 import { useNetworkState } from "../lib/utils";
 import { toast } from "sonner";
 import { client } from "../lib/client";
-import { Hunt } from "../types";
+import { Hunt, Team } from "../types";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 const MAX_ATTEMPTS = parseInt(import.meta.env.VITE_MAX_CLUE_ATTEMPTS || "6", 10);
@@ -43,6 +42,7 @@ export function Clue() {
     "idle" | "verifying" | "success" | "error"
   >("idle");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
 
   // Use the reactive network state hook
   const { contractAddress, currentChain } = useNetworkState();
@@ -65,18 +65,19 @@ export function Clue() {
   const account = useActiveAccount();
   const userWallet = account?.address;
 
+  // Fetch team data for attestation
+  const { data: teamData } = useReadContract({
+    contract,
+    method: "getTeam",
+    params: [BigInt(huntId || 0), userWallet as `0x${string}`],
+    queryOptions: { enabled: !!userWallet },
+  }) as { data: Team | undefined };
+
+  // Track attempts for attestation
+  const [attemptCount, setAttemptCount] = useState(0);
+
   useEffect(() => {
     setVerificationState("idle");
-
-    // Progress validation: prevent skipping ahead
-    const progressKey = `hunt_progress_${huntId}`;
-    let progress = JSON.parse(localStorage.getItem(progressKey) || "[]");
-    // Only allow access to the next unsolved clue or any previous clue
-    const allowedClue = (progress.length || 0) + 1;
-    if (currentClue > allowedClue) {
-      navigate(`/hunt/${huntId}/clue/${allowedClue}`);
-      return;
-    }
 
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -102,41 +103,48 @@ export function Clue() {
     localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
   );
 
-  const createHuntAttestation = async () => {
-    try {
-      const api = await getTrueNetworkInstance();
-      if (!userWallet) {
-        toast.error("Wallet not connected");
-        setIsSubmitting(false);
-        return;
-      }
-      const output = await huntAttestationSchema.attest(api, userWallet, {
-        huntId: parseInt(huntId || "0"),
-        timestamp: Math.floor(Date.now() / 1000), // Current timestamp in seconds
-        clueNumber: parseInt(clueId || "0"),
-        numberOfTries: attempts,
-      });
-      console.log("Attestation created:", output);
-      await api.network.disconnect();
-    } catch (error) {
-      setIsSubmitting(false);
-      console.error("Failed to create attestation:", error);
-    }
-  };
 
-  const getUserScore = async () => {
-    const api = await getTrueNetworkInstance();
-    if (!userWallet) {
-      throw new Error("Wallet not connected");
+  const createAttestation = async () => {
+    if (!userWallet || !huntId || !clueId) {
+      console.log("Missing required data for attestation:", {
+        userWallet: !!userWallet,
+        huntId: !!huntId,
+        clueId: !!clueId,
+      });
+      return;
     }
-    const score = await runAlgo(
-      api.network,
-      config.issuer.hash,
-      api.account,
-      userWallet,
-      config.algorithm?.id ?? 0
-    );
-    return score;
+
+    try {
+      const attestationData = {
+        teamIdentifier: teamData?.teamId?.toString() || userWallet.toString(), // team id for teams, user wallet for solo users
+        huntId: parseInt(huntId),
+        clueIndex: parseInt(clueId),
+        teamLeaderAddress: teamData?.owner || userWallet.toString(), // Use userWallet as fallback for solo users
+        solverAddress: userWallet,
+        attemptCount: attemptCount + 1, // +1 because this is the successful attempt
+      };
+
+      console.log("Creating attestation:", attestationData);
+
+      const response = await fetch(`${BACKEND_URL}/attest-clue`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(attestationData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Attestation failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Attestation created successfully:", result);
+      toast.success("Clue solve recorded!");
+    } catch (error) {
+      console.error("Failed to create attestation:", error);
+      toast.error("Failed to record clue solve");
+    }
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -158,10 +166,6 @@ export function Clue() {
     console.log("huntData: ", huntData);
     console.log("=== DEBUGGING REQUEST ===");
     console.log("Current location state:", location);
-    console.log("Location type:", typeof location);
-    console.log("Location keys:", Object.keys(location));
-    console.log("huntData:", huntData);
-    console.log("huntData.answers_blobId:", huntData.answers_blobId);
     console.log("clueId param:", clueId);
     console.log("Number(clueId):", Number(clueId));
 
@@ -197,23 +201,16 @@ export function Clue() {
       const data = await response.json();
       console.log("=== BACKEND RESPONSE ===");
       console.log("Full response data:", data);
-      console.log("Response data type:", typeof data);
-      console.log("Response data keys:", Object.keys(data));
       console.log("data.isClose:", data.isClose);
-      console.log("data.isClose type:", typeof data.isClose);
 
       const isCorrect = data.isClose;
 
       if (isCorrect == "true") {
-        // Update progress in localStorage
-        const progressKey = `hunt_progress_${huntId}`;
-        let progress = JSON.parse(localStorage.getItem(progressKey) || "[]");
-        if (!progress.includes(currentClue)) {
-          progress.push(currentClue);
-          localStorage.setItem(progressKey, JSON.stringify(progress));
-        }
+        // Increment attempt count for attestation
+        setAttemptCount(prev => prev + 1);
+        
         // Create attestation when clue is solved
-        await createHuntAttestation();
+        await createAttestation();
 
         setVerificationState("success");
         setShowSuccessMessage(true);
@@ -227,18 +224,13 @@ export function Clue() {
             navigate(`/hunt/${huntId}/clue/${nextClueId}`);
           } else {
             // He has completed all clues
-            try {
-              const score = await getUserScore();
-              localStorage.setItem("trust_score", score.toString());
-            } catch (error) {
-              console.error("Failed to get user score:", error);
-            }
             navigate(`/hunt/${huntId}/end`);
           }
         }, 500);
       } else {
         setVerificationState("error");
         setAttempts((prev) => prev - 1);
+        setAttemptCount(prev => prev + 1); // Increment attempt count even for failed attempts
       }
     } catch (error) {
       console.error("Verification failed:", error);
@@ -312,8 +304,17 @@ export function Clue() {
           <div className="bg-green p-6 text-white">
             <div className="flex items-center justify-between my-4">
               <h1 className="text-xl font-bold flex-1 break-words">{huntData?.name}</h1>
-              <div className="text-2xl font-bold flex-shrink-0">
-                # {currentClue}/{currentClueData?.length}
+              <div className="flex items-center space-x-4">
+                <div className="text-2xl font-bold flex-shrink-0">
+                  # {currentClue}/{currentClueData?.length}
+                </div>
+                <Button
+                  onClick={() => setIsLeaderboardOpen(true)}
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30 p-2"
+                  size="sm"
+                >
+                  <BsBarChartFill className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           </div>
@@ -366,6 +367,14 @@ export function Clue() {
         </div>
 
         {huntId && <HuddleRoom huntId={huntId} />}
+        
+        {/* Leaderboard Modal */}
+        <Leaderboard 
+          huntId={huntId} 
+          huntName={huntData?.name}
+          isOpen={isLeaderboardOpen} 
+          onClose={() => setIsLeaderboardOpen(false)} 
+        />
       </div>
     </div>
   );
