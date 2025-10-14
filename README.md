@@ -90,8 +90,7 @@ Khoj (meaning "search" or "discovery" in Hindi) is a geo-location based treasure
 - **Framework**: React 18 with TypeScript, Vite build system
 - **Web3**: Thirdweb SDK v5, Wagmi, Viem for blockchain interactions
 - **UI**: TailwindCSS, Radix UI primitives, Framer Motion animations
-- **Key dependencies**: True Network SDK, Huddle01 React, Leaflet maps, React Router
-- **True Network SDK** (`/frontend/acm`): True Network attestation algorithms
+- **Key dependencies**: Huddle01 React, Leaflet maps, React Router
 
 ### Backend (`/backend`)
 - **Framework**: Express.js with ES modules
@@ -107,7 +106,6 @@ Khoj (meaning "search" or "discovery" in Hindi) is a geo-location based treasure
 
 ```
 /frontend/          - React/TypeScript Web3 frontend
-  /acm/            - AssemblyScript True Network component  
   /src/components/ - React components (Clue.tsx, HuntDetails.tsx key files)
   package.json     - Frontend dependencies and scripts
 /backend/          - Express.js Web3 backend
@@ -162,7 +160,7 @@ cd ../contracts && npm install  # Takes ~15 seconds
    ```bash
    cd frontend && cp .env.example .env  
    ```
-   Required variables: `VITE_PUBLIC_THIRDWEB_CLIENT_ID`, `VITE_PUBLIC_HUDDLE_PROJECT_ID`, `VITE_PUBLIC_TRUE_NETWORK_SECRET_KEY`, contract addresses for Base/Moonbase/AssetHub/Flow, `VITE_PUBLIC_BACKEND_URL`, `VITE_PUBLIC_GEMINI_API_KEY`
+   Required variables: `VITE_PUBLIC_THIRDWEB_CLIENT_ID`, `VITE_PUBLIC_HUDDLE_PROJECT_ID`, contract addresses for Base/Moonbase/AssetHub/Flow, `VITE_PUBLIC_BACKEND_URL`, `VITE_PUBLIC_GEMINI_API_KEY`
 
 ### Running the Application
 
