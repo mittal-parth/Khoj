@@ -31,6 +31,10 @@ import { withRetry, MAX_RETRIES } from "@/utils/retryUtils";
 import { FiRefreshCw } from "react-icons/fi";
 import { BsBarChartFill } from "react-icons/bs";
 import { Leaderboard } from "./Leaderboard";
+import { 
+  checkProgressAndNavigate, 
+  getTeamIdentifier 
+} from "../utils/progressUtils";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -214,6 +218,37 @@ export function HuntDetails() {
       return;
     }
 
+    // Check if user has existing progress
+    try {
+      const teamIdentifier = getTeamIdentifier(teamData, userWallet);
+      
+      // Get total clues from localStorage (set when clues are decrypted)
+      const currentClueData = JSON.parse(
+        localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
+      );
+      const totalClues = currentClueData.length;
+
+      // If we have clues data, check progress
+      if (totalClues > 0) {
+        const shouldContinue = await checkProgressAndNavigate(
+          parseInt(huntId || "0"),
+          teamIdentifier,
+          totalClues,
+          navigate
+        );
+        
+        if (shouldContinue) {
+          // User was redirected, stop here
+          setIsStartingHunt(false);
+          return;
+        }
+        // If shouldContinue is false, continue with normal flow (first time starting)
+      }
+    } catch (error) {
+      console.error("Error checking progress, continuing with normal flow:", error);
+      // Continue with normal flow if progress check fails
+    }
+
     const decryptCluesOperation = async (): Promise<void> => {
       console.log("Hunt ID:", huntId, huntData.clues_blobId, huntData.answers_blobId);
       
@@ -243,8 +278,6 @@ export function HuntDetails() {
 
       const data = await response.text();
       const clues = JSON.parse(data);
-
-      console.log("Clues: ", clues);
 
       await fetchRiddles(clues, huntId || "0", huntData?.theme || "");
       navigate(`/hunt/${huntId}/clue/1`);

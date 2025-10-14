@@ -917,6 +917,92 @@ app.post("/attest-clue", async (req, res) => {
   }
 });
 
+// Progress check endpoint
+app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
+  try {
+    const huntId = parseInt(req.params.huntId);
+    const teamIdentifier = req.params.teamIdentifier;
+    const totalClues = parseInt(req.query.totalClues) || null;
+    
+    if (isNaN(huntId)) {
+      return res.status(400).json({
+        error: "Invalid hunt ID",
+      });
+    }
+
+    if (!teamIdentifier) {
+      return res.status(400).json({
+        error: "Team identifier is required",
+      });
+    }
+
+    console.log(`Checking progress for hunt ${huntId}, team ${teamIdentifier}, totalClues: ${totalClues}...`);
+
+    // Get all attestations for this hunt
+    const attestations = await queryAttestationsForHunt(huntId);
+    
+    if (!attestations || attestations.length === 0) {
+      return res.json({
+        huntId,
+        teamIdentifier,
+        latestClueSolved: 0,
+        totalClues: totalClues || 0,
+        isHuntCompleted: false,
+        nextClue: 1,
+        message: "No progress found for this hunt"
+      });
+    }
+
+    // Filter attestations for this team
+    const teamAttestations = attestations.filter(attestation => {
+      const data = JSON.parse(attestation.data);
+      return data.teamIdentifier === teamIdentifier;
+    });
+
+    if (teamAttestations.length === 0) {
+      return res.json({
+        huntId,
+        teamIdentifier,
+        latestClueSolved: 0,
+        totalClues: totalClues || 0,
+        isHuntCompleted: false,
+        nextClue: 1,
+        message: "No progress found for this team"
+      });
+    }
+
+    // Find the highest clue index solved by this team
+    let latestClueSolved = 0;
+    
+    for (const attestation of teamAttestations) {
+      const data = JSON.parse(attestation.data);
+      const clueIndex = parseInt(data.clueIndex);
+      if (clueIndex > latestClueSolved) {
+        latestClueSolved = clueIndex;
+      }
+    }
+
+    // Use totalClues from frontend
+    const finalTotalClues = totalClues || 0; 
+    const isHuntCompleted = latestClueSolved >= finalTotalClues;
+
+    res.json({
+      huntId,
+      teamIdentifier,
+      latestClueSolved,
+      totalClues: finalTotalClues,
+      isHuntCompleted,
+      nextClue: isHuntCompleted ? null : latestClueSolved + 1
+    });
+  } catch (error) {
+    console.error("Error checking progress:", error);
+    res.status(500).json({
+      error: "Failed to check progress",
+      message: error.message,
+    });
+  }
+});
+
 // Leaderboard endpoint
 app.get("/leaderboard/:huntId", async (req, res) => {
   try {

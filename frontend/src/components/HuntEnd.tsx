@@ -179,7 +179,7 @@ export function HuntEnd() {
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
                     <span className="text-5xl font-bold text-green">
-                      {isLoadingScore ? "Generating Score..." : trustScore}
+                      {isLoadingScore ? "..." : trustScore}
                     </span>
                   </div>
                 </div>
