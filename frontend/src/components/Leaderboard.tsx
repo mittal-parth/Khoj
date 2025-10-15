@@ -4,10 +4,8 @@ import { FaTrophy, FaMedal } from 'react-icons/fa';
 import { BsTrophyFill } from 'react-icons/bs';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { useEnsName } from 'thirdweb/react';
-import { client } from '@/lib/client';
-import { resolveL2Name, BASENAME_RESOLVER_ADDRESS } from 'thirdweb/extensions/ens';
-import { base } from 'thirdweb/chains';
+import { formatAddress } from '@/utils/leaderboardUtils';
+import { TeamIdentifierDisplay } from './TeamIdentifierDisplay';
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -29,45 +27,6 @@ interface LeaderboardProps {
   huntName?: string;
   isOpen: boolean;
   onClose: () => void;
-}
-
-const formatAddress = (address: string) => {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-};
-
-const isSoloParticipant = (identifier: string) => identifier.startsWith('0x');
-
-function TeamIdentifierDisplay({ teamIdentifier }: { teamIdentifier: string }) {
-  const [basename, setBasename] = useState<string | null>(null);
-  const isSolo = isSoloParticipant(teamIdentifier);
-
-  // Try ENS first
-  const { data: ensName } = useEnsName({
-    client,
-    address: isSolo ? teamIdentifier : undefined,
-  });
-
-  // Try Basename if no ENS found
-  useEffect(() => {
-    if (!isSolo || ensName) return;
-
-    resolveL2Name({
-      client,
-      address: teamIdentifier as `0x${string}`,
-      resolverAddress: BASENAME_RESOLVER_ADDRESS,
-      resolverChain: base,
-    })
-      .then(setBasename)
-      .catch(() => setBasename(null));
-  }, [isSolo, ensName, teamIdentifier]);
-
-  if (!isSolo) {
-    return <>Team #{teamIdentifier}</>;
-  }
-
-  const displayName = ensName || basename || formatAddress(teamIdentifier);
-
-  return <>Solo: {displayName}</>;
 }
 
 export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardProps) {
