@@ -42,6 +42,7 @@ export interface Team {
   huntId: bigint;
   teamId: bigint;
   owner: string;
+  name?: string;
   maxMembers: bigint;
   memberCount: bigint;
   members?: string[];

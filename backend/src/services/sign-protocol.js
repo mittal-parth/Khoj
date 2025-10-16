@@ -27,6 +27,7 @@ const CLUE_SCHEMA = {
   description: "Attestation for when a team solves a clue in a Khoj hunt",
   data: [
     { name: "teamIdentifier", type: "string" },
+    { name: "teamName", type: "string" },
     { name: "huntId", type: "uint256" },
     { name: "clueIndex", type: "uint256" },
     { name: "teamLeaderAddress", type: "address" },
@@ -75,7 +76,8 @@ export async function attestClueSolved(
   clueIndex,
   teamLeaderAddress,
   solverAddress,
-  attemptCount
+  attemptCount,
+  teamName
 ) {
   try {
     if (!schemaId) {
@@ -87,6 +89,7 @@ export async function attestClueSolved(
 
     console.log("Creating attestation for clue solve:", {
       teamIdentifier,
+      teamName,
       huntId,
       clueIndex,
       teamLeaderAddress,
@@ -98,6 +101,7 @@ export async function attestClueSolved(
 
     const attestationData = {
       teamIdentifier: teamIdentifier.toString(),
+      teamName: (teamName || (teamIdentifier?.startsWith?.('0x') ? teamIdentifier : '')).toString(),
       huntId: huntId.toString(),
       clueIndex: clueIndex.toString(),
       teamLeaderAddress,

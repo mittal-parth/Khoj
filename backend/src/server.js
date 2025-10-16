@@ -876,7 +876,7 @@ app.post("/generate-riddles", async (req, res) => {
 // Attest clue solve endpoint
 app.post("/attest-clue", async (req, res) => {
   try {
-    const { teamIdentifier, huntId, clueIndex, teamLeaderAddress, solverAddress, attemptCount } = req.body;
+    const { teamIdentifier, huntId, clueIndex, teamLeaderAddress, solverAddress, attemptCount, teamName } = req.body;
 
     // Validate required fields
     if (!huntId || !clueIndex || !teamLeaderAddress || !teamIdentifier || !solverAddress || attemptCount === undefined) {
@@ -887,6 +887,7 @@ app.post("/attest-clue", async (req, res) => {
 
     console.log("Creating attestation for clue solve:", {
       teamIdentifier,
+      teamName,
       huntId,
       clueIndex,
       teamLeaderAddress,
@@ -900,7 +901,8 @@ app.post("/attest-clue", async (req, res) => {
       clueIndex,
       teamLeaderAddress,
       solverAddress,
-      attemptCount
+      attemptCount,
+      teamName
     );
 
     res.json({

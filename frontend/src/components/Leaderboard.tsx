@@ -11,6 +11,7 @@ const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 interface LeaderboardEntry {
   rank: number;
   teamIdentifier: string;
+  teamName?: string;
   teamLeaderAddress: string;
   totalTime: number;
   totalAttempts: number;
@@ -192,14 +193,15 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                   <div className="flex items-center space-x-2">
                     <div className="min-w-0 flex-1 relative">
                       <div 
-                        className="font-medium text-sm text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                        className="font-medium text-sm text-gray-900 cursor-pointer hover:text-blue-600 transition-colors truncate"
                         onClick={() => setHoveredTeam(hoveredTeam === team.teamIdentifier ? null : team.teamIdentifier)}
-                        title="Click to see team leader address"
+                        title={team.teamName || (team.teamIdentifier.startsWith('0x') ? `Solo: ${formatAddress(team.teamIdentifier)}` : `Team #${team.teamIdentifier}`)}
                       >
-                        {team.teamIdentifier.startsWith('0x') ? 
-                          `Solo: ${formatAddress(team.teamIdentifier)}` : 
-                          `Team #${team.teamIdentifier}`
-                        }
+                        {team.teamName 
+                          ? team.teamName.length > 18 ? `${team.teamName.slice(0, 15)}...` : team.teamName
+                          : (team.teamIdentifier.startsWith('0x') 
+                              ? `Solo: ${formatAddress(team.teamIdentifier)}` 
+                              : `Team #${team.teamIdentifier}`)}
                       </div>
                       {hoveredTeam === team.teamIdentifier && (
                         <div className="absolute top-full left-0 mt-1 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-20 whitespace-nowrap">
