@@ -10,6 +10,7 @@ contract Khoj {
     struct Team {
         address owner;
         uint256 huntId;
+        string name;
         uint256 memberCount;
         mapping(address => bool) members;
         // We need both: mapping for O(1) membership checks, array for returning member list
@@ -59,6 +60,7 @@ contract Khoj {
         uint256 huntId;
         uint256 teamId;
         address owner;
+        string name;
         uint256 maxMembers;
         uint256 memberCount;
         address[] members;
@@ -171,7 +173,7 @@ contract Khoj {
     }
 
     /* Create a new team for a specific hunt */
-    function createTeam(uint256 _huntId) public returns (uint256 teamId) {
+    function createTeam(uint256 _huntId, string memory _teamName) public returns (uint256 teamId) {
         // 1. Check if user is not in any team of the hunt
         _checkNotInAnyTeam(_huntId);
 
@@ -185,6 +187,7 @@ contract Khoj {
         Team storage newTeam = teams[teamId];
         newTeam.owner = msg.sender;
         newTeam.huntId = _huntId;
+        newTeam.name = _teamName;
         newTeam.memberCount = 1;
         newTeam.members[msg.sender] = true;
         newTeam.membersList.push(msg.sender);
@@ -370,6 +373,7 @@ contract Khoj {
             huntId: _huntId,
             teamId: userTeamId,
             owner: team.owner,
+            name: team.name,
             maxMembers: hunt.maxTeamSize,
             memberCount: team.memberCount,
             members: team.membersList

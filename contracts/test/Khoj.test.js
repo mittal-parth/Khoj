@@ -46,7 +46,7 @@ describe("Khoj Contract", function () {
       );
 
       // Create a team and verify the team ID by checking the team data
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "Team Alpha");
       
       // Verify the team was created with ID 1 by checking team data
       const team = await khoj.getTeam(0, owner.address);
@@ -381,7 +381,7 @@ describe("Khoj Contract", function () {
     });
 
     it("Should create team successfully", async function () {
-      const tx = await khoj.createTeam(0);
+      const tx = await khoj.createTeam(0, "Team Alpha");
       await expect(tx)
         .to.emit(khoj, "TeamCreated")
         .withArgs(1, owner.address, 4);
@@ -425,31 +425,32 @@ describe("Khoj Contract", function () {
       );
 
       await expect(
-        khoj.createTeam(1) // Hunt ID 1
+        khoj.createTeam(1, "No Teams Hunt") // Hunt ID 1
       ).to.be.revertedWith("Teams disabled for this hunt");
     });
 
     it("Should reject team creation for non-existent hunt", async function () {
       await expect(
-        khoj.createTeam(999)
+        khoj.createTeam(999, "Ghost Team")
       ).to.be.revertedWith("Hunt does not exist");
     });
 
     it("Should reject creating multiple teams by same user", async function () {
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "Team Alpha");
       
       await expect(
-        khoj.createTeam(0)
+        khoj.createTeam(0, "Duplicate Team")
       ).to.be.revertedWith("Already in another team of the hunt");
     });
 
     it("Should set correct team data", async function () {
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "Team Alpha");
       
       const team = await khoj.getTeam(0, owner.address);
       expect(team.huntId).to.equal(0);
       expect(team.teamId).to.equal(1);
       expect(team.owner).to.equal(owner.address);
+      expect(team.name).to.equal("Team Alpha");
       expect(team.maxMembers).to.equal(4);
       expect(team.memberCount).to.equal(1);
       expect(team.members[0]).to.equal(owner.address);
@@ -458,12 +459,12 @@ describe("Khoj Contract", function () {
     it("Should increment team count in hunt", async function () {
       expect(await khoj.getHuntTeamCount(0)).to.equal(0);
       
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "Team Alpha");
       expect(await khoj.getHuntTeamCount(0)).to.equal(1);
     });
 
     it("Should add team to hunt's team list", async function () {
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "Team Alpha");
       
       const teamIds = await khoj.getHuntTeams(0);
       expect(teamIds.length).to.equal(1);
@@ -492,7 +493,7 @@ describe("Khoj Contract", function () {
         "ipfs://metadata123"
       );
 
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "Team Alpha");
       huntId = 0;
       teamId = 1; // First team will have ID 1
       
@@ -546,7 +547,7 @@ describe("Khoj Contract", function () {
 
     it("Should reject joining if in another team of same hunt", async function () {
       // Create another team
-      await khoj.connect(addr2).createTeam(0);
+      await khoj.connect(addr2).createTeam(0, "Team Beta");
       
       // Get the team ID for addr2
       const teamId2 = await khoj.getParticipantTeamId(0, addr2.address);
@@ -586,7 +587,7 @@ describe("Khoj Contract", function () {
         "ipfs://metadata123"
       );
 
-      await khoj.createTeam(1); // Hunt ID 1
+      await khoj.createTeam(1, "Small Team"); // Hunt ID 1
       
       // Get the team ID for the owner
       const smallTeamId = await khoj.getParticipantTeamId(1, owner.address);
@@ -963,7 +964,7 @@ describe("Khoj Contract", function () {
         "ipfs://metadata123"
       );
 
-      await khoj.createTeam(0); // Hunt ID 0 (this will be the first hunt in this test)
+      await khoj.createTeam(0, "Max Team"); // Hunt ID 0 (this will be the first hunt in this test)
       
       // Get the team ID for the owner
       const teamId = await khoj.getParticipantTeamId(0, owner.address);
@@ -1005,9 +1006,9 @@ describe("Khoj Contract", function () {
       );
 
       // Create multiple teams
-      await khoj.createTeam(0); // Hunt ID 0 (this will be the first hunt in this test)
-      await khoj.connect(addr1).createTeam(0);
-      await khoj.connect(addr2).createTeam(0);
+      await khoj.createTeam(0, "Team One"); // Hunt ID 0 (this will be the first hunt in this test)
+      await khoj.connect(addr1).createTeam(0, "Team Two");
+      await khoj.connect(addr2).createTeam(0, "Team Three");
       
       // Get team IDs using getter functions
       const team1 = await khoj.getParticipantTeamId(0, owner.address);

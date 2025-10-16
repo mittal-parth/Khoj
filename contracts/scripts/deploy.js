@@ -49,7 +49,7 @@ async function main() {
   console.log("\nSample hunt created with ID:", huntId.toString());
 
   // Create a sample team
-  const teamId = await khoj.createTeam(huntId);
+  const teamId = await khoj.createTeam(huntId, "Sample Team");
   console.log("Sample team created with ID:", teamId.toString());
 
   console.log("\nDeployment completed successfully!");

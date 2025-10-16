@@ -31,6 +31,7 @@ export function calculateLeaderboard(attestations) {
       teamData.set(teamIdentifier, {
         teamIdentifier,
         teamLeaderAddress: data.teamLeaderAddress,
+        teamName: data.teamName || undefined,
         clues: [],
         totalAttempts: 0,
         solvers: new Set(),
@@ -70,6 +71,7 @@ export function calculateLeaderboard(attestations) {
     leaderboard.push({
       teamIdentifier,
       teamLeaderAddress: team.teamLeaderAddress,
+      teamName: team.teamName,
       totalTime,
       totalAttempts: team.totalAttempts,
       cluesCompleted,

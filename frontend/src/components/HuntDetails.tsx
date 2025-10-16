@@ -59,6 +59,8 @@ export function HuntDetails() {
   
   // Leaderboard state
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  // Team name input
+  const [teamName, setTeamName] = useState<string>("");
   
   
   // Video reference for QR scanner
@@ -408,7 +410,7 @@ export function HuntDetails() {
           client,
         },
         method: "createTeam",
-        params: [BigInt(huntId || 0)],
+        params: [BigInt(huntId || 0), teamName],
       });
 
       console.log("📤 Sending transaction...");
@@ -634,7 +636,12 @@ export function HuntDetails() {
                     </span>
                   </div>
                     <div className="border-t-2 border-gray-200 pt-4">
-                      <h3 className="text-lg font-semibold mb-4">Your Team</h3>
+                      <h3 className="text-lg font-semibold mb-1">Your Team</h3>
+                      {teamData?.name && (
+                        <div className="text-sm text-gray-700 mb-3">
+                          <span className="font-medium">Name:</span> {teamData.name}
+                        </div>
+                      )}
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Members:</span>
@@ -713,11 +720,23 @@ export function HuntDetails() {
                       <div className="flex flex-col items-center justify-center space-y-4">
                         {!inviteCode ? (
                           <div className="w-full max-w-md">
-                            <p className="text-sm mb-4">Create a new team and generate an invite code for your teammates.</p>
+                            <p className="text-sm mb-2">Create a new team and generate an invite code for your teammates.</p>
+                            <input
+                              type="text"
+                              value={teamName}
+                              onChange={(e) => {
+                                const value = e.target.value.slice(0, 20);
+                                setTeamName(value);
+                              }}
+                              placeholder="Enter team name (max 20 chars)"
+                              className="w-full p-2 border rounded mb-3"
+                              maxLength={20}
+                              required
+                            />
                             <Button 
                               className="w-full" 
                               onClick={generateMultiUseInvite}
-                              disabled={isGeneratingInvite}
+                              disabled={isGeneratingInvite || teamName.trim().length === 0}
                             >
                               {isGeneratingInvite ? "Creating Team..." : "Create Team & Generate Invite"}
                             </Button>

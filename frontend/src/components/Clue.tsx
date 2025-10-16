@@ -117,6 +117,7 @@ export function Clue() {
     try {
       const attestationData = {
         teamIdentifier: teamData?.teamId?.toString() || userWallet.toString(), // team id for teams, user wallet for solo users
+        teamName: teamData?.name || (teamData?.teamId ? undefined : userWallet.toString()),
         huntId: parseInt(huntId),
         clueIndex: parseInt(clueId),
         teamLeaderAddress: teamData?.owner || userWallet.toString(), // Use userWallet as fallback for solo users
