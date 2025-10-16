@@ -2,670 +2,670 @@ export const huntABI = [
   {
     inputs: [
       {
-        internalType: "address",
-        name: "_nftContractAddress",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "_nftContractAddress",
+        "type": "address"
+      }
     ],
-    stateMutability: "nonpayable",
-    type: "constructor",
+    "stateMutability": "nonpayable",
+    "type": "constructor"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "uint256",
-        name: "huntId",
-        type: "uint256",
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "huntId",
+        "type": "uint256"
       },
       {
-        indexed: false,
-        internalType: "string",
-        name: "name",
-        type: "string",
+        "indexed": false,
+        "internalType": "string",
+        "name": "name",
+        "type": "string"
       },
       {
-        indexed: false,
-        internalType: "string",
-        name: "description",
-        type: "string",
+        "indexed": false,
+        "internalType": "string",
+        "name": "description",
+        "type": "string"
       },
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "startTime",
-        type: "uint256",
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "startTime",
+        "type": "uint256"
       },
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "endTime",
-        type: "uint256",
-      },
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "endTime",
+        "type": "uint256"
+      }
     ],
-    name: "HuntCreated",
-    type: "event",
+    "name": "HuntCreated",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "uint256",
-        name: "huntId",
-        type: "uint256",
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "huntId",
+        "type": "uint256"
       },
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "endedAt",
-        type: "uint256",
-      },
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "endedAt",
+        "type": "uint256"
+      }
     ],
-    name: "HuntEnded",
-    type: "event",
+    "name": "HuntEnded",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "uint256",
-        name: "huntId",
-        type: "uint256",
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "huntId",
+        "type": "uint256"
       },
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "startedAt",
-        type: "uint256",
-      },
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "startedAt",
+        "type": "uint256"
+      }
     ],
-    name: "HuntStarted",
-    type: "event",
+    "name": "HuntStarted",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "uint256",
-        name: "huntId",
-        type: "uint256",
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "huntId",
+        "type": "uint256"
       },
       {
-        indexed: false,
-        internalType: "address",
-        name: "recipient",
-        type: "address",
+        "indexed": false,
+        "internalType": "address",
+        "name": "recipient",
+        "type": "address"
       },
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "tokenId",
-        type: "uint256",
-      },
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "tokenId",
+        "type": "uint256"
+      }
     ],
-    name: "NFTAwarded",
-    type: "event",
+    "name": "NFTAwarded",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "uint256",
-        name: "teamId",
-        type: "uint256",
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "teamId",
+        "type": "uint256"
       },
       {
-        indexed: true,
-        internalType: "address",
-        name: "owner",
-        type: "address",
+        "indexed": true,
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
       },
       {
-        indexed: false,
-        internalType: "uint256",
-        name: "maxMembers",
-        type: "uint256",
-      },
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "maxMembers",
+        "type": "uint256"
+      }
     ],
-    name: "TeamCreated",
-    type: "event",
+    "name": "TeamCreated",
+    "type": "event"
   },
   {
-    anonymous: false,
-    inputs: [
+    "anonymous": false,
+    "inputs": [
       {
-        indexed: true,
-        internalType: "uint256",
-        name: "teamId",
-        type: "uint256",
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "teamId",
+        "type": "uint256"
       },
       {
-        indexed: true,
-        internalType: "address",
-        name: "member",
-        type: "address",
-      },
+        "indexed": true,
+        "internalType": "address",
+        "name": "member",
+        "type": "address"
+      }
     ],
-    name: "TeamJoined",
-    type: "event",
+    "name": "TeamJoined",
+    "type": "event"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_huntId",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_huntId",
+        "type": "uint256"
       },
       {
-        internalType: "address",
-        name: "winner",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "winner",
+        "type": "address"
+      }
     ],
-    name: "addWinner",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "addWinner",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "string",
-        name: "_name",
-        type: "string",
+        "internalType": "string",
+        "name": "_name",
+        "type": "string"
       },
       {
-        internalType: "string",
-        name: "_description",
-        type: "string",
+        "internalType": "string",
+        "name": "_description",
+        "type": "string"
       },
       {
-        internalType: "uint256",
-        name: "_startTime",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_startTime",
+        "type": "uint256"
       },
       {
-        internalType: "uint256",
-        name: "_endTime",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_endTime",
+        "type": "uint256"
       },
       {
-        internalType: "string",
-        name: "_clues_blobId",
-        type: "string",
+        "internalType": "string",
+        "name": "_clues_blobId",
+        "type": "string"
       },
       {
-        internalType: "string",
-        name: "_answers_blobId",
-        type: "string",
+        "internalType": "string",
+        "name": "_answers_blobId",
+        "type": "string"
       },
       {
-        internalType: "bool",
-        name: "_teamsEnabled",
-        type: "bool",
+        "internalType": "bool",
+        "name": "_teamsEnabled",
+        "type": "bool"
       },
       {
-        internalType: "uint256",
-        name: "_maxTeamSize",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_maxTeamSize",
+        "type": "uint256"
       },
       {
-        internalType: "string",
-        name: "_theme",
-        type: "string",
+        "internalType": "string",
+        "name": "_theme",
+        "type": "string"
       },
       {
-        internalType: "string",
-        name: "_nftMetadataURI",
-        type: "string",
-      },
+        "internalType": "string",
+        "name": "_nftMetadataURI",
+        "type": "string"
+      }
     ],
-    name: "createHunt",
-    outputs: [
+    "name": "createHunt",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_huntId",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_huntId",
+        "type": "uint256"
       },
       {
-        internalType: "string",
-        name: "_teamName",
-        type: "string",
-      },
+        "internalType": "string",
+        "name": "_teamName",
+        "type": "string"
+      }
     ],
-    name: "createTeam",
-    outputs: [
+    "name": "createTeam",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "teamId",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "teamId",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "nonpayable",
-    type: "function",
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "getAllHunts",
-    outputs: [
+    "inputs": [],
+    "name": "getAllHunts",
+    "outputs": [
       {
-        components: [
+        "components": [
           {
-            internalType: "string",
-            name: "name",
-            type: "string",
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
           },
           {
-            internalType: "string",
-            name: "description",
-            type: "string",
+            "internalType": "string",
+            "name": "description",
+            "type": "string"
           },
           {
-            internalType: "uint256",
-            name: "startTime",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "startTime",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "endTime",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "endTime",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "participantCount",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "participantCount",
+            "type": "uint256"
           },
           {
-            internalType: "string",
-            name: "clues_blobId",
-            type: "string",
+            "internalType": "string",
+            "name": "clues_blobId",
+            "type": "string"
           },
           {
-            internalType: "string",
-            name: "answers_blobId",
-            type: "string",
+            "internalType": "string",
+            "name": "answers_blobId",
+            "type": "string"
           },
           {
-            internalType: "bool",
-            name: "teamsEnabled",
-            type: "bool",
+            "internalType": "bool",
+            "name": "teamsEnabled",
+            "type": "bool"
           },
           {
-            internalType: "uint256",
-            name: "maxTeamSize",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "maxTeamSize",
+            "type": "uint256"
           },
           {
-            internalType: "string",
-            name: "theme",
-            type: "string",
+            "internalType": "string",
+            "name": "theme",
+            "type": "string"
           },
           {
-            internalType: "string",
-            name: "nftMetadataURI",
-            type: "string",
+            "internalType": "string",
+            "name": "nftMetadataURI",
+            "type": "string"
           },
           {
-            internalType: "address[]",
-            name: "participants",
-            type: "address[]",
-          },
+            "internalType": "address[]",
+            "name": "participants",
+            "type": "address[]"
+          }
         ],
-        internalType: "struct Khoj.HuntInfo[]",
-        name: "",
-        type: "tuple[]",
-      },
+        "internalType": "struct Khoj.HuntInfo[]",
+        "name": "",
+        "type": "tuple[]"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "getChainId",
-    outputs: [
+    "inputs": [],
+    "name": "getChainId",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "getContractAddress",
-    outputs: [
+    "inputs": [],
+    "name": "getContractAddress",
+    "outputs": [
       {
-        internalType: "address",
-        name: "",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_huntId",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "_huntId",
+        "type": "uint256"
+      }
     ],
-    name: "getHunt",
-    outputs: [
+    "name": "getHunt",
+    "outputs": [
       {
-        components: [
+        "components": [
           {
-            internalType: "string",
-            name: "name",
-            type: "string",
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
           },
           {
-            internalType: "string",
-            name: "description",
-            type: "string",
+            "internalType": "string",
+            "name": "description",
+            "type": "string"
           },
           {
-            internalType: "uint256",
-            name: "startTime",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "startTime",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "endTime",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "endTime",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "participantCount",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "participantCount",
+            "type": "uint256"
           },
           {
-            internalType: "string",
-            name: "clues_blobId",
-            type: "string",
+            "internalType": "string",
+            "name": "clues_blobId",
+            "type": "string"
           },
           {
-            internalType: "string",
-            name: "answers_blobId",
-            type: "string",
+            "internalType": "string",
+            "name": "answers_blobId",
+            "type": "string"
           },
           {
-            internalType: "bool",
-            name: "teamsEnabled",
-            type: "bool",
+            "internalType": "bool",
+            "name": "teamsEnabled",
+            "type": "bool"
           },
           {
-            internalType: "uint256",
-            name: "maxTeamSize",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "maxTeamSize",
+            "type": "uint256"
           },
           {
-            internalType: "string",
-            name: "theme",
-            type: "string",
+            "internalType": "string",
+            "name": "theme",
+            "type": "string"
           },
           {
-            internalType: "string",
-            name: "nftMetadataURI",
-            type: "string",
+            "internalType": "string",
+            "name": "nftMetadataURI",
+            "type": "string"
           },
           {
-            internalType: "address[]",
-            name: "participants",
-            type: "address[]",
-          },
+            "internalType": "address[]",
+            "name": "participants",
+            "type": "address[]"
+          }
         ],
-        internalType: "struct Khoj.HuntInfo",
-        name: "",
-        type: "tuple",
-      },
+        "internalType": "struct Khoj.HuntInfo",
+        "name": "",
+        "type": "tuple"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_huntId",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "_huntId",
+        "type": "uint256"
+      }
     ],
-    name: "getHuntTeamCount",
-    outputs: [
+    "name": "getHuntTeamCount",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_huntId",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "_huntId",
+        "type": "uint256"
+      }
     ],
-    name: "getHuntTeams",
-    outputs: [
+    "name": "getHuntTeams",
+    "outputs": [
       {
-        internalType: "uint256[]",
-        name: "",
-        type: "uint256[]",
-      },
+        "internalType": "uint256[]",
+        "name": "",
+        "type": "uint256[]"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_huntId",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "_huntId",
+        "type": "uint256"
+      }
     ],
-    name: "getHuntWinners",
-    outputs: [
+    "name": "getHuntWinners",
+    "outputs": [
       {
-        internalType: "address[]",
-        name: "",
-        type: "address[]",
-      },
+        "internalType": "address[]",
+        "name": "",
+        "type": "address[]"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_huntId",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_huntId",
+        "type": "uint256"
       },
       {
-        internalType: "address",
-        name: "_participant",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "_participant",
+        "type": "address"
+      }
     ],
-    name: "getParticipantTeamId",
-    outputs: [
+    "name": "getParticipantTeamId",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_huntId",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_huntId",
+        "type": "uint256"
       },
       {
-        internalType: "address",
-        name: "_user",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "_user",
+        "type": "address"
+      }
     ],
-    name: "getTeam",
-    outputs: [
+    "name": "getTeam",
+    "outputs": [
       {
-        components: [
+        "components": [
           {
-            internalType: "uint256",
-            name: "huntId",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "huntId",
+            "type": "uint256"
           },
           {
-            internalType: "uint256",
-            name: "teamId",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "teamId",
+            "type": "uint256"
           },
           {
-            internalType: "address",
-            name: "owner",
-            type: "address",
+            "internalType": "address",
+            "name": "owner",
+            "type": "address"
           },
           {
-            internalType: "uint256",
-            name: "maxMembers",
-            type: "uint256",
+            "internalType": "string",
+            "name": "name",
+            "type": "string"
           },
           {
-            internalType: "uint256",
-            name: "memberCount",
-            type: "uint256",
+            "internalType": "uint256",
+            "name": "maxMembers",
+            "type": "uint256"
           },
           {
-            internalType: "string",
-            name: "name",
-            type: "string",
+            "internalType": "uint256",
+            "name": "memberCount",
+            "type": "uint256"
           },
           {
-            internalType: "address[]",
-            name: "members",
-            type: "address[]",
-          },
+            "internalType": "address[]",
+            "name": "members",
+            "type": "address[]"
+          }
         ],
-        internalType: "struct Khoj.TeamInfo",
-        name: "",
-        type: "tuple",
-      },
+        "internalType": "struct Khoj.TeamInfo",
+        "name": "",
+        "type": "tuple"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_teamId",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_teamId",
+        "type": "uint256"
       },
       {
-        internalType: "address",
-        name: "_member",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "_member",
+        "type": "address"
+      }
     ],
-    name: "isTeamMember",
-    outputs: [
+    "name": "isTeamMember",
+    "outputs": [
       {
-        internalType: "bool",
-        name: "",
-        type: "bool",
-      },
+        "internalType": "bool",
+        "name": "",
+        "type": "bool"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_teamId",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_teamId",
+        "type": "uint256"
       },
       {
-        internalType: "uint256",
-        name: "_expiry",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_expiry",
+        "type": "uint256"
       },
       {
-        internalType: "bytes",
-        name: "_signature",
-        type: "bytes",
-      },
+        "internalType": "bytes",
+        "name": "_signature",
+        "type": "bytes"
+      }
     ],
-    name: "joinWithInvite",
-    outputs: [],
-    stateMutability: "nonpayable",
-    type: "function",
+    "name": "joinWithInvite",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
   },
   {
-    inputs: [],
-    name: "nftContract",
-    outputs: [
+    "inputs": [],
+    "name": "nftContract",
+    "outputs": [
       {
-        internalType: "contract KhojNFT",
-        name: "",
-        type: "address",
-      },
+        "internalType": "contract KhojNFT",
+        "name": "",
+        "type": "address"
+      }
     ],
-    stateMutability: "view",
-    type: "function",
+    "stateMutability": "view",
+    "type": "function"
   },
   {
-    inputs: [
+    "inputs": [
       {
-        internalType: "uint256",
-        name: "_huntId",
-        type: "uint256",
+        "internalType": "uint256",
+        "name": "_huntId",
+        "type": "uint256"
       },
       {
-        internalType: "address",
-        name: "_recipient",
-        type: "address",
-      },
+        "internalType": "address",
+        "name": "_recipient",
+        "type": "address"
+      }
     ],
-    name: "registerForHunt",
-    outputs: [
+    "name": "registerForHunt",
+    "outputs": [
       {
-        internalType: "uint256",
-        name: "",
-        type: "uint256",
-      },
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
     ],
-    stateMutability: "nonpayable",
-    type: "function",
-  },
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ] as const;

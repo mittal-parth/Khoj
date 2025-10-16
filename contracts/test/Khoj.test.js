@@ -723,7 +723,7 @@ describe("Khoj Contract", function () {
         "ipfs://metadata123"
       );
 
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "Team Alpha");
       
       // Get the actual IDs using getter functions
       huntId = 0; // First hunt has ID 0
@@ -817,7 +817,7 @@ describe("Khoj Contract", function () {
 
       it("Should reject access by non-member", async function () {
         // Create another team
-        const teamId2 = await khoj.connect(addr1).createTeam(0);
+        const teamId2 = await khoj.connect(addr1).createTeam(0, "Team Beta");
         
         // Try to access team info from non-member
         await expect(

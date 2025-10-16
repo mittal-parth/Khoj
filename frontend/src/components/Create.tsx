@@ -433,7 +433,7 @@ export function Create() {
   const canCreateHunt = transactionArgs !== null && account;
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 mt-10">
       <h1 className="text-3xl font-bold mb-8">Create New Hunt</h1>
 
       {/* Simple Backend Health Check */}

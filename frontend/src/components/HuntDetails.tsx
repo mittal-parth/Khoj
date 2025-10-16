@@ -636,12 +636,28 @@ export function HuntDetails() {
                     </span>
                   </div>
                     <div className="border-t-2 border-gray-200 pt-4">
-                      <h3 className="text-lg font-semibold mb-1">Your Team</h3>
-                      {teamData?.name && (
-                        <div className="text-sm text-gray-700 mb-3">
-                          <span className="font-medium">Name:</span> {teamData.name}
-                        </div>
-                      )}
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold truncate">
+                          {`Team ${teamData?.name || ''}`.trim() || 'Team'}
+                        </h3>
+                        {Number(teamData?.memberCount || 0) < Number(teamData?.maxMembers || 0) && teamData?.owner === userWallet && (
+                          <Button 
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const teamIdStr = teamData?.teamId?.toString?.();
+                                if (teamIdStr) {
+                                  await generateInviteAfterTeamCreation(teamIdStr);
+                                }
+                              } catch (e) {
+                                toast.error('Failed to generate invite');
+                              }
+                            }}
+                          >
+                            Invite more
+                          </Button>
+                        )}
+                      </div>
                       <div className="space-y-3">
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Members:</span>
@@ -721,6 +737,7 @@ export function HuntDetails() {
                         {!inviteCode ? (
                           <div className="w-full max-w-md">
                             <p className="text-sm mb-2">Create a new team and generate an invite code for your teammates.</p>
+                            <label className="text-sm font-medium text-gray-700 mb-1 block">Team Name</label>
                             <input
                               type="text"
                               value={teamName}
@@ -728,11 +745,15 @@ export function HuntDetails() {
                                 const value = e.target.value.slice(0, 20);
                                 setTeamName(value);
                               }}
-                              placeholder="Enter team name (max 20 chars)"
-                              className="w-full p-2 border rounded mb-3"
+                              placeholder="Enter a memorable team name"
+                              className="w-full p-2 border rounded mb-1"
                               maxLength={20}
                               required
                             />
+                            <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                              <span>Max 20 characters</span>
+                              <span>{teamName.length}/20</span>
+                            </div>
                             <Button 
                               className="w-full" 
                               onClick={generateMultiUseInvite}
