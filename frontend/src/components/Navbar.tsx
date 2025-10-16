@@ -1,12 +1,12 @@
 import { Link } from "react-router-dom";
 import WalletWrapper from "@/components/WalletWrapper";
-import { SUPPORTED_CHAINS, getNetworkByChainId } from "../lib/utils";
+import { ENABLED_CHAINS, ENABLED_NETWORKS, getNetworkByChainId } from "../lib/utils";
 import { useState, useEffect } from "react";
 import { useActiveWalletChain } from "thirdweb/react";
 
 export function Navbar() {
   const [currentNetwork, setCurrentNetwork] = useState<string>(
-    Object.keys(SUPPORTED_CHAINS)[0]
+    ENABLED_NETWORKS[0]
   );
   
   // Get the active wallet chain from thirdweb
@@ -15,7 +15,7 @@ export function Navbar() {
   // Initialize from localStorage
   useEffect(() => {
     const stored = localStorage.getItem("current_network");
-    if (stored && SUPPORTED_CHAINS[stored as keyof typeof SUPPORTED_CHAINS])
+    if (stored && ENABLED_CHAINS[stored as keyof typeof ENABLED_CHAINS])
       setCurrentNetwork(stored);
   }, []);
 

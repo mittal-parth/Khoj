@@ -160,7 +160,7 @@ cd ../contracts && npm install  # Takes ~15 seconds
    ```bash
    cd frontend && cp .env.example .env  
    ```
-   Required variables: `VITE_PUBLIC_THIRDWEB_CLIENT_ID`, `VITE_PUBLIC_HUDDLE_PROJECT_ID`, contract addresses for Base/Moonbase/AssetHub/Flow, `VITE_PUBLIC_BACKEND_URL`, `VITE_PUBLIC_GEMINI_API_KEY`
+   Required variables: `VITE_PUBLIC_THIRDWEB_CLIENT_ID`, `VITE_PUBLIC_HUDDLE_PROJECT_ID`, contract addresses for Base/Moonbase/AssetHub/Flow, `VITE_PUBLIC_BACKEND_URL`, `VITE_PUBLIC_GEMINI_API_KEY`, `VITE_ENABLED_CHAINS`=base,moonbeam,flow,assetHub (comma-separated list of blockchain networks to enable - configure only the chains you plan to use)
 
 ### Running the Application
 
