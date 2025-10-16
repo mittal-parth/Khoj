@@ -5,7 +5,7 @@ import { BsTrophyFill } from 'react-icons/bs';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { formatAddress } from '@/utils/leaderboardUtils';
-import { TeamIdentifierDisplay } from './TeamIdentifierDisplay';
+import { TeamIdentifierDisplay, isSoloParticipant } from './TeamIdentifierDisplay';
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -74,14 +74,14 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <FaTrophy className="w-6 h-6 text-yellow-500" style={{ color: '#FFD700' }} />;
+        return <FaTrophy className="w-5 h-5 text-yellow-500" style={{ color: '#FFD700' }} />;
       case 2:
-        return <FaMedal className="w-6 h-6" style={{ color: '#C0C0C0' }} />;
+        return <FaMedal className="w-5 h-5" style={{ color: '#C0C0C0' }} />;
       case 3:
-        return <FaMedal className="w-6 h-6" style={{ color: '#CD7F32' }} />;
+        return <FaMedal className="w-5 h-5" style={{ color: '#CD7F32' }} />;
       default:
         return (
-          <span className="w-6 h-6 flex items-center justify-center text-sm font-bold text-gray-500">
+          <span className="w-5 h-5 flex items-center justify-center text-xs font-bold text-gray-500">
             #{rank}
           </span>
         );
@@ -134,8 +134,8 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
           </div>
 
           {/* Table Header - Sticky */}
-          <div className="px-2">
-            <div className="grid grid-cols-4 gap-2 p-3 mb-2 rounded-lg font-semibold text-sm text-gray-700 sticky top-0 z-10 shadow-sm text-center bg-white">
+          <div className="px-1">
+            <div className="grid grid-cols-4 gap-1 p-2 mb-2 rounded-lg font-semibold text-sm text-gray-700 sticky top-0 z-10 shadow-sm text-center bg-white">
               <div>Rank</div>
               <div>Team</div>
               <div>Clues</div>
@@ -144,7 +144,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
           </div>
 
           {/* Scrollable Content */}
-          <div className="overflow-y-auto flex-1 px-2">
+          <div className="overflow-y-auto flex-1 px-1">
             <div className="space-y-2">
               {/* Loading State */}
               {isLoading && (
@@ -180,7 +180,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                   <div
                     key={team.teamIdentifier}
                     className={cn(
-                      'grid grid-cols-4 gap-2 p-3 rounded-lg border transition-colors hover:bg-gray-50',
+                      'grid grid-cols-4 gap-1 p-2 rounded-lg border transition-colors hover:bg-gray-50',
                       team.rank === 1
                         ? '!border-yellow-400'
                         : team.rank === 2
@@ -201,10 +201,10 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                     <div className="flex items-center justify-center">{getRankIcon(team.rank)}</div>
 
                     {/* Team */}
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-start space-x-2 min-w-0">
                       <div className="min-w-0 flex-1 relative">
                         <div
-                          className="font-medium text-sm text-gray-900 cursor-pointer hover:text-blue-600 transition-colors"
+                          className="font-medium text-sm text-gray-900 cursor-pointer hover:text-blue-600 transition-colors min-w-0"
                           onClick={() =>
                             setHoveredTeam(
                               hoveredTeam === team.teamIdentifier ? null : team.teamIdentifier
@@ -216,7 +216,13 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                         </div>
                         {hoveredTeam === team.teamIdentifier && (
                           <div className="absolute top-full left-0 mt-1 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-20 whitespace-nowrap">
-                            Leader: {formatAddress(team.teamLeaderAddress)}
+                            {isSoloParticipant(team.teamIdentifier) ? (
+                              <span>
+                                Solo: <TeamIdentifierDisplay teamIdentifier={team.teamIdentifier} />
+                              </span>
+                            ) : (
+                              <span>Team Leader: {formatAddress(team.teamLeaderAddress)}</span>
+                            )}
                             <div className="absolute -top-1 left-2 w-2 h-2 bg-gray-800 transform rotate-45"></div>
                           </div>
                         )}
@@ -226,7 +232,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                     {/* Clues Solved */}
                     <div className="flex items-center justify-center">
                       <div className="text-center">
-                        <div className="text-lg font-bold text-green">{team.cluesCompleted}</div>
+                        <div className="text-base font-bold text-green">{team.cluesCompleted}</div>
                       </div>
                     </div>
 
@@ -242,12 +248,13 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
           </div>
 
           {/* Footer Info */}
-          <div className="mt-4 pt-3 border-t border-gray-200 px-4 pb-4">
+          <div className="mt-4 pt-3 border-t border-gray-200 px-2 pb-4">
             <div className="text-xs text-gray-500 text-center">
               <p>
                 <strong>Scoring:</strong> Score = (Time in minutes) + (Attempts × 5). Lower scores
-                rank higher. Rankings update in real-time.
+                rank higher.
               </p>
+              
             </div>
           </div>
         </div>

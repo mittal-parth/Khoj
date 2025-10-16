@@ -9,7 +9,7 @@ interface TeamIdentifierDisplayProps {
   teamIdentifier: string;
 }
 
-const isSoloParticipant = (identifier: string) => identifier.startsWith('0x');
+export const isSoloParticipant = (identifier: string) => identifier.startsWith('0x');
 
 export function TeamIdentifierDisplay({ teamIdentifier }: TeamIdentifierDisplayProps) {
   const [basename, setBasename] = useState<string | null>(null);
@@ -35,11 +35,14 @@ export function TeamIdentifierDisplay({ teamIdentifier }: TeamIdentifierDisplayP
       .catch(() => setBasename(null));
   }, [isSolo, ensName, teamIdentifier]);
 
-  if (!isSolo) {
-    return <>Team #{teamIdentifier}</>;
-  }
+  const teamNameContent = !isSolo ? `Team #${teamIdentifier}` : undefined;
 
-  const displayName = ensName || basename || formatAddress(teamIdentifier);
+  const displayName = isSolo ? (ensName || basename || formatAddress(teamIdentifier)) : teamNameContent!;
 
-  return <>Solo: {displayName}</>;
+  // Render the resolved name with text wrapping.
+  return (
+    <span className="block text-sm leading-tight break-words" title={displayName}>
+      {displayName}
+    </span>
+  );
 }
