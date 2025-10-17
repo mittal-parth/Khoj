@@ -23,8 +23,10 @@ import { client } from "../lib/client";
 import { Hunt, Team } from "../types";
 import { 
   syncProgressAndNavigate, 
-  validateClueAccess, 
-  getTeamIdentifier
+  getTeamIdentifier,
+  validateClueAccess,
+  fetchProgress,
+  isClueSolved
 } from "../utils/progressUtils";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
@@ -111,23 +113,7 @@ export function Clue() {
       );
     }
 
-    // Check clue access on component mount
-    if (huntId && teamIdentifier && clueId) {
-      setIsRedirecting(true);
-      validateClueAccess(
-        parseInt(huntId),
-        teamIdentifier,
-        parseInt(clueId),
-        navigate,
-        totalClues
-      ).then((canProceed) => {
-        if (!canProceed) {
-          // User was redirected, component will unmount
-          return;
-        }
-        setIsRedirecting(false);
-      });
-    }
+    // Clue access validation is now handled by RouteGuard at the router level
   }, [clueId, huntId, navigate, teamIdentifier]);
 
   if (!isValidHexAddress(contractAddress)) {
@@ -220,9 +206,9 @@ export function Clue() {
       return;
     }
 
-    // Validate clue access before proceeding with verification
+    // Re-validate clue access before verification to handle real-time changes
     if (huntId && teamIdentifier) {
-      console.log("Validating clue access...", { huntId, teamIdentifier, clueId, totalClues });
+      console.log("Re-validating clue access before verification...", { huntId, teamIdentifier, clueId, totalClues });
       setIsRedirecting(true);
       const canProceed = await validateClueAccess(
         parseInt(huntId),
@@ -231,12 +217,46 @@ export function Clue() {
         navigate,
         totalClues
       );
-      console.log("Clue access validation result:", canProceed);
+      console.log("Clue access re-validation result:", canProceed);
       if (!canProceed) {
-        console.log("Clue access denied, returning early");
+        console.log("Clue access denied during verification, returning early");
         return; // User was redirected, don't proceed with verification
       }
       setIsRedirecting(false);
+    }
+
+    // Check if clue is already solved by the team before making any backend calls
+    try {
+      const progressData = await fetchProgress(
+        parseInt(huntId || "0"),
+        teamIdentifier,
+        totalClues
+      );
+      
+      if (progressData) {
+        const clueIndex = parseInt(clueId || "0");
+        
+        if (isClueSolved(progressData, clueIndex)) {
+          console.log("Clue already solved by team, skipping verification");
+          toast.info("This clue has already been solved by your team!");
+          setVerificationState("success");
+          setShowSuccessMessage(true);
+          
+          // Navigate to next clue since it's solved
+          setTimeout(async () => {
+            const nextClueId = currentClue + 1;
+            if (currentClueData && nextClueId <= currentClueData.length) {
+              navigate(`/hunt/${huntId}/clue/${nextClueId}`);
+            } else {
+              navigate(`/hunt/${huntId}/end`);
+            }
+          }, 500);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Error checking if clue is already solved:", error);
+      // Continue with normal flow if check fails
     }
 
     setIsSubmitting(true);
