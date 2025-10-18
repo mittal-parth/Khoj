@@ -4,24 +4,32 @@ import { AccessToken, Role } from '@huddle01/server-sdk/auth';
  
 const recorder = new Recorder(process.env.HUDDLE_PROJECT_ID, process.env.HUDDLE_API_KEY);
 
-export const getRoomId = async () => {
+export const getRoomId = async (teamId) => {
   const api = new API({
     apiKey: process.env.HUDDLE_API_KEY,
   });
  
+  // Create metadata with teamId for token gating
+  const metadata = {
+    'title': 'Huddle01 Meeting',
+  };
+  
+  // Add teamId to metadata if provided
+  if (teamId) {
+    metadata.teamId = teamId;
+  }
+ 
   const newRoom = await api.createRoom({
     roomLocked: true,
-    metadata: JSON.stringify({
-      'title': 'Huddle01 Meeting',
-    })
+    metadata: JSON.stringify(metadata)
   });
  
   return newRoom.roomId;
 };
 
 
-export async function getToken(roomId) {
-    console.log(roomId);
+export async function getToken(roomId, teamId) {
+    console.log(roomId, teamId);
      const accessToken = new AccessToken({
          apiKey: process.env.HUDDLE_API_KEY,
          roomId: roomId,
@@ -42,6 +50,12 @@ export async function getToken(roomId) {
                canUpdateMetadata: true,
              }
        });
+       
+       // Add custom attributes for token gating if teamId is provided
+       if (teamId) {
+         accessToken.addCustomAttribute('teamId', teamId);
+       }
+       
        console.log(accessToken.toJwt());
        return accessToken.toJwt();
     
