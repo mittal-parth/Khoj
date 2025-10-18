@@ -733,8 +733,9 @@ app.post("/upload-metadata", async (req, res) => {
 
 app.post("/startHuddle", async (req, res) => {
   try {
-    const roomId = await getRoomId();
-    const token = await getToken(roomId);
+    const { teamId } = req.body;
+    const roomId = await getRoomId(teamId);
+    const token = await getToken(roomId, teamId);
     res.json({
       roomId: roomId,
       token: token,

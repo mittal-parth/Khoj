@@ -20,7 +20,7 @@ import { HuddleRoomConfig, HuddleRoomProps } from "../types";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
-export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
+export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId, teamIdentifier }) => {
   const [roomId, setRoomId] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isVideoMinimized, setIsVideoMinimized] = useState(false);
@@ -30,6 +30,9 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
   const [streamKey, setStreamKey] = useState("");
   const [streamUrl, setStreamUrl] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
+  
+  // Don't show huddle if user is not in a team (teamIdentifier starts with 0x)
+  const shouldShowHuddle = teamIdentifier && !teamIdentifier.startsWith("0x");
 
   const { joinRoom, leaveRoom } = useRoom({
     onJoin: () => {
@@ -46,7 +49,12 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
   useEffect(() => {
     const initializeRoom = async () => {
       try {
-        const storedConfig = localStorage.getItem(`huntId_${huntId}`);
+        // Only initialize if user should have access to huddle
+        if (!shouldShowHuddle) {
+          return;
+        }
+        
+        const storedConfig = localStorage.getItem(`huntId_${huntId}_team_${teamIdentifier}`);
         const huddleRoomConfig: HuddleRoomConfig | null = storedConfig
           ? JSON.parse(storedConfig)
           : null;
@@ -57,6 +65,7 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
             headers: {
               "Content-Type": "application/json",
             },
+            body: JSON.stringify({ teamId: teamIdentifier }),
             cache: "no-cache",
           });
 
@@ -68,7 +77,7 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
           const roomId = data.roomId;
           const token = data.token;
           const huddleRoomConfig = JSON.stringify({ roomId, token });
-          localStorage.setItem(`huntId_${huntId}`, huddleRoomConfig);
+          localStorage.setItem(`huntId_${huntId}_team_${teamIdentifier}`, huddleRoomConfig);
 
           setRoomId(roomId);
           setToken(token);
@@ -87,7 +96,7 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
       leaveRoom();
       setHasJoinedRoom(false);
     };
-  }, [huntId, leaveRoom]);
+  }, [huntId, teamIdentifier, shouldShowHuddle, leaveRoom]);
 
   const handleStreamStop = async () => {
     try {
@@ -151,6 +160,11 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId }) => {
       console.error("Error starting stream:", error);
     }
   };
+
+  // Don't render anything if user shouldn't see huddle
+  if (!shouldShowHuddle) {
+    return null;
+  }
 
   return (
     <div className="bottom-4 right-4 z-50 w-full max-w-md mx-auto">
