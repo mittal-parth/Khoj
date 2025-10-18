@@ -485,7 +485,7 @@ export function Clue() {
           </div>
         </div>
 
-        {huntId && <HuddleRoom huntId={huntId} />}
+        {huntId && <HuddleRoom huntId={huntId} teamIdentifier={teamIdentifier} />}
         
         {/* Leaderboard Modal */}
         <Leaderboard 
