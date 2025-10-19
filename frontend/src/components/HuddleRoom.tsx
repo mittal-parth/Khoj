@@ -65,7 +65,10 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId, teamIdentifier }) => {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ teamId: teamIdentifier }),
+            body: JSON.stringify({ 
+              huntId: huntId,
+              teamId: teamIdentifier 
+            }),
             cache: "no-cache",
           });
 
