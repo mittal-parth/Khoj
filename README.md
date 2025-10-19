@@ -94,7 +94,7 @@ Khoj (meaning "search" or "discovery" in Hindi) is a geo-location based treasure
 
 ### Backend (`/backend`)
 - **Framework**: Express.js with ES modules
-- **Web3 Services**: Lit Protocol client, Huddle01 server SDK, Pinata IPFS
+- **Web3 Services**: Lit Protocol client, Huddle01 server SDK, Pinata IPFS, Sign Protocol for attestations
 - **Key files**: `server.js` (main server), `huddle.js` (video), `pinata.js` (storage)
 - **APIs**: Location verification, file uploads, video room management
 
@@ -137,30 +137,9 @@ cd ../contracts && npm install  # Takes ~15 seconds
 
 ### Environment Setup
 
-1. **Backend environment**:
-   ```bash
-   cd backend && cp .env.example .env
-   ```
-   Required variables:
-   - `HUDDLE_PROJECT_ID` - Project ID of your Huddle Project to have video calls
-   - `HUDDLE_API_KEY` - Huddle API Key
-   - `PRIVATE_KEY` - Private key of the funded wallet for Lit Protocol usage
-   - `PINATA_JWT` - Pinata JWT token for IPFS file storage
-   - `PINATA_GATEWAY` - Pinata gateway URL for accessing stored files
-   - `HOST` - Server host address
-   - `PORT` - Server port number
-   - `MAX_DISTANCE_IN_METERS` - Adjustable proximity radius for clue verification
-   - `GEMINI_API_KEY` - API Key from GCP to create AI generated clues
-   - `SIGN_WALLET_PUBLIC_ADDRESS` - Wallet address of the funded wallet for signing attestations. Create using create-wallet.js if not
-   - `SIGN_WALLET_PRIVATE_KEY` - Private key of funded wallet for signing attestations
-   - `SIGN_API_KEY` - API key from https://developer.sign.global/
-   - `SIGN_SCHEMA_ID` - Schema ID (generated after first schema creation)
+Follow this detailed guide in the Wiki to setup all the environment variables.
 
-2. **Frontend environment**:
-   ```bash
-   cd frontend && cp .env.example .env  
-   ```
-   Required variables: `VITE_PUBLIC_THIRDWEB_CLIENT_ID`, `VITE_PUBLIC_HUDDLE_PROJECT_ID`, contract addresses for Base/Moonbase/AssetHub/Flow, `VITE_PUBLIC_BACKEND_URL`, `VITE_PUBLIC_GEMINI_API_KEY`, `VITE_ENABLED_CHAINS`=base,moonbeam,flow,assetHub (comma-separated list of blockchain networks to enable - configure only the chains you plan to use)
+[How to obtain env variables](https://github.com/mittal-parth/Khoj/wiki/How-to-obtain-env-variables-%F0%9F%A7%B0)
 
 ### Running the Application
 

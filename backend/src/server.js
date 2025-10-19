@@ -98,13 +98,13 @@ const upload = multer({
 });
 
 const port = process.env.PORT || 8000;
-const userAddress = "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397";
+const userAddress = process.env.LIT_WALLET_PUBLIC_ADDRESS || "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397";
 const client = new LitNodeClient({
   litNetwork: LitNetwork.DatilDev,
   debug: false,
 });
 
-const walletWithCapacityCredit = new Wallet(process.env.PRIVATE_KEY);
+const walletWithCapacityCredit = new Wallet(process.env.LIT_WALLET_PRIVATE_KEY);
 
 const authSig = await (async () => {
   const toSign = await createSiweMessageWithRecaps({
