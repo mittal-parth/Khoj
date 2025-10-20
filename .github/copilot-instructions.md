@@ -25,7 +25,7 @@ Before running any application:
    ```bash
    cd backend && cp .env.example .env
    ```
-   Required variables: `HUDDLE_PROJECT_ID`, `HUDDLE_API_KEY`, `PRIVATE_KEY`, `PINATA_JWT`, `PINATA_GATEWAY`, `HOST`, `PORT`, `MAX_DISTANCE_IN_METERS`
+   Required variables: `HUDDLE_PROJECT_ID`, `HUDDLE_API_KEY`, `LIT_WALLET_PRIVATE_KEY`, `PINATA_JWT`, `PINATA_GATEWAY`, `HOST`, `PORT`, `MAX_DISTANCE_IN_METERS`
 
 2. **Frontend environment**:
    ```bash
