@@ -4,8 +4,8 @@ import { FaTrophy, FaMedal } from 'react-icons/fa';
 import { BsTrophyFill } from 'react-icons/bs';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { formatAddress } from '@/utils/leaderboardUtils';
 import { TeamIdentifierDisplay, isSoloParticipant } from './TeamIdentifierDisplay';
+import { AddressDisplay } from './AddressDisplay';
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -221,7 +221,9 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                                 Solo: <TeamIdentifierDisplay teamIdentifier={team.teamIdentifier} />
                               </span>
                             ) : (
-                              <span>Team Leader: {formatAddress(team.teamLeaderAddress)}</span>
+                              <span>
+                                Team Leader: <AddressDisplay address={team.teamLeaderAddress} />
+                              </span>
                             )}
                             <div className="absolute -top-1 left-2 w-2 h-2 bg-gray-800 transform rotate-45"></div>
                           </div>

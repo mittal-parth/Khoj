@@ -35,6 +35,7 @@ import {
   checkProgressAndNavigate, 
   getTeamIdentifier 
 } from "../utils/progressUtils";
+import { AddressDisplay } from "./AddressDisplay";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -675,7 +676,11 @@ export function HuntDetails() {
                         </div>
                         <div className="flex justify-between items-center">
                           <span className="text-gray-600">Team Owner:</span>
-                          <span className="font-medium text-sm">{teamData?.owner ? `${teamData.owner.slice(0, 6)}...${teamData.owner.slice(-4)}` : 'Unknown'}</span>
+                          {teamData?.owner ? (
+                            <AddressDisplay address={teamData.owner} className="font-medium text-sm" />
+                          ) : (
+                            <span className="font-medium text-sm">Unknown</span>
+                          )}
                         </div>
                         <div className="mt-4">
                           <span className="text-gray-600 block mb-2">Team Members:</span>
@@ -688,9 +693,11 @@ export function HuntDetails() {
                                   className={`w-12 h-12 rounded-full p-1 bg-slate-200 ${member === teamData?.owner ? "border-2 border-slate-800" : ""}`}
                                 />
                                 <div className="flex-1">
-                                  <span className="text-xs font-medium text-gray-500">
-                                    {member ? `${member.slice(0, 4)}...${member.slice(-4)}` : 'Unknown Member'}
-                                  </span>
+                                  {member ? (
+                                    <AddressDisplay address={member} className="text-xs font-medium text-gray-500" />
+                                  ) : (
+                                    <span className="text-xs font-medium text-gray-500">Unknown Member</span>
+                                  )}
                                 </div>
                               </div>
                             ))}
