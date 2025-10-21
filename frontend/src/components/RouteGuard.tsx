@@ -123,8 +123,8 @@ export function RouteGuard({ children }: RouteGuardProps) {
           <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] justify-between flex flex-col">
             <div className="bg-green p-6 text-white">
               <div className="flex items-center justify-between my-4">
-                <h1 className="text-xl font-bold flex-1 break-words">{huntData?.name || 'Hunt'}</h1>
-                <div className="text-2xl font-bold flex-shrink-0">
+                <h1 className="text-xl font-bold flex-1 wrap-break-word">{huntData?.name || 'Hunt'}</h1>
+                <div className="text-2xl font-bold shrink-0">
                   # {clueId}/{huntData?.clues_blobId ? '?' : '0'}
                 </div>
               </div>
@@ -153,7 +153,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
             <p className="text-gray-600 mb-8">{error}</p>
             <button
               onClick={() => navigate("/")}
-              className="bg-black hover:bg-gray-800 text-white px-8 py-2 rounded"
+              className="bg-black hover:bg-gray-800 text-white px-8 py-2 rounded-sm"
             >
               Return to Hunts
             </button>

@@ -401,9 +401,9 @@ export function Clue() {
         <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] justify-between flex flex-col">
           <div className="bg-green p-6 text-white">
             <div className="flex items-center justify-between my-4">
-              <h1 className="text-xl font-bold flex-1 break-words">{huntData?.name}</h1>
+              <h1 className="text-xl font-bold flex-1 wrap-break-word">{huntData?.name}</h1>
               <div className="flex items-center space-x-4">
-                <div className="text-2xl font-bold flex-shrink-0">
+                <div className="text-2xl font-bold shrink-0">
                   # {currentClue}/{currentClueData?.length}
                 </div>
                 <div className="flex items-center space-x-2">

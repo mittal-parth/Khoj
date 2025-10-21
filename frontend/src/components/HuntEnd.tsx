@@ -116,7 +116,7 @@ export function HuntEnd() {
   // };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green/10 to-white pt-20 px-4 mb-20">
+    <div className="min-h-screen bg-linear-to-b from-green/10 to-white pt-20 px-4 mb-20">
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black">
           {/* Header */}

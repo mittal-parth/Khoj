@@ -15,7 +15,7 @@ export function TeamIdentifierDisplay({ teamIdentifier }: TeamIdentifierDisplayP
 
   // Render the resolved name with text wrapping.
   return (
-    <span className="block text-sm leading-tight break-words" title={displayName}>
+    <span className="block text-sm leading-tight wrap-break-word" title={displayName}>
       {displayName}
     </span>
   );

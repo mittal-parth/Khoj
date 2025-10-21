@@ -721,7 +721,7 @@ export function HuntDetails() {
                                   type="text"
                                   value={inviteCode}
                                   readOnly
-                                  className="flex-1 p-2 border rounded bg-gray-50 text-xs"
+                                  className="flex-1 p-2 border rounded-sm bg-gray-50 text-xs"
                                 />
                                 <Button 
                                   onClick={() => {
@@ -784,7 +784,7 @@ export function HuntDetails() {
                                 type="text"
                                 value={inviteCode}
                                 readOnly
-                                className="flex-1 p-2 border rounded bg-gray-50"
+                                className="flex-1 p-2 border rounded-sm bg-gray-50"
                               />
                               <Button 
                                 onClick={() => {
@@ -818,7 +818,7 @@ export function HuntDetails() {
                                 value={joinTeamCode}
                                 onChange={(e) => setJoinTeamCode(e.target.value)}
                                 placeholder="Enter invite code"
-                                className="flex-1 p-2 border rounded"
+                                className="flex-1 p-2 border rounded-sm"
                               />
                               <Button onClick={() => startScanner()} className="flex items-center space-x-1">
                                 <BsQrCode />

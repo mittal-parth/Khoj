@@ -25,7 +25,7 @@ export function About() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-green/10 to-white pt-16 sm:pt-20 px-2 sm:px-4">
+    <div className="min-h-screen bg-linear-to-b from-green/10 to-white pt-16 sm:pt-20 px-2 sm:px-4">
       <div className="max-w-4xl mx-auto">
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
@@ -34,7 +34,7 @@ export function About() {
           className="bg-white rounded-xl shadow-lg overflow-hidden border-2 border-green/20 hover:shadow-2xl transition-all duration-300"
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-green to-light-green p-6 sm:p-12 text-white text-center relative overflow-hidden">
+          <div className="bg-linear-to-r from-green to-light-green p-6 sm:p-12 text-white text-center relative overflow-hidden">
             {/* Added animated background particles */}
             <motion.div
               animate={{
