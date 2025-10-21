@@ -504,7 +504,7 @@ export function Create() {
                     setMaxTeamSize("1");
                   }
                 }}
-                className="rounded"
+                className="rounded-sm"
               />
               <Label htmlFor="teamsEnabled">Enable Teams</Label>
             </div>

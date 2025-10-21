@@ -97,7 +97,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg w-[90vw] !bg-white rounded-xl">
+      <DialogContent className="max-w-lg w-[90vw] bg-white! rounded-xl">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-center text-green flex items-center justify-center">
             <BsTrophyFill className="inline-block mr-2" />
@@ -105,7 +105,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
             <button
               onClick={fetchLeaderboard}
               disabled={isLoading}
-              className="ml-4 p-1 rounded hover:bg-gray-100 disabled:opacity-50"
+              className="ml-4 p-1 rounded-sm hover:bg-gray-100 disabled:opacity-50"
               title="Refresh leaderboard"
             >
               <svg
@@ -135,7 +135,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
 
           {/* Table Header - Sticky */}
           <div className="px-1">
-            <div className="grid grid-cols-4 gap-1 p-2 mb-2 rounded-lg font-semibold text-sm text-gray-700 sticky top-0 z-10 shadow-sm text-center bg-white">
+            <div className="grid grid-cols-4 gap-1 p-2 mb-2 rounded-lg font-semibold text-sm text-gray-700 sticky top-0 z-10 shadow-xs text-center bg-white">
               <div>Rank</div>
               <div>Team</div>
               <div>Clues</div>
@@ -182,11 +182,11 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                     className={cn(
                       'grid grid-cols-4 gap-1 p-2 rounded-lg border transition-colors hover:bg-gray-50',
                       team.rank === 1
-                        ? '!border-yellow-400'
+                        ? 'border-yellow-400!'
                         : team.rank === 2
-                          ? '!border-gray-300'
+                          ? 'border-gray-300!'
                           : team.rank === 3
-                            ? '!border-orange-400'
+                            ? 'border-orange-400!'
                             : 'bg-white border-gray-200'
                     )}
                     style={
@@ -215,7 +215,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                           <TeamIdentifierDisplay teamIdentifier={team.teamIdentifier} />
                         </div>
                         {hoveredTeam === team.teamIdentifier && (
-                          <div className="absolute top-full left-0 mt-1 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-20 whitespace-nowrap">
+                          <div className="absolute top-full left-0 mt-1 p-2 bg-gray-800 text-white text-xs rounded-sm shadow-lg z-20 whitespace-nowrap">
                             {isSoloParticipant(team.teamIdentifier) ? (
                               <span>
                                 Solo: <TeamIdentifierDisplay teamIdentifier={team.teamIdentifier} />

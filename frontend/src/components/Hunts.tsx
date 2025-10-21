@@ -308,7 +308,7 @@ export function Hunts() {
               before:absolute 
               before:inset-0 
               before:rounded-lg
-              before:border-[16px]
+              before:border-16
               before:border-black
               before:-translate-x-2
               before:translate-y-2
