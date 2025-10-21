@@ -12,8 +12,8 @@ import {
   BsBarChartFill,
   BsArrowClockwise,
 } from "react-icons/bs";
-import { HuddleRoom } from "./HuddleRoom";
 import { Leaderboard } from "./Leaderboard";
+import { useHuddleContext } from "../contexts/HuddleContext";
 import { useReadContract, useActiveAccount } from "thirdweb/react";
 import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi";
@@ -57,6 +57,9 @@ export function Clue() {
   // Use the reactive network state hook
   const { contractAddress, currentChain } = useNetworkState();
 
+  // Get huddle context to set persistent huddle room info
+  const { setHuddleInfo } = useHuddleContext();
+
   // Create thirdweb contract instance
   const contract = getContract({
     client,
@@ -96,6 +99,13 @@ export function Clue() {
 
   // Get total clues from localStorage
   const totalClues = currentClueData?.length || 0;
+
+  // Set huddle info in context so PersistentHuddleRoom can access it
+  useEffect(() => {
+    if (huntId && teamIdentifier) {
+      setHuddleInfo(huntId, teamIdentifier);
+    }
+  }, [huntId, teamIdentifier, setHuddleInfo]);
 
   useEffect(() => {
     setVerificationState("idle");
@@ -484,8 +494,6 @@ export function Clue() {
             </form>
           </div>
         </div>
-
-        {huntId && <HuddleRoom huntId={huntId} teamIdentifier={teamIdentifier} />}
         
         {/* Leaderboard Modal */}
         <Leaderboard 
