@@ -10,6 +10,7 @@ import { Footer } from "./components/Footer";
 import { About } from "./components/About";
 import { Create } from "./components/Create";
 import { RouteGuard } from "./components/RouteGuard";
+import { PersistentHuddleRoom } from "./components/PersistentHuddleRoom";
 
 function App() {
   return (
@@ -32,6 +33,8 @@ function App() {
             <Route path="/about" element={<About />} />
             <Route path="/hunt/create" element={<Create />} />
           </Routes>
+          {/* Persistent Huddle Room that stays mounted across clue navigation */}
+          <PersistentHuddleRoom />
           <div className="md:hidden">
             <Footer />
           </div>
