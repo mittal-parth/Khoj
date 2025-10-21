@@ -4,13 +4,13 @@ import { AccessToken, Role } from '@huddle01/server-sdk/auth';
  
 const recorder = new Recorder(process.env.HUDDLE_PROJECT_ID, process.env.HUDDLE_API_KEY);
 
-export const getRoomId = async () => {
+export const getRoomId = async (teamId) => {
   const api = new API({
     apiKey: process.env.HUDDLE_API_KEY,
   });
  
   const newRoom = await api.createRoom({
-    roomLocked: true,
+    roomLocked: false, // Allow anyone with roomId to join
     metadata: JSON.stringify({
       'title': 'Huddle01 Meeting',
     })
@@ -20,28 +20,15 @@ export const getRoomId = async () => {
 };
 
 
-export async function getToken(roomId) {
-    console.log(roomId);
+export async function getToken(roomId, teamId) {
+    console.log(roomId, teamId);
      const accessToken = new AccessToken({
          apiKey: process.env.HUDDLE_API_KEY,
          roomId: roomId,
          //available roles: Role.HOST, Role.CO_HOST, Role.SPEAKER, Role.LISTENER, Role.GUEST - depending on the privileges you want to give to the user
-         role: Role.BOT,
-         //custom permissions give you more flexibility in terms of the user privileges than a pre-defined role
-         permissions: {
-               admin: true,
-               canConsume: true,
-               canProduce: true,
-               canProduceSources: {
-                 cam: true,
-                 mic: true,
-                 screen: true,
-               },
-               canRecvData: true,
-               canSendData: true,
-               canUpdateMetadata: true,
-             }
+         role: Role.GUEST,
        });
+       
        console.log(accessToken.toJwt());
        return accessToken.toJwt();
     

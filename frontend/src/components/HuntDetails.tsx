@@ -115,6 +115,9 @@ export function HuntDetails() {
     queryOptions: { enabled: !!userWallet }, // Only call when userWallet is available
   }) as { data: Team | undefined; error: Error | undefined; refetch: () => void; isLoading: boolean };
 
+  // Get team identifier for progress checking and huddle rooms
+  const teamIdentifier = getTeamIdentifier(teamData, userWallet || "");
+
   const joinTeam = async (signature: string, teamId: string, expiry: number) => {
     setIsJoiningTeam(true);
     try {
@@ -221,8 +224,6 @@ export function HuntDetails() {
 
     // Check if user has existing progress
     try {
-      const teamIdentifier = getTeamIdentifier(teamData, userWallet);
-      
       // Get total clues from localStorage (set when clues are decrypted)
       const currentClueData = JSON.parse(
         localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
@@ -895,7 +896,7 @@ export function HuntDetails() {
           </div>
         </div>
 
-        {huntId && <HuddleRoom huntId={huntId} />}
+        {huntId && <HuddleRoom huntId={huntId} teamIdentifier={teamIdentifier} />}
         
         {/* Leaderboard Modal */}
         <Leaderboard 

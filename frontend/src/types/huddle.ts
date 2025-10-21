@@ -10,6 +10,7 @@ export interface HuddleRoomConfig {
 
 export interface HuddleRoomProps {
   huntId: string;
+  teamIdentifier?: string;
 }
 
 export interface RemotePeerProps {

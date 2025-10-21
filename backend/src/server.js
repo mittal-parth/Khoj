@@ -99,6 +99,35 @@ const upload = multer({
 
 const port = process.env.PORT || 8000;
 const userAddress = process.env.LIT_WALLET_PUBLIC_ADDRESS || "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397";
+
+// In-memory storage for team room mappings
+const teamHuddleRooms = new Map();
+
+// TTL configuration
+const ROOM_TTL = 15 * 24 * 60 * 60 * 1000; // 15 days in milliseconds
+const CLEANUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+// TTL cleanup function
+const cleanupExpiredRooms = () => {
+  const now = Date.now();
+  let cleanedCount = 0;
+  
+  for (const [key, value] of teamHuddleRooms.entries()) {
+    if (now - value.createdAt > ROOM_TTL) {
+      teamHuddleRooms.delete(key);
+      cleanedCount++;
+    }
+  }
+  
+  if (cleanedCount > 0) {
+    console.log(`Cleaned up ${cleanedCount} expired room mappings. Current active rooms: ${teamHuddleRooms.size}`);
+  }
+};
+
+// Start TTL cleanup interval
+setInterval(cleanupExpiredRooms, CLEANUP_INTERVAL);
+console.log(`Started TTL cleanup for team rooms. Cleanup interval: ${CLEANUP_INTERVAL / (60 * 60 * 1000)} hours`);
+
 const client = new LitNodeClient({
   litNetwork: LitNetwork.DatilDev,
   debug: false,
@@ -733,8 +762,44 @@ app.post("/upload-metadata", async (req, res) => {
 
 app.post("/startHuddle", async (req, res) => {
   try {
-    const roomId = await getRoomId();
-    const token = await getToken(roomId);
+    const { huntId, teamId } = req.body;
+    
+    // Validate required fields
+    if (!huntId || !teamId) {
+      return res.status(400).json({
+        error: "Missing required fields: huntId and teamId",
+      });
+    }
+    
+    const roomKey = `${huntId}_${teamId}`;
+    
+    // Check if room already exists for this team
+    if (teamHuddleRooms.has(roomKey)) {
+      const existingRoom = teamHuddleRooms.get(roomKey);
+      console.log(`Returning existing room for team ${teamId} in hunt ${huntId}: ${existingRoom.roomId}`);
+      
+      // Generate fresh token for the user
+      const token = await getToken(existingRoom.roomId, teamId);
+      
+      return res.json({
+        roomId: existingRoom.roomId,
+        token: token,
+      });
+    }
+    
+    // Create new room for this team
+    console.log(`Creating new room for team ${teamId} in hunt ${huntId}`);
+    const roomId = await getRoomId(teamId);
+    const token = await getToken(roomId, teamId);
+    
+    // Store room mapping with timestamp
+    teamHuddleRooms.set(roomKey, {
+      roomId: roomId,
+      createdAt: Date.now(),
+    });
+    
+    console.log(`Stored new room mapping: ${roomKey} -> ${roomId}. Total active rooms: ${teamHuddleRooms.size}`);
+    
     res.json({
       roomId: roomId,
       token: token,
