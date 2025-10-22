@@ -3,6 +3,7 @@ import { FaCoins, FaRegClock, FaCheckCircle } from "react-icons/fa";
 import { BsBarChartFill } from "react-icons/bs";
 import { Confetti } from "./ui/confetti";
 import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Leaderboard } from "./Leaderboard";
 import { useEffect, useState } from "react";
 import { useReadContract, useActiveAccount } from "thirdweb/react";
@@ -116,78 +117,114 @@ export function HuntEnd() {
   // };
 
   return (
-    <div className="min-h-screen bg-linear-to-b from-green/10 to-white pt-20 px-4 mb-20">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black">
-          {/* Header */}
-          <div className="bg-green p-6 text-white">
+    <div className="min-h-screen bg-background pt-20 px-4 mb-[90px]">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Hunt Completion Card */}
+        <Card className="bg-white">
+          <CardHeader className="bg-main text-main-foreground p-6 border-b-2 border-black -my-6">
             <div className="flex items-center justify-between">
-              <h1 className="text-xl font-bold my-4">{huntInfo.title}</h1>
+              <CardTitle className="text-xl font-bold">
+                {huntInfo.title}
+              </CardTitle>
               <Button
                 onClick={() => setIsLeaderboardOpen(true)}
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 p-2"
+                variant="neutral"
                 size="sm"
+                className="p-2"
               >
                 <BsBarChartFill className="w-4 h-4" />
               </Button>
             </div>
-          </div>
+          </CardHeader>
 
-          {/* Success Content */}
-          <div className="p-12 flex flex-col items-center">
+          <CardContent className="p-6">
+            {/* Success Message */}
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-foreground mb-8">
+                Treasure Found! 🏆
+              </h2>
+              <p className="text-sm text-foreground/70 font-medium text-justify px-3">
+                {huntInfo.description}
+              </p>
+            </div>
 
             {/* Trust Score Card */}
-            <div className="bg-gray-50 rounded-xl p-6 mb-8 w-full max-w-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <FaRegClock className="text-green" />
-                  <span className="text-sm text-gray-600">Speed</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <FaCheckCircle className="text-green" />
-                  <span className="text-sm text-gray-600">Accuracy</span>
-                </div>
-              </div>
-              <div className="relative flex items-center justify-center">
-                {/* Animated circular progress */}
-                <div className="relative w-40 h-40">
-                  <svg className="w-full h-full transform -rotate-90">
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="70"
-                      className="stroke-gray-200"
-                      strokeWidth="8"
-                      fill="none"
-                    />
-                    <circle
-                      cx="80"
-                      cy="80"
-                      r="70"
-                      className="stroke-green"
-                      strokeWidth="8"
-                      fill="none"
-                      strokeLinecap="round"
-                      style={{
-                        strokeDasharray: `${2 * Math.PI * 70}`,
-                        strokeDashoffset: `${
-                          2 * Math.PI * 70 * (1 - progress / 10)
-                        }`,
-                        transition: "stroke-dashoffset 1s ease-in-out",
-                      }}
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-5xl font-bold text-green">
-                      {isLoadingScore ? "..." : trustScore}
-                    </span>
+            <Card className="bg-muted mb-8">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-main rounded-lg border-2 border-black">
+                      <FaRegClock className="w-4 h-4 text-main-foreground" />
+                    </div>
+                    <span className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">Speed</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-main rounded-lg border-2 border-black">
+                      <FaCheckCircle className="w-4 h-4 text-main-foreground" />
+                    </div>
+                    <span className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">Accuracy</span>
                   </div>
                 </div>
-              </div>
-              <div className="text-sm text-gray-500 text-center mt-4">
-                Score = (Time in minutes) + (Attempts × 5)
-              </div>
-            </div>
+                
+                <div className="relative flex items-center justify-center mb-4">
+                  {/* Animated circular progress */}
+                  <div className="relative w-40 h-40">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="80"
+                        cy="80"
+                        r="70"
+                        className="stroke-foreground/20"
+                        strokeWidth="8"
+                        fill="none"
+                      />
+                      <circle
+                        cx="80"
+                        cy="80"
+                        r="70"
+                        className="stroke-main"
+                        strokeWidth="8"
+                        fill="none"
+                        strokeLinecap="round"
+                        style={{
+                          strokeDasharray: `${2 * Math.PI * 70}`,
+                          strokeDashoffset: `${
+                            2 * Math.PI * 70 * (1 - progress / 10)
+                          }`,
+                          transition: "stroke-dashoffset 1s ease-in-out",
+                        }}
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <span className="text-5xl font-bold text-main">
+                        {isLoadingScore ? "..." : trustScore}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-md text-center font-medium">
+                  Score = (Time in minutes) + (Attempts × 5)
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Reward Display */}
+            <Card className="bg-accent">
+              <CardContent className="p-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3 bg-main rounded-lg border-2 border-black">
+                    <FaCoins className="w-8 h-8 text-main-foreground" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-accent-foreground/70 font-semibold uppercase tracking-wide">Your Reward</p>
+                    <p className="text-2xl font-bold text-accent-foreground">
+                      {huntInfo.totalReward}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
 
             {/* Confetti Effect - Only show when score is loaded and confetti hasn't been shown yet */}
             {hasShownConfetti && !isLoadingScore && (
@@ -208,37 +245,8 @@ export function HuntEnd() {
                 }}
               />
             )}
-
-            {/* Success Message */}
-            <h2 className="text-2xl font-bold text-gray-900 mb-4 text-center">
-              Treasure Found! 🏆
-            </h2>
-            <p className="text-md text-gray-600 mb-6 text-center">
-              {huntInfo.description}
-            </p>
-
-            {/* Reward Display */}
-            <div className="bg-gray-50 rounded-xl p-6 flex items-center gap-4">
-              <FaCoins className="w-8 h-8 text-yellow" />
-              <div>
-                <p className="text-sm text-gray-600">Your Reward</p>
-                <p className="text-2xl font-bold text-green">
-                  {huntInfo.totalReward}
-                </p>
-              </div>
-            </div>
-
-            {/* Claim Button */}
-            {/* <Button
-              onClick={handleClaim}
-              size="lg"
-              className="bg-green hover:bg-light-green text-white px-12 py-6 text-xl shadow-lg shadow-green/20 transition-all hover:scale-105"
-            >
-              <FaCoins className="mr-2" />
-              Claim Your Treasure
-            </Button> */}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
         
         {/* Leaderboard Modal */}
         <Leaderboard 
