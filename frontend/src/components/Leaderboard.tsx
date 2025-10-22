@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import { Button } from './ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { FaTrophy, FaMedal } from 'react-icons/fa';
 import { BsTrophyFill } from 'react-icons/bs';
+import { FiRefreshCw } from 'react-icons/fi';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { TeamIdentifierDisplay, isSoloParticipant } from './TeamIdentifierDisplay';
@@ -97,166 +100,147 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg w-[90vw] bg-white! rounded-xl">
-        <DialogHeader>
-          <DialogTitle className="text-xl font-bold text-center text-green flex items-center justify-center">
-            <BsTrophyFill className="inline-block mr-2" />
+      <DialogContent className="max-w-2xl w-[90vw] bg-white">
+        <DialogHeader className="bg-main text-main-foreground p-6 border-b-2 border-black -m-6 mb-0">
+          <DialogTitle className="text-center flex items-center justify-center text-xl">
             Leaderboard
-            <button
+            <Button
               onClick={fetchLeaderboard}
               disabled={isLoading}
-              className="ml-4 p-1 rounded-sm hover:bg-gray-100 disabled:opacity-50"
+              variant="neutral"
+              size="icon"
+              className="ml-4"
               title="Refresh leaderboard"
             >
-              <svg
-                className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`}
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                />
-              </svg>
-            </button>
+              <FiRefreshCw className={`w-2 h-2 ${isLoading ? 'animate-spin' : ''}`} />
+            </Button>
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col max-h-[60vh]">
+        <div className="flex flex-col max-h-[60vh] p-6">
           {/* Hunt Name */}
-          <div className="text-center mb-4 px-4">
-            <h3 className="text-sm text-gray-500">
+          <div className="text-center mb-6">
+            <h3 className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">
               {huntName || (huntId ? `Hunt #${huntId}` : 'Treasure Hunt Adventure')}
             </h3>
           </div>
 
-          {/* Table Header - Sticky */}
-          <div className="px-1">
-            <div className="grid grid-cols-4 gap-1 p-2 mb-2 rounded-lg font-semibold text-sm text-gray-700 sticky top-0 z-10 shadow-xs text-center bg-white">
-              <div>Rank</div>
-              <div>Team</div>
-              <div>Clues</div>
-              <div>Score</div>
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-foreground/60 font-medium">Loading leaderboard...</div>
             </div>
-          </div>
+          )}
 
-          {/* Scrollable Content */}
-          <div className="overflow-y-auto flex-1 px-1">
-            <div className="space-y-2">
-              {/* Loading State */}
-              {isLoading && (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-gray-500">Loading leaderboard...</div>
-                </div>
-              )}
+          {/* Error State */}
+          {error && !isLoading && (
+            <div className="flex flex-col items-center justify-center py-8">
+              <div className="text-red-600 mb-4 font-bold">Failed to load leaderboard</div>
+              <Button
+                onClick={fetchLeaderboard}
+                variant="default"
+              >
+                Try again
+              </Button>
+            </div>
+          )}
 
-              {/* Error State */}
-              {error && !isLoading && (
-                <div className="flex flex-col items-center justify-center py-8">
-                  <div className="text-red-500 mb-2">Failed to load leaderboard</div>
-                  <button
-                    onClick={fetchLeaderboard}
-                    className="text-blue-500 hover:text-blue-700 underline"
-                  >
-                    Try again
-                  </button>
-                </div>
-              )}
+          {/* Empty State */}
+          {!isLoading && !error && leaderboardData.length === 0 && (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-foreground/60 font-medium">No teams have solved any clues yet</div>
+            </div>
+          )}
 
-              {/* Empty State */}
-              {!isLoading && !error && leaderboardData.length === 0 && (
-                <div className="flex items-center justify-center py-8">
-                  <div className="text-gray-500">No teams have solved any clues yet</div>
-                </div>
-              )}
+          {/* Leaderboard Table */}
+          {!isLoading && !error && leaderboardData.length > 0 && (
+            <div className="overflow-y-auto flex-1">
+              <Table>
+                <TableHeader className="border-t-1 border-black">
+                  <TableRow>
+                    <TableHead className="text-center font-bold">Rank</TableHead>
+                    <TableHead className="text-center font-bold">Team</TableHead>
+                    <TableHead className="text-center font-bold">Clues</TableHead>
+                    <TableHead className="text-center font-bold">Score</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {leaderboardData.map((team, index) => (
+                    <TableRow
+                      key={team.teamIdentifier}
+                      className={cn(
+                        'hover:bg-muted/50 transition-colors',
+                        index === leaderboardData.length - 1 && 'border-b-0',
+                        team.rank === 1
+                          ? 'bg-yellow-50'
+                          : team.rank === 2
+                            ? 'bg-gray-50'
+                            : team.rank === 3
+                              ? 'bg-orange-50'
+                              : ''
+                      )}
+                    >
+                      {/* Rank */}
+                      <TableCell className="text-center">
+                        {getRankIcon(team.rank)}
+                      </TableCell>
 
-              {/* Leaderboard Entries */}
-              {!isLoading &&
-                !error &&
-                leaderboardData.map((team) => (
-                  <div
-                    key={team.teamIdentifier}
-                    className={cn(
-                      'grid grid-cols-4 gap-1 p-2 rounded-lg border transition-colors hover:bg-gray-50',
-                      team.rank === 1
-                        ? 'border-yellow-400!'
-                        : team.rank === 2
-                          ? 'border-gray-300!'
-                          : team.rank === 3
-                            ? 'border-orange-400!'
-                            : 'bg-white border-gray-200'
-                    )}
-                    style={
-                      team.rank === 1
-                        ? { borderColor: '#facc15' }
-                        : team.rank === 3
-                          ? { borderColor: '#fb923c' }
-                          : undefined
-                    }
-                  >
-                    {/* Rank */}
-                    <div className="flex items-center justify-center">{getRankIcon(team.rank)}</div>
-
-                    {/* Team */}
-                    <div className="flex items-start space-x-2 min-w-0">
-                      <div className="min-w-0 flex-1 relative">
-                        <div
-                          className="font-medium text-sm text-gray-900 cursor-pointer hover:text-blue-600 transition-colors min-w-0"
-                          onClick={() =>
-                            setHoveredTeam(
-                              hoveredTeam === team.teamIdentifier ? null : team.teamIdentifier
-                            )
-                          }
-                          title="Click to see team leader address"
-                        >
-                          <TeamIdentifierDisplay teamIdentifier={team.teamIdentifier} />
-                        </div>
-                        {hoveredTeam === team.teamIdentifier && (
-                          <div className="absolute top-full left-0 mt-1 p-2 bg-gray-800 text-white text-xs rounded-sm shadow-lg z-20 whitespace-nowrap">
-                            {isSoloParticipant(team.teamIdentifier) ? (
-                              <span>
-                                Solo: <TeamIdentifierDisplay teamIdentifier={team.teamIdentifier} />
-                              </span>
-                            ) : (
-                              <span>
-                                Team Leader: <AddressDisplay address={team.teamLeaderAddress} />
-                              </span>
-                            )}
-                            <div className="absolute -top-1 left-2 w-2 h-2 bg-gray-800 transform rotate-45"></div>
+                      {/* Team */}
+                      <TableCell className="max-w-[120px]">
+                        <div className="min-w-0 flex-1 relative">
+                          <div
+                            className="font-medium text-sm text-foreground cursor-pointer hover:text-main transition-colors min-w-0 text-wrap"
+                            onClick={() =>
+                              setHoveredTeam(
+                                hoveredTeam === team.teamIdentifier ? null : team.teamIdentifier
+                              )
+                            }
+                            title="Click to see team leader address"
+                          >
+                            <TeamIdentifierDisplay teamIdentifier={team.teamIdentifier} />
                           </div>
-                        )}
-                      </div>
-                    </div>
+                          {hoveredTeam === team.teamIdentifier && (
+                            <div className="absolute top-full left-0 mt-1 p-2 bg-foreground text-background text-sm rounded-base border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] z-20 whitespace-nowrap">
+                              {isSoloParticipant(team.teamIdentifier) ? (
+                                <span>
+                                  Solo: <TeamIdentifierDisplay teamIdentifier={team.teamIdentifier} />
+                                </span>
+                              ) : (
+                                <span>
+                                  Team Leader: <AddressDisplay address={team.teamLeaderAddress} />
+                                </span>
+                              )}
+                              <div className="absolute -top-1 left-2 w-2 h-2 bg-foreground transform rotate-45"></div>
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
 
-                    {/* Clues Solved */}
-                    <div className="flex items-center justify-center">
-                      <div className="text-center">
-                        <div className="text-base font-bold text-green">{team.cluesCompleted}</div>
-                      </div>
-                    </div>
+                      {/* Clues Solved */}
+                      <TableCell className="text-center">
+                        <div className="text-base font-bold text-main">{team.cluesCompleted}</div>
+                      </TableCell>
 
-                    {/* HuntScore */}
-                    <div className="flex items-center justify-center">
-                      <div className={cn('text-sm font-bold', getScoreColor(team.combinedScore))}>
-                        {team.combinedScore.toFixed(1)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                      {/* Score */}
+                      <TableCell className="text-center">
+                        <div className={cn('text-sm font-bold', getScoreColor(team.combinedScore))}>
+                          {team.combinedScore.toFixed(1)}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          </div>
+          )}
 
           {/* Footer Info */}
-          <div className="mt-4 pt-3 border-t border-gray-200 px-2 pb-4">
-            <div className="text-xs text-gray-500 text-center">
-              <p>
-                <strong>Scoring:</strong> Score = (Time in minutes) + (Attempts × 5). Lower scores
-                rank higher.
+          <div className="pt-4 border-t-1 border-black">
+            <div className="text-xs text-foreground/60 text-center">
+              <p className="font-medium">
+                Score = (Time in minutes) + (Attempts × 5). Lower scores
+                rank higher after number of clues solved.
               </p>
-              
             </div>
           </div>
         </div>
