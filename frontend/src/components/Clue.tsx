@@ -417,7 +417,7 @@ export function Clue() {
     <div className="min-h-screen bg-background pt-20 px-4 mb-[90px]">
       <div className="max-w-4xl mx-auto">
         <Card className="mb-8 min-h-[calc(100vh-180px)] flex flex-col bg-white">
-          <CardHeader className="bg-main text-main-foreground p-6">
+          <CardHeader className="bg-main text-main-foreground p-6 -my-6">
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl flex-1 wrap-break-word">{huntData?.name}</CardTitle>
               <div className="flex items-center space-x-4">

@@ -597,8 +597,8 @@ export function HuntDetails() {
     <div className="min-h-screen bg-background pt-20 px-4 mb-[90px]">
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Hunt Info Card */}
-        <Card className="bg-white border-2 border-black shadow-[-4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <CardHeader className="bg-main text-main-foreground p-6 border-b-2 border-black">
+        <Card className="bg-white ">
+          <CardHeader className="bg-main text-main-foreground p-6 border-b-2 border-black -my-6  ">
             <div className="flex items-center justify-between">
               <CardTitle className="text-xl flex-1 wrap-break-word font-bold">
                 {huntData?.name || 'Hunt Details'}
@@ -614,7 +614,7 @@ export function HuntDetails() {
             </div>
           </CardHeader>
 
-          <CardContent className="">
+          <CardContent className="mt-4">
             {huntData && (
               <>
                 <p className="text-foreground/70 font-base mb-6 ">{huntData.description}</p>
@@ -670,8 +670,8 @@ export function HuntDetails() {
 
         {/* Team Management Card - Only show if teams are enabled */}
         {huntData?.teamsEnabled && (
-          <Card className="bg-white border-2 border-black shadow-[-4px_4px_0px_0px_rgba(0,0,0,1)]">
-            <CardHeader className="bg-accent text-accent-foreground p-6 border-b-2 border-black">
+          <Card className="bg-white ">
+            <CardHeader className="bg-accent text-accent-foreground p-6 border-b-2 border-black -my-6">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-xl font-bold">Team Management</CardTitle>
                 <div className="flex items-center gap-2">
@@ -700,31 +700,12 @@ export function HuntDetails() {
               {isUserInTeam ? (
                 <>
                   <div className="space-y-6">
-                    <h3 className="text-lg font-bold text-foreground">Your Team</h3>
-                    
-                    {/* Team Stats */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-muted p-4 rounded-lg border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)]">
-                        <div className="flex justify-between items-center">
-                          <span className="text-foreground/60 font-semibold uppercase tracking-wide text-sm">Members:</span>
-                          <span className="font-bold text-lg">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxMembers?.toString() || '0'}</span>
-                        </div>
-                      </div>
-                      <div className="bg-muted p-4 rounded-lg border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)]">
-                        <div className="flex justify-between items-center">
-                          <span className="text-foreground/60 font-semibold uppercase tracking-wide text-sm">Owner:</span>
-                          {teamData?.owner ? (
-                            <AddressDisplay address={teamData.owner} className="font-bold text-sm" />
-                          ) : (
-                            <span className="font-bold text-sm">Unknown</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
                     {/* Team Members List */}
                     <div className="space-y-3">
-                      <h4 className="text-md font-bold text-foreground">Team Members</h4>
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-md font-bold text-foreground">Team Members</h4>
+                        <span className="font-bold text-lg mr-1">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxMembers?.toString() || '0'}</span>
+                      </div>
                       <div className="space-y-2">
                         {(teamData?.members || []).map((member, index) => (
                           <div key={index} className="flex items-center gap-4 p-4 bg-muted rounded-lg border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all">

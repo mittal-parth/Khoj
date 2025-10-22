@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { FaTrophy, FaMedal } from 'react-icons/fa';
-import { BsTrophyFill } from 'react-icons/bs';
 import { FiRefreshCw } from 'react-icons/fi';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
