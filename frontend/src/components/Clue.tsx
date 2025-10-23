@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "./ui/card";
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
@@ -338,17 +339,31 @@ export function Clue() {
     }
   };
 
-  const getButtonStyles = () => {
-    if (!location) return "bg-gray-400 cursor-not-allowed";
+  const getButtonVariant = () => {
+    if (!location) return "neutral";
     switch (verificationState) {
       case "verifying":
-        return "bg-gray-800 hover:bg-gray-800";
+        return "neutral";
       case "success":
-        return "bg-green hover:bg-green/90";
+        return "default";
       case "error":
-        return "bg-red hover:bg-red";
+        return "default";
       default:
-        return "bg-black hover:bg-gray-800";
+        return "default";
+    }
+  };
+
+  const getButtonStyles = () => {
+    if (!location) return "opacity-50 cursor-not-allowed";
+    switch (verificationState) {
+      case "verifying":
+        return "opacity-75";
+      case "success":
+        return "bg-green-500 hover:bg-green-600 text-white";
+      case "error":
+        return "bg-red-500 hover:bg-red-600 text-white";
+      default:
+        return "";
     }
   };
 
@@ -368,73 +383,78 @@ export function Clue() {
 
   if (attempts === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-20 px-4">
+      <div className="min-h-screen bg-background pt-20 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-            <div className="mb-6">
-              <BsXCircle className="w-16 h-16 text-red-500 mx-auto" />
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              No More Attempts
-            </h2>
-            <p className="text-gray-600 mb-8">
-              You've used all your attempts for this clue. Try another hunt or
-              come back later.
-            </p>
-            <Button
-              onClick={() => navigate("/")}
-              className="bg-black hover:bg-gray-800 text-white px-8"
-              size="lg"
-            >
-              <BsArrowLeft className="mr-2" />
-              Return to Hunts
-            </Button>
-          </div>
+          <Card className="text-center">
+            <CardContent className="p-8">
+              <div className="mb-6">
+                <BsXCircle className="w-16 h-16 text-red-500 mx-auto" />
+              </div>
+              <CardTitle className="text-3xl mb-4">
+                No More Attempts
+              </CardTitle>
+              <p className="text-foreground/70 mb-8">
+                You've used all your attempts for this clue. Try another hunt or
+                come back later.
+              </p>
+              <Button
+                onClick={() => navigate("/")}
+                variant="default"
+                size="lg"
+                className="px-8"
+              >
+                <BsArrowLeft className="mr-2" />
+                Return to Hunts
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 px-4 mb-[90px]">
+    <div className="min-h-screen bg-background pt-20 px-4 mb-[90px]">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] justify-between flex flex-col">
-          <div className="bg-green p-6 text-white">
-            <div className="flex items-center justify-between my-4">
-              <h1 className="text-xl font-bold flex-1 wrap-break-word">{huntData?.name}</h1>
+        <Card className="mb-8 min-h-[calc(100vh-180px)] flex flex-col bg-white">
+          <CardHeader className="bg-main text-main-foreground p-6 -my-6">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl flex-1 wrap-break-word">{huntData?.name}</CardTitle>
               <div className="flex items-center space-x-4">
-                <div className="text-2xl font-bold shrink-0">
+                <div className="text-2xl shrink-0">
                   # {currentClue}/{currentClueData?.length}
                 </div>
                 <div className="flex items-center space-x-2">
                   <Button
                     onClick={handleSyncProgress}
                     disabled={isSyncing}
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 p-2"
+                    variant="neutral"
                     size="sm"
+                    className="p-2"
                     title="Sync with team progress"
                   >
                     <BsArrowClockwise className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
                   </Button>
                   <Button
                     onClick={() => setIsLeaderboardOpen(true)}
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 p-2"
+                    variant="neutral"
                     size="sm"
+                    className="p-2"
                   >
                     <BsBarChartFill className="w-4 h-4" />
                   </Button>
                 </div>
               </div>
             </div>
-          </div>
+          </CardHeader>
 
-          <div className="prose max-w-none p-6 h-full">
+          <CardContent className="prose max-w-none p-6 h-full flex-1 flex flex-col justify-center">
             <h1 className="text-xl font-semibold mb-2">Clue</h1>
             {isRedirecting ? (
               <div className="flex items-center justify-center h-32">
                 <div className="text-center">
-                  <BsArrowRepeat className="w-8 h-8 animate-spin mx-auto mb-2 text-gray-600" />
-                  <p className="text-gray-600">Syncing progress...</p>
+                  <BsArrowRepeat className="w-8 h-8 animate-spin mx-auto mb-2 text-foreground/60" />
+                  <p className="text-foreground/60">Syncing progress...</p>
                 </div>
               </div>
             ) : (
@@ -442,25 +462,26 @@ export function Clue() {
                 {currentClueData?.[currentClue - 1]?.riddle}
               </ReactMarkdown>
             )}
-          </div>
+          </CardContent>
 
-          <div className="mt-8 border-t pt-6 p-6 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center text-gray-600">
-                <BsGeoAlt className="mr-2" />
+          <CardFooter className="border-t pt-6 flex flex-col">
+            <div className="flex items-center justify-between mb-4 text-sm gap-4">
+              <div className="flex items-center text-foreground/70">
+                <BsGeoAlt className="mr-1" />
                 {location ? "Location detected" : "Detecting location..."}
               </div>
-              <div className="text-gray-600">
+              <div className="text-foreground/70">
                 Attempts remaining: {attempts}/{MAX_ATTEMPTS}
               </div>
             </div>
 
-            <form onSubmit={handleVerify}>
+            <form onSubmit={handleVerify} className="w-full">
               <Button
                 type="submit"
+                variant={getButtonVariant()}
                 size="lg"
                 className={cn(
-                  "w-full text-white transition-colors duration-300",
+                  "w-full transition-colors duration-300",
                   getButtonStyles()
                 )}
                 disabled={
@@ -482,8 +503,8 @@ export function Clue() {
                 {getButtonText()}
               </Button>
             </form>
-          </div>
-        </div>
+          </CardFooter>
+        </Card>
 
         {huntId && <HuddleRoom huntId={huntId} teamIdentifier={teamIdentifier} />}
         

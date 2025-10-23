@@ -54,16 +54,16 @@ export type ToasterProps = React.ComponentProps<typeof import("sonner").Toaster>
 
 export const bgColors = ["green", "orange", "yellow", "pink", "red"];
 export const bgColorClasses = {
-  green: "bg-green",
-  orange: "bg-orange", 
-  yellow: "bg-yellow",
-  pink: "bg-pink",
-  red: "bg-red"
+  green: "bg-green-700",
+  orange: "bg-orange-600", 
+  yellow: "bg-yellow-600",
+  pink: "bg-pink-600",
+  red: "bg-red-600"
 };
 export const textColorClasses = {
-  green: "text-green",
-  orange: "text-orange", 
-  yellow: "text-yellow",
-  pink: "text-pink",
-  red: "text-red"
+  green: "text-green-700",
+  orange: "text-orange-600", 
+  yellow: "text-yellow-600",
+  pink: "text-pink-600",
+  red: "text-red-600"
 };
