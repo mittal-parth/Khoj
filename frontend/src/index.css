@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Anek+Devanagari:wght@100..800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -8,37 +9,37 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(94.27% 0.0268 242.57);
+  --background: oklch(96.79% 0.0654 102.26);
   --secondary-background: oklch(100% 0 0);
   --foreground: oklch(0% 0 0);
   --main-foreground: oklch(0% 0 0);
-  --main: oklch(66.9% 0.18368 248.8066);
+  --main: oklch(86.03% 0.176 92.36);
   --border: oklch(0% 0 0);
   --ring: oklch(0% 0 0);
   --overlay: oklch(0% 0 0 / 0.8);
   --shadow: -4px 4px 0px 0px var(--border);
-  --chart-1: #0099FF;
-  --chart-2: #FF4D50;
-  --chart-3: #FACC00;
-  --chart-4: #05E17A;
-  --chart-5: #7A83FF;
+  --chart-1: #FACC00;
+  --chart-2: #7A83FF;
+  --chart-3: #FF4D50;
+  --chart-4: #00D696;
+  --chart-5: #0099FF;
   --chart-active-dot: #000;
 }
 
 .dark {
-  --background: oklch(27.08% 0.0336 240.69);
+  --background: oklch(29.28% 0.0373 94.38);
   --secondary-background: oklch(23.93% 0 0);
   --foreground: oklch(92.49% 0 0);
   --main-foreground: oklch(0% 0 0);
-  --main: oklch(61.9% 0.16907 248.5982);
+  --main: oklch(79.36% 0.1624 92.49);
   --border: oklch(0% 0 0);
   --ring: oklch(100% 0 0);
   --shadow: -4px 4px 0px 0px var(--border);
-  --chart-1: #008AE5;
-  --chart-2: #FF6669;
-  --chart-3: #E0B700;
-  --chart-4: #04C86D;
-  --chart-5: #7A83FF;
+  --chart-1: #E0B700;
+  --chart-2: #7A83FF;
+  --chart-3: #FF6669;
+  --chart-4: #00BD84;
+  --chart-5: #008AE5;
   --chart-active-dot: #fff;
 }
 

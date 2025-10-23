@@ -629,7 +629,7 @@ export function HuntDetails() {
                       </div>
                       <div>
                         <p className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">Date & Time</p>
-                        <p className="text-sm font-bold text-foreground">
+                        <p className="text-sm text-foreground">
                           {new Date(Number(huntData.startTime) * 1000).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(Number(huntData.startTime) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(Number(huntData.endTime) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
@@ -642,7 +642,7 @@ export function HuntDetails() {
                       </div>
                       <div>
                         <p className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">Participants</p>
-                        <p className="text-sm font-bold text-foreground">
+                        <p className="text-sm text-foreground">
                           {Number(huntData.participantCount)} registered
                         </p>
                       </div>
@@ -655,7 +655,7 @@ export function HuntDetails() {
                       </div>
                       <div>
                         <p className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">Teams</p>
-                        <p className="text-sm font-bold text-foreground">
+                        <p className="text-sm text-foreground">
                           {huntData?.teamsEnabled ? 'Enabled' : 'Disabled'}
                         </p>
                       </div>
@@ -723,7 +723,7 @@ export function HuntDetails() {
                             </div>
                             <div className="flex-1">
                               {member ? (
-                                <AddressDisplay address={member} className="font-bold text-sm" />
+                                <AddressDisplay address={member} className="font-semibold text-sm" />
                               ) : (
                                 <span className="font-bold text-sm text-foreground/60">Unknown Member</span>
                               )}
