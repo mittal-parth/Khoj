@@ -321,7 +321,7 @@ export function Hunts() {
                       {hunt.name}
                     </h2>
                     {hunt.teamsEnabled && (
-                      <Badge variant="neutral" className="bg-blue-100 text-blue-700 border-blue-300">
+                      <Badge variant="neutral" className="bg-background text-foreground/80">
                         <TbUsersGroup />
                         <span>Teams</span>
                       </Badge>
