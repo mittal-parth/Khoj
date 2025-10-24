@@ -1,0 +1,103 @@
+/*
+ * Global application styles.
+ * This file contains general layout and component styling.
+ */
+
+/* --- Leaderboard Styles --- */
+/*
+ * Addresses horizontal overflow of the leaderboard header on smaller viewports.
+ * Applies responsive adjustments to the table layout and header text wrapping.
+ */
+@media (max-width: 767px) {
+  /* Ensure the leaderboard table uses full width and manages column widths */
+  .leaderboard-table {
+    width: 100%;
+    table-layout: fixed; /* Forces columns to fit within the table width */
+  }
+
+  /* Allow header text to wrap and break long words on small screens */
+  .leaderboard-table th {
+    white-space: normal; /* Allow text to wrap to multiple lines */
+    word-break: break-word; /* Ensure long words break instead of overflowing */
+    padding: 8px 4px; /* Adjust padding for a more compact look */
+    font-size: 0.85em; /* Slightly smaller font for headers on small screens */
+  }
+
+  /* Optional: Adjust data cell padding for consistency on small screens */
+  .leaderboard-table td {
+    padding: 8px 4px;
+    font-size: 0.85em;
+  }
+}
+
+/* --- Bottom Navigation Bar Styles --- */
+/*
+ * Addresses excessive height of the bottom navigation bar by reducing its
+ * padding, icon size, and text label size, leading to a more compact layout.
+ */
+.bottom-navbar {
+  display: flex; /* Use flexbox for layout of navigation items */
+  justify-content: space-around; /* Distribute items evenly */
+  align-items: center; /* Vertically center items */
+  padding: 8px 0; /* Reduced vertical padding for a more compact bar */
+  min-height: 50px; /* Ensure a minimum height for touch targets while being compact */
+  background-color: #f8f8f8; /* Example background color */
+  border-top: 1px solid #eee; /* Subtle top border */
+  position: fixed; /* Common for bottom navigation bars */
+  bottom: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  box-sizing: border-box; /* Include padding in the element's total width */
+  z-index: 1000; /* Ensure the navigation bar is above other content */
+}
+
+/* Styling for individual navigation items within the bar */
+.bottom-navbar .nav-item {
+  display: flex;
+  flex-direction: column; /* Stack icon and text vertically */
+  align-items: center; /* Center content horizontally within each item */
+  text-decoration: none; /* Remove underline from links */
+  color: #555; /* Default text/icon color */
+  padding: 4px 8px; /* Compact padding for each navigation item */
+  flex-grow: 1; /* Allow items to grow and fill space */
+  text-align: center;
+  cursor: pointer; /* Add pointer cursor for better desktop UX */
+}
+
+/* Hover state for navigation items */
+.bottom-navbar .nav-item:hover {
+  color: #007bff; /* Example hover color */
+}
+
+/* Styling for icons within the navigation bar */
+.bottom-navbar .nav-icon {
+  font-size: 20px; /* Reduced font size for icon fonts */
+  margin-bottom: 2px; /* Small gap between icon and label */
+  line-height: 1; /* Ensure consistent line height for icons */
+}
+
+/* If icons are images (e.g., img or svg) instead of icon fonts,
+ * uncomment and adjust these rules:
+.bottom-navbar .nav-icon img,
+.bottom-navbar .nav-icon svg {
+  width: 20px;
+  height: 20px;
+  margin-bottom: 2px;
+}
+*/
+
+/* Styling for text labels within the navigation bar */
+.bottom-navbar .nav-label {
+  font-size: 12px; /* Reduced font size for text labels */
+  line-height: 1.2; /* Adjusted line height for readability with smaller text */
+  white-space: nowrap; /* Prevent labels from wrapping too easily */
+  overflow: hidden; /* Hide overflowing text */
+  text-overflow: ellipsis; /* Add ellipsis for truncated text */
+  max-width: 100%; /* Ensure label respects item width */
+}
+
+/* Optional: Styling for an active navigation item */
+.bottom-navbar .nav-item.active {
+  color: #007bff; /* Example active color */
+}
