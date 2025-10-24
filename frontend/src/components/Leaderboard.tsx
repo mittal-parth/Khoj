@@ -99,7 +99,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl w-[90vw] bg-white">
+      <DialogContent className="max-w-2xl w-[95vw] sm:w-[90vw] bg-white">
         <DialogHeader className="bg-main text-main-foreground p-6 border-b-2 border-black -m-6 mb-0">
           <DialogTitle className="text-center flex items-center justify-center text-xl">
             Leaderboard
@@ -116,9 +116,9 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col max-h-[60vh] p-6">
+        <div className="flex flex-col max-h-[60vh] p-4">
           {/* Hunt Name */}
-          <div className="text-center mb-6">
+          <div className="text-center mb-4">
             <h3 className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">
               {huntName || (huntId ? `Hunt #${huntId}` : 'Treasure Hunt Adventure')}
             </h3>
@@ -153,14 +153,14 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
 
           {/* Leaderboard Table */}
           {!isLoading && !error && leaderboardData.length > 0 && (
-            <div className="overflow-y-auto flex-1">
-              <Table>
+            <div className="overflow-x-auto overflow-y-auto flex-1 -mx-4 px-4">
+              <Table className="w-full">
                 <TableHeader className="border-t-1 border-black">
                   <TableRow>
-                    <TableHead className="text-center font-bold">Rank</TableHead>
-                    <TableHead className="text-center font-bold">Team</TableHead>
-                    <TableHead className="text-center font-bold">Clues</TableHead>
-                    <TableHead className="text-center font-bold">Score</TableHead>
+                    <TableHead className="text-center font-bold text-sm px-2 sm:px-4">Rank</TableHead>
+                    <TableHead className="text-left font-bold text-sm px-2 sm:px-4">Team</TableHead>
+                    <TableHead className="text-center font-bold text-sm px-2 sm:px-4">Clues</TableHead>
+                    <TableHead className="text-center font-bold text-sm px-2 sm:px-4">Score</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -180,15 +180,15 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                       )}
                     >
                       {/* Rank */}
-                      <TableCell className="text-center">
+                      <TableCell className="text-center px-2 sm:px-4">
                         {getRankIcon(team.rank)}
                       </TableCell>
 
                       {/* Team */}
-                      <TableCell className="max-w-[120px]">
-                        <div className="min-w-0 flex-1 relative">
+                      <TableCell className="px-2 sm:px-4 min-w-[100px]">
+                        <div className="relative">
                           <div
-                            className="font-medium text-sm text-foreground cursor-pointer hover:text-main transition-colors min-w-0 text-wrap"
+                            className="font-medium text-sm text-foreground cursor-pointer hover:text-main transition-colors break-all"
                             onClick={() =>
                               setHoveredTeam(
                                 hoveredTeam === team.teamIdentifier ? null : team.teamIdentifier
@@ -199,7 +199,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                             <TeamIdentifierDisplay teamIdentifier={team.teamIdentifier} />
                           </div>
                           {hoveredTeam === team.teamIdentifier && (
-                            <div className="absolute top-full left-0 mt-1 p-2 bg-foreground text-background text-sm rounded-base border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] z-20 whitespace-nowrap">
+                            <div className="absolute top-full left-0 mt-1 p-2 bg-foreground text-background text-xs sm:text-sm rounded-base border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] z-20 whitespace-nowrap max-w-[200px] break-all">
                               {isSoloParticipant(team.teamIdentifier) ? (
                                 <span>
                                   Solo: <TeamIdentifierDisplay teamIdentifier={team.teamIdentifier} />
@@ -216,12 +216,12 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                       </TableCell>
 
                       {/* Clues Solved */}
-                      <TableCell className="text-center">
+                      <TableCell className="text-center px-2 sm:px-4">
                         <div className="text-base font-bold text-main">{team.cluesCompleted}</div>
                       </TableCell>
 
                       {/* Score */}
-                      <TableCell className="text-center">
+                      <TableCell className="text-center px-2 sm:px-4">
                         <div className={cn('text-sm font-bold', getScoreColor(team.combinedScore))}>
                           {team.combinedScore.toFixed(1)}
                         </div>
