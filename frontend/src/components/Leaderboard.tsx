@@ -116,9 +116,9 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
           </DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col max-h-[60vh] p-6">
+        <div className="flex flex-col max-h-[60vh] p-4">
           {/* Hunt Name */}
-          <div className="text-center mb-6">
+          <div className="text-center mb-4">
             <h3 className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">
               {huntName || (huntId ? `Hunt #${huntId}` : 'Treasure Hunt Adventure')}
             </h3>
@@ -153,14 +153,14 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
 
           {/* Leaderboard Table */}
           {!isLoading && !error && leaderboardData.length > 0 && (
-            <div className="overflow-x-auto overflow-y-auto flex-1 -mx-6 px-6">
+            <div className="overflow-x-auto overflow-y-auto flex-1 -mx-4 px-4">
               <Table className="w-full">
                 <TableHeader className="border-t-1 border-black">
                   <TableRow>
-                    <TableHead className="text-center font-bold text-xs sm:text-sm px-1 sm:px-4">Rank</TableHead>
-                    <TableHead className="text-left font-bold text-xs sm:text-sm px-1 sm:px-4">Team</TableHead>
-                    <TableHead className="text-center font-bold text-xs sm:text-sm px-1 sm:px-4">Clues</TableHead>
-                    <TableHead className="text-center font-bold text-xs sm:text-sm px-1 sm:px-4">Score</TableHead>
+                    <TableHead className="text-center font-bold text-sm px-2 sm:px-4">Rank</TableHead>
+                    <TableHead className="text-left font-bold text-sm px-2 sm:px-4">Team</TableHead>
+                    <TableHead className="text-center font-bold text-sm px-2 sm:px-4">Clues</TableHead>
+                    <TableHead className="text-center font-bold text-sm px-2 sm:px-4">Score</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -180,15 +180,15 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                       )}
                     >
                       {/* Rank */}
-                      <TableCell className="text-center px-1 sm:px-4">
+                      <TableCell className="text-center px-2 sm:px-4">
                         {getRankIcon(team.rank)}
                       </TableCell>
 
                       {/* Team */}
-                      <TableCell className="px-1 sm:px-4 min-w-[100px]">
+                      <TableCell className="px-2 sm:px-4 min-w-[100px]">
                         <div className="relative">
                           <div
-                            className="font-medium text-xs sm:text-sm text-foreground cursor-pointer hover:text-main transition-colors break-all"
+                            className="font-medium text-sm text-foreground cursor-pointer hover:text-main transition-colors break-all"
                             onClick={() =>
                               setHoveredTeam(
                                 hoveredTeam === team.teamIdentifier ? null : team.teamIdentifier
@@ -216,13 +216,13 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                       </TableCell>
 
                       {/* Clues Solved */}
-                      <TableCell className="text-center px-1 sm:px-4">
-                        <div className="text-sm sm:text-base font-bold text-main">{team.cluesCompleted}</div>
+                      <TableCell className="text-center px-2 sm:px-4">
+                        <div className="text-base font-bold text-main">{team.cluesCompleted}</div>
                       </TableCell>
 
                       {/* Score */}
-                      <TableCell className="text-center px-1 sm:px-4">
-                        <div className={cn('text-xs sm:text-sm font-bold', getScoreColor(team.combinedScore))}>
+                      <TableCell className="text-center px-2 sm:px-4">
+                        <div className={cn('text-sm font-bold', getScoreColor(team.combinedScore))}>
                           {team.combinedScore.toFixed(1)}
                         </div>
                       </TableCell>
