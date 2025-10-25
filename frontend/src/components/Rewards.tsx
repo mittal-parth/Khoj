@@ -31,7 +31,7 @@ const chartData = [
     value: ((score) => 10 - score)(
       Number(localStorage.getItem("trust_score")) || 0
     ),
-    fill: "#e0e0e0",
+    fill: "#FFE8B3", // Soft amber/cream that complements yellow background
   },
 ];
 
@@ -102,16 +102,27 @@ export function Rewards() {
     return Number(localStorage.getItem("trust_score")) || 0;
   }, []);
 
+  // Background colors for reward cards (excluding yellow/chart-1 which is for Trust Score)
+  const cardBackgroundColors = [
+    "bg-chart-2",        // Purple
+    "bg-chart-3",        // Red
+    "bg-chart-4",        // Green/Teal
+  ];
+  
+  // Separate active and expired rewards
+  const activeRewards = rewardCards.filter(card => !card.isExpired);
+  const expiredRewards = rewardCards.filter(card => card.isExpired);
+
   return (
-    <div className="pt-16 px-4 sm:px-6 lg:px-8 mb-8 p-4">
+    <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-[90px]">
+      <h2 className="text-3xl font-bold mt-12 mb-6 mx-2 text-green drop-shadow-xl">Analytics</h2>
       <div className="mb-6">
-        <h2 className="text-3xl font-bold my-8 text-green">Analytics</h2>
 
         <div className="flex flex-col md:flex-row gap-4 justify-center">
-          <Card className="mt-4 w-full md:w-[400px] h-fit rounded-2xl p-4 flex flex-col gap-2 bg-white relative before:absolute before:inset-0 before:rounded-2xl before:border-8 before:border-green before:-translate-x-2 before:translate-y-2 before:-z-10 border-[3px] border-black transition-all">
+          <Card className="mt-4 w-full md:w-[400px] h-fit rounded-2xl p-4 flex flex-col gap-2 bg-chart-1 relative before:absolute before:inset-0 before:rounded-2xl before:border-8 before:border-chart-1 before:-translate-x-2 before:translate-y-2 before:-z-10 border-[3px] border-black transition-all">
             <CardHeader className="items-center pb-0">
-              <CardTitle>Trust Score</CardTitle>
-              <CardDescription>Your current standing</CardDescription>
+              <CardTitle className="text-foreground">Trust Score</CardTitle>
+              <CardDescription className="text-foreground/70">Your current standing</CardDescription>
             </CardHeader>
             <CardContent className="flex-1 pb-0">
               <ChartContainer
@@ -139,19 +150,19 @@ export function Rewards() {
                               y={viewBox.cy}
                               textAnchor="middle"
                               dominantBaseline="middle"
-                              className="fill-white"
+                              className="fill-foreground"
                             >
                               <tspan
                                 x={viewBox.cx}
                                 y={viewBox.cy}
-                                className="fill-white text-3xl font-bold"
+                                className="fill-foreground text-3xl font-bold"
                               >
                                 {trustScore}/10
                               </tspan>
                               <tspan
                                 x={viewBox.cx}
                                 y={(viewBox.cy || 0) + 24}
-                                className="fill-white"
+                                className="fill-foreground"
                               >
                                 Trust Score
                               </tspan>
@@ -165,74 +176,87 @@ export function Rewards() {
               </ChartContainer>
             </CardContent>
             <CardFooter className="flex-col gap-2 text-sm">
-              <div className="leading-none text-muted-foreground">
+              <div className="leading-none text-foreground/70">
                 Higher trust, more rewards!
               </div>
             </CardFooter>
           </Card>
         </div>
-        <h2 className="text-3xl font-bold my-8 text-green">Your Rewards</h2>
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {rewardCards.map((card, index) => (
-            <div
-              key={index}
-              className={`
-                rounded-2xl 
-                p-4 
-                flex 
-                flex-col 
-                gap-2 
-                bg-white 
-                relative  
-                before:absolute 
-                before:inset-0 
-                before:rounded-2xl
-                before:border-8
-                before:border-green
-                before:-translate-x-2
-                before:translate-y-2
-                before:-z-10
-                border-[3px]
-                border-black
-                transition-all
-              `}
-            >
+        <h2 className="text-3xl font-bold mt-12 mb-6 mx-2 text-green drop-shadow-xl">Your Rewards</h2>
+        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mx-2">
+          {activeRewards.map((card, index) => {
+            // Get colors based on index rotation (only 3 colors now)
+            const colorIndex = index % cardBackgroundColors.length;
+            const borderIndex = (index + 1) % cardBackgroundColors.length;
+            
+            // Build full className strings for each color combination
+            const getCardClasses = () => {
+              // Map color combinations to full class strings (purple, red, green/teal - no yellow)
+              const colorCombinations = [
+                { bg: 0, border: 1, classes: "rounded-2xl p-4 flex flex-col gap-2 bg-chart-2 relative before:absolute before:inset-0 before:rounded-2xl before:border-8 before:border-chart-3 before:-translate-x-2 before:translate-y-2 before:-z-10 border-[3px] border-black transition-all" },
+                { bg: 1, border: 2, classes: "rounded-2xl p-4 flex flex-col gap-2 bg-chart-3 relative before:absolute before:inset-0 before:rounded-2xl before:border-8 before:border-chart-4 before:-translate-x-2 before:translate-y-2 before:-z-10 border-[3px] border-black transition-all" },
+                { bg: 2, border: 0, classes: "rounded-2xl p-4 flex flex-col gap-2 bg-chart-4 relative before:absolute before:inset-0 before:rounded-2xl before:border-8 before:border-chart-2 before:-translate-x-2 before:translate-y-2 before:-z-10 border-[3px] border-black transition-all" },
+              ];
+              
+              const combo = colorCombinations.find(c => c.bg === colorIndex && c.border === borderIndex);
+              return combo?.classes || colorCombinations[0].classes;
+            };
+            
+            return (
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                  card.isExpired ? "bg-gray-700" : "bg-green-600"
-                }`}
+                key={index}
+                className={getCardClasses()}
               >
-                {card.icon}
-              </div>
-              <div className="space-y-0.5">
-                <h3
-                  className={`text-lg font-bold ${
-                    card.isExpired ? "text-gray-500" : "text-green-600"
-                  }`}
-                >
-                  {card.code}
-                </h3>
-                <p
-                  className={`text-xs ${
-                    card.isExpired ? "text-gray-400" : "text-gray-600"
-                  }`}
-                >
-                  {card.description}
-                </p>
-              </div>
-              <div className="border-t border-dashed border-gray-300 my-2"></div>
-              {card.isExpired ? (
-                <p className="text-gray-500 text-xs">
-                  Expired on {card.expiryDate}
-                </p>
-              ) : (
-                <button className="text-red-400 text-xs font-medium hover:text-red-500 transition-colors">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/20">
+                  {card.icon}
+                </div>
+                <div className="space-y-0.5">
+                  <h3 className="text-lg font-bold text-white">
+                    {card.code}
+                  </h3>
+                  <p className="text-xs text-white/80">
+                    {card.description}
+                  </p>
+                </div>
+                <div className="border-t border-dashed border-white/30 my-2"></div>
+                <button className="text-white text-xs font-medium hover:text-white/80 transition-colors underline">
                   View details
                 </button>
-              )}
-            </div>
-          ))}
+              </div>
+            );
+          })}
         </div>
+
+        {/* Expired Rewards Section */}
+        {expiredRewards.length > 0 && (
+          <>
+            <h2 className="text-3xl font-bold mt-12 mb-6 mx-2 text-gray-500 drop-shadow-xl">Expired Rewards</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8 mx-2">
+              {expiredRewards.map((card, index) => (
+                <div
+                  key={index}
+                  className="rounded-2xl p-4 flex flex-col gap-2 bg-gray-300 relative before:absolute before:inset-0 before:rounded-2xl before:border-8 before:border-gray-400 before:-translate-x-2 before:translate-y-2 before:-z-10 border-[3px] border-black transition-all"
+                >
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gray-600">
+                    {card.icon}
+                  </div>
+                  <div className="space-y-0.5">
+                    <h3 className="text-lg font-bold text-gray-600">
+                      {card.code}
+                    </h3>
+                    <p className="text-xs text-gray-500">
+                      {card.description}
+                    </p>
+                  </div>
+                  <div className="border-t border-dashed border-gray-400 my-2"></div>
+                  <p className="text-gray-600 text-xs">
+                    Expired on {card.expiryDate}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

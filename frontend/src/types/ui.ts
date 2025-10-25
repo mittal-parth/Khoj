@@ -1,3 +1,5 @@
+import React from "react";
+
 // Import ButtonProps from the button component
 type ButtonProps = any; // We'll define this properly when needed
 
@@ -24,7 +26,7 @@ export interface RewardCard {
   description: string;
   isExpired: boolean;
   expiryDate?: string;
-  icon: JSX.Element;
+  icon: React.ReactElement;
 }
 
 export interface Riddle {
