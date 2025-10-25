@@ -6,9 +6,9 @@
 Khoj (meaning "search" or "discovery" in Hindi) is a geo-location based treasure hunt platform that combines real-world exploration with Web3 technology. Users can participate in location-based treasure hunts where they solve riddles, visit physical locations, and earn onchain rewards. Discover a new way to onboard users to Web3 with a Web2-native experience.
 
 
-- **🔗 [khoj-alpha.netlify.app](https://khoj-alpha.netlify.app)**
-- **✨ [Product Guide](https://github.com/ayush4345/Khoj/wiki/Product-Guide)**
-- **📝 [Wiki](https://github.com/ayush4345/Khoj/wiki)**
+- **🔗 [playkhoj.com](https://playkhoj.com)**
+- **✨ [Product Guide](https://github.com/mittal-parth/Khoj/wiki/Product-Guide)**
+- **📝 [Wiki](https://github.com/mittal-parth/Khoj/wiki)**
 
 ## Screenshots
 
