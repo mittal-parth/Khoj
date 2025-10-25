@@ -20,41 +20,31 @@ Khoj (meaning "search" or "discovery" in Hindi) is a geo-location based treasure
       <sub><i>Hunts list</i></sub>
     </td>
     <td align="center">
-      <img width="200" alt="Hunt details" src="images/hunt-details-no-teams.png" />
-      <br>
-      <sub><i>Hunt details</i></sub>
-    </td>
-    <td align="center">
-      <img width="200" alt="Creating a team" src="images/create-team.png" />
-      <br>
-      <sub><i>Creating a team</i></sub>
-    </td>
-    <td align="center">
       <img width="200" alt="Team invite code & QR" src="images/create-team-invite-code.png" />
       <br>
-      <sub><i>Team invite code & QR</i></sub>
+      <sub><i>Creating a team and inviting teammates</i></sub>
+    </td>
+    <td align="center">
+      <img width="200" alt="Team details" src="images/join-team.png" />
+      <br>
+      <sub><i>Hunt details and joining a team</i></sub>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img width="200" alt="Join team" src="images/join-team.png" />
-      <br>
-      <sub><i>Join team</i></sub>
-    </td>
-    <td align="center">
-      <img width="200" alt="Team details" src="images/team-details.png" />
-      <br>
-      <sub><i>Team details</i></sub>
-    </td>
-    <td align="center">
       <img width="200" alt="Clue" src="images/clue.png" />
       <br>
-      <sub><i>Clue</i></sub>
+      <sub><i>Solving a clue</i></sub>
+    </td>
+    <td align="center">
+      <img width="200" alt="Leaderboard" src="images/leaderboard.png" />
+      <br>
+      <sub><i>Leaderboard</i></sub>
     </td>
     <td align="center">
       <img width="200" alt="Hunt end" src="images/hunt-end.png" />
       <br>
-      <sub><i>Hunt end</i></sub>
+      <sub><i>Hunt completion</i></sub>
     </td>
   </tr>
 </table>
