@@ -52,7 +52,7 @@ Khoj (meaning "search" or "discovery" in Hindi) is a geo-location based treasure
 ## Architecture Diagram
 
 <div align="center">
-  <img src="images/main-diagram.jpeg" alt="Khoj Architecture Diagram" width="800"/>
+  <img src="images/main-diagram.png" alt="Khoj Architecture Diagram" width="800"/>
   <br>
   <sub><i>Khoj System Architecture and Flow Diagram</i></sub>
   <br><br>
