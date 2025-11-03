@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Loader } from "./ui/loader";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useState, useEffect, useRef } from "react";
 import {
   BsQrCode,
@@ -899,26 +899,24 @@ export function HuntDetails() {
                 </Tabs>
               )}
             </CardContent>
-            
-            {/* Start Hunt button - always visible */}
-            <CardFooter className="border-t-2 border-black pt-4 px-6 flex flex-col">
-              <Button
-                type="submit"
-                size="lg"
-                onClick={handleHuntStart}
-                disabled={isStartingHunt || isGeneratingRiddles}
-                className="w-full font-bold"
-              >
-                {isRetrying 
-                  ? `Retrying... (${retryCount}/${MAX_RETRIES})`
-                  : (isStartingHunt || isGeneratingRiddles) 
-                    ? "Starting Hunt..." 
-                    : "Start Hunt"
-                }
-              </Button>
-            </CardFooter>
           </Card>
         )}
+
+        {/* Start Hunt Button - Always visible */}
+        <Button
+          type="submit"
+          size="lg"
+          onClick={handleHuntStart}
+          disabled={isStartingHunt || isGeneratingRiddles}
+          className="w-full font-bold"
+        >
+          {isRetrying 
+            ? `Retrying... (${retryCount}/${MAX_RETRIES})`
+            : (isStartingHunt || isGeneratingRiddles) 
+              ? "Starting Hunt..." 
+              : "Start Hunt"
+          }
+        </Button>
 
         {huntId && <HuddleRoom huntId={huntId} teamIdentifier={teamIdentifier} />}
         
