@@ -1,0 +1,31 @@
+export default {
+  testEnvironment: 'node',
+  transform: {},
+  moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+  },
+  testMatch: [
+    '**/__tests__/**/*.test.js',
+    '**/?(*.)+(spec|test).js'
+  ],
+  collectCoverageFrom: [
+    '**/*.js',
+    '!**/node_modules/**',
+    '!**/coverage/**',
+    '!jest.config.js',
+    '!**/__tests__/**',
+    '!**/*.test.js',
+    '!**/*.spec.js'
+  ],
+  coverageThreshold: {
+    global: {
+      branches: 20,
+      functions: 20,
+      lines: 20,
+      statements: 20
+    }
+  },
+  setupFilesAfterEnv: ['<rootDir>/__tests__/setup.js'],
+  testTimeout: 30000,
+  verbose: true
+};

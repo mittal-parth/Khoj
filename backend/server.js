@@ -57,7 +57,7 @@ const GEMINI_MODEL = "gemini-2.5-flash";
 
 const corsOptions = {
   origin: "*", // Temporarily allow all origins for debugging
-  optionsSuccessStatus: 200,
+  optionsSuccessStatus: 204,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
@@ -627,13 +627,27 @@ app.post("/encrypt", async (req, res) => {
 });
 app.post("/decrypt-ans", async (req, res) => {
   const bodyData = req.body;
-  const curLat = bodyData.cLat;
-  const curLong = bodyData.cLong;
-  const clueId = bodyData.clueId;
 
   console.log("=== DECRYPT-ANS ENDPOINT DEBUG ===");
   console.log("Request body:", JSON.stringify(bodyData, null, 2));
   console.log("answers_blobId:", bodyData.answers_blobId);
+
+  // Validate required fields
+  if (
+    bodyData.cLat === undefined ||
+    bodyData.cLong === undefined ||
+    bodyData.clueId === undefined ||
+    bodyData.answers_blobId === undefined ||
+    bodyData.userAddress === undefined
+  ) {
+    return res.status(400).json({
+      error: "Missing required fields: cLat, cLong, clueId, answers_blobId, and userAddress are required",
+    });
+  }
+
+  const curLat = bodyData.cLat;
+  const curLong = bodyData.cLong;
+  const clueId = bodyData.clueId;
 
   const answersData = await readObject(bodyData.answers_blobId);
   const parsedAnswersData = typeof answersData === 'string' ? JSON.parse(answersData) : answersData;
@@ -666,6 +680,14 @@ app.post("/decrypt-ans", async (req, res) => {
 app.post("/decrypt-clues", async (req, res) => {
   try {
     const bodyData = req.body;
+
+    // Validate required fields
+    if (bodyData.clues_blobId === undefined) {
+      return res.status(400).json({
+        error: "Missing required field: clues_blobId is required",
+      });
+    }
+
     const clues_blobId = bodyData.clues_blobId;
     // const userAddress = bodyData.userAddress;
 
@@ -893,8 +915,14 @@ app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
 });
 
-app.listen(port, () => {
-  console.log(`Server listening at ${(process.env.HOST || "http://localhost")}:${port}`);
-});
+// Only start server if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(port, () => {
+    console.log(`Server listening at ${(process.env.HOST || "http://localhost")}:${port}`);
+  });
+}
+
+// Export app for testing
+export default app;
 
 // run().catch(console.error)
