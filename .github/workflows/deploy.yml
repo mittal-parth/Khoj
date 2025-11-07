@@ -1,0 +1,47 @@
+name: Deploy Khoj Application
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  test-backend:
+    name: Test Backend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Run backend tests
+        working-directory: ./backend
+        run: npm test
+        env:
+          NODE_ENV: test
+          PORT: ${{ secrets.PORT }}
+          HUDDLE_PROJECT_ID: ${{ secrets.HUDDLE_PROJECT_ID }}
+          HUDDLE_API_KEY: ${{ secrets.HUDDLE_API_KEY }}
+          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+          PINATA_GATEWAY: ${{ secrets.PINATA_GATEWAY }}
+          HOST: ${{ secrets.HOST }}
+          MAX_DISTANCE_IN_METERS: ${{ secrets.MAX_DISTANCE_IN_METERS }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
