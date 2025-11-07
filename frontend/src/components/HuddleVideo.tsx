@@ -54,7 +54,7 @@ export const HuddleVideo: FC<HuddleVideoProps> = ({ minimized = false }) => {
         />
 
         {/* Controls */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-linear-to-t from-black/80 to-transparent">
           <div className="flex items-center justify-center gap-4">
             <Button
               onClick={() => isVideoOn ? disableVideo() : enableVideo()}
@@ -111,7 +111,7 @@ const RemotePeer: FC<RemotePeerProps> = ({ peerId }) => {
   const { videoStream: screenVideoStream, audioStream: screenAudioStream } = useRemoteScreenShare({ peerId });
 
   return (
-    <div className="aspect-video bg-gray-800 rounded overflow-hidden">
+    <div className="aspect-video bg-gray-800 rounded-sm overflow-hidden">
       {videoStream && <Video stream={videoStream} />}
       {audioStream && <Audio stream={audioStream} />}
       {screenVideoStream && <Video stream={screenVideoStream} />}

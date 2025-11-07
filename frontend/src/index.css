@@ -1,36 +1,81 @@
 @import url('https://fonts.googleapis.com/css2?family=Anek+Devanagari:wght@100..800&display=swap');
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+@import "tailwindcss";
+@import "tw-animate-css";
 
-@keyframes scale-in {
-  0% {
-    transform: scale(0);
-    opacity: 0;
-  }
-  50% {
-    transform: scale(1.2);
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+@layer base;
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: oklch(96.79% 0.0654 102.26);
+  --secondary-background: oklch(100% 0 0);
+  --foreground: oklch(0% 0 0);
+  --main-foreground: oklch(0% 0 0);
+  --main: oklch(86.03% 0.176 92.36);
+  --border: oklch(0% 0 0);
+  --ring: oklch(0% 0 0);
+  --overlay: oklch(0% 0 0 / 0.8);
+  --shadow: -4px 4px 0px 0px var(--border);
+  --chart-1: #FACC00;
+  --chart-2: #7A83FF;
+  --chart-3: #FF4D50;
+  --chart-4: #00D696;
+  --chart-5: #0099FF;
+  --chart-active-dot: #000;
 }
 
-@keyframes fade-in {
-  0% {
-    opacity: 0;
+.dark {
+  --background: oklch(29.28% 0.0373 94.38);
+  --secondary-background: oklch(23.93% 0 0);
+  --foreground: oklch(92.49% 0 0);
+  --main-foreground: oklch(0% 0 0);
+  --main: oklch(79.36% 0.1624 92.49);
+  --border: oklch(0% 0 0);
+  --ring: oklch(100% 0 0);
+  --shadow: -4px 4px 0px 0px var(--border);
+  --chart-1: #E0B700;
+  --chart-2: #7A83FF;
+  --chart-3: #FF6669;
+  --chart-4: #00BD84;
+  --chart-5: #008AE5;
+  --chart-active-dot: #fff;
+}
+
+@theme inline {
+  --color-main: var(--main);
+  --color-background: var(--background);
+  --color-secondary-background: var(--secondary-background);
+  --color-foreground: var(--foreground);
+  --color-main-foreground: var(--main-foreground);
+  --color-border: var(--border);
+  --color-overlay: var(--overlay);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --spacing-boxShadowX: -4px;
+  --spacing-boxShadowY: 4px;
+  --spacing-reverseBoxShadowX: --4px;
+  --spacing-reverseBoxShadowY: -4px;
+  --radius-base: 5px;
+  --shadow-shadow: var(--shadow);
+  --font-weight-base: 500;
+  --font-weight-heading: 700;
+}
+  
+@layer base {
+  body {
+    @apply text-foreground font-base bg-background;
+    font-family: 'DM Sans', sans-serif;
   }
-  100% {
-    opacity: 1;
+
+  h1, h2, h3, h4, h5, h6{
+    @apply font-heading;
+    font-family: 'DM Sans', sans-serif;
   }
 }
-
-.animate-scale-in {
-  animation: scale-in 0.5s ease-out forwards;
-}
-
-.animate-fade-in {
-  animation: fade-in 0.5s ease-out forwards;
-}
-

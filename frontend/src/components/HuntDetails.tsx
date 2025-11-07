@@ -1,8 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { Loader } from "./ui/loader";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { useState, useEffect, useRef } from "react";
-import { cn } from "@/lib/utils";
 import {
   BsQrCode,
   BsExclamationTriangle,
@@ -29,6 +29,13 @@ import { Hunt, Team } from "../types";
 import { buttonStyles } from "../lib/styles.ts";
 import { withRetry, MAX_RETRIES } from "@/utils/retryUtils";
 import { FiRefreshCw } from "react-icons/fi";
+import { BsBarChartFill } from "react-icons/bs";
+import { Leaderboard } from "./Leaderboard";
+import { 
+  checkProgressAndNavigate, 
+  getTeamIdentifier 
+} from "../utils/progressUtils";
+import { AddressDisplay } from "./AddressDisplay";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -54,6 +61,9 @@ export function HuntDetails() {
   
   // Join team loading state
   const [isJoiningTeam, setIsJoiningTeam] = useState(false);
+  
+  // Leaderboard state
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   
   
   // Video reference for QR scanner
@@ -104,6 +114,9 @@ export function HuntDetails() {
     params: [BigInt(huntId || 0), userWallet as `0x${string}`],
     queryOptions: { enabled: !!userWallet }, // Only call when userWallet is available
   }) as { data: Team | undefined; error: Error | undefined; refetch: () => void; isLoading: boolean };
+
+  // Get team identifier for progress checking and huddle rooms
+  const teamIdentifier = getTeamIdentifier(teamData, userWallet || "");
 
   const joinTeam = async (signature: string, teamId: string, expiry: number) => {
     setIsJoiningTeam(true);
@@ -209,6 +222,35 @@ export function HuntDetails() {
       return;
     }
 
+    // Check if user has existing progress
+    try {
+      // Get total clues from localStorage (set when clues are decrypted)
+      const currentClueData = JSON.parse(
+        localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
+      );
+      const totalClues = currentClueData.length;
+
+      // If we have clues data, check progress
+      if (totalClues > 0) {
+        const shouldContinue = await checkProgressAndNavigate(
+          parseInt(huntId || "0"),
+          teamIdentifier,
+          totalClues,
+          navigate
+        );
+        
+        if (shouldContinue) {
+          // User was redirected, stop here
+          setIsStartingHunt(false);
+          return;
+        }
+        // If shouldContinue is false, continue with normal flow (first time starting)
+      }
+    } catch (error) {
+      console.error("Error checking progress, continuing with normal flow:", error);
+      // Continue with normal flow if progress check fails
+    }
+
     const decryptCluesOperation = async (): Promise<void> => {
       console.log("Hunt ID:", huntId, huntData.clues_blobId, huntData.answers_blobId);
       
@@ -238,8 +280,6 @@ export function HuntDetails() {
 
       const data = await response.text();
       const clues = JSON.parse(data);
-
-      console.log("Clues: ", clues);
 
       await fetchRiddles(clues, huntId || "0", huntData?.theme || "");
       navigate(`/hunt/${huntId}/clue/1`);
@@ -368,7 +408,7 @@ export function HuntDetails() {
   // Show loading state while hunt data is being fetched
   if (huntLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-20 px-4 mb-[90px]">
+      <div className="min-h-screen bg-background pt-20 px-4 mb-[90px]">
         <div className="max-w-4xl mx-auto">
           <Loader 
             text="Loading Hunt Details..." 
@@ -554,296 +594,339 @@ export function HuntDetails() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 px-4 mb-[90px]">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] justify-between relative flex flex-col">
-        <div>
-          <div className="bg-green p-6 text-white">
-            <div className="flex items-center justify-center">
-              <h1 className="text-2xl font-bold text-white">
+    <div className="min-h-screen bg-background pt-20 px-4 mb-[90px]">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Hunt Info Card */}
+        <Card className="bg-white ">
+          <CardHeader className="bg-main text-main-foreground p-6 border-b-2 border-black -my-6  ">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl flex-1 wrap-break-word font-bold">
                 {huntData?.name || 'Hunt Details'}
-              </h1>
+              </CardTitle>
+              <Button
+                onClick={() => setIsLeaderboardOpen(true)}
+                variant="neutral"
+                size="sm"
+                className="p-2 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
+              >
+                <BsBarChartFill className="w-4 h-4" />
+              </Button>
             </div>
-          </div>
+          </CardHeader>
 
-          {huntData && (
-            <div className="px-6">
-              <p className="text-gray-600 font-base my-6">{huntData.description}</p>
-              
-              {/* Hunt Details Section */}
-              <div className="bg-gray-50 rounded-lg p-4 mb-6 border border-gray-200">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Date and Time */}
-                  <div className="flex items-center gap-2">
-                    <BsCalendar2DateFill className="w-6 h-6 text-green" />
-                    <div>
-                      <p className="text-sm text-gray-600">Date & Time</p>
-                      <p className="text-sm font-medium text-gray-800">
-                        {new Date(Number(huntData.startTime) * 1000).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(Number(huntData.startTime) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(Number(huntData.endTime) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </p>
+          <CardContent className="mt-4">
+            {huntData && (
+              <>
+                <p className="text-foreground/70 font-base mb-6 ">{huntData.description}</p>
+                
+                {/* Hunt Details Section */}
+                <div className="bg-muted rounded-lg p-6 mb-6 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Date and Time */}
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-main rounded-lg border-2 border-black">
+                        <BsCalendar2DateFill className="w-6 h-6 text-main-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">Date & Time</p>
+                        <p className="text-sm text-foreground">
+                          {new Date(Number(huntData.startTime) * 1000).toLocaleDateString([], { month: 'short', day: 'numeric' })} • {new Date(Number(huntData.startTime) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(Number(huntData.endTime) * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Participants */}
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-main rounded-lg border-2 border-black">
+                        <IoIosPeople className="w-6 h-6 text-main-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">Participants</p>
+                        <p className="text-sm text-foreground">
+                          {Number(huntData.participantCount)} registered
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Teams Status */}
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-main rounded-lg border-2 border-black">
+                        <TbUsersGroup className="w-6 h-6 text-main-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">Teams</p>
+                        <p className="text-sm text-foreground">
+                          {huntData?.teamsEnabled ? 'Enabled' : 'Disabled'}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                  
-                  {/* Participants */}
-                  <div className="flex items-center gap-2">
-                    <IoIosPeople className="w-6 h-6 text-green" />
-                    <div>
-                      <p className="text-sm text-gray-600">Participants</p>
-                      <p className="text-sm font-medium text-gray-800">
-                        {Number(huntData.participantCount)} registered
-                      </p>
-                    </div>
-                  </div>
-                  
-                  {/* Teams Status */}
-                  <div className="flex items-center gap-2">
-                    <TbUsersGroup className="w-6 h-6 text-green" />
-                    <div>
-                      <p className="text-sm text-gray-600">Teams</p>
-                      <p className="text-sm font-medium text-gray-800">
-                        {huntData?.teamsEnabled ? 'Enabled' : 'Disabled'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
                 </div> 
-              
-              {/* Team Management Section - Only show if teams are enabled */}
-              {huntData?.teamsEnabled && (
-              <div className="mt-6">
-                {/* Show team info if user is already in a team */}
-                {isUserInTeam ? (
+              </>
+            )}
+          </CardContent>
+          
+        </Card>
+
+        {/* Team Management Card - Only show if teams are enabled */}
+        {huntData?.teamsEnabled && (
+          <Card className="bg-white ">
+            <CardHeader className="bg-accent text-accent-foreground p-6 border-b-2 border-black -my-6">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-xl font-bold">Team Management</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={refetchTeamData}
+                    variant="neutral"
+                    size="sm"
+                    className="p-1 h-8 w-8 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  >
+                    <FiRefreshCw className={teamDataLoading ? 'animate-spin' : ''} />
+                  </Button>
+                  <Button
+                    onClick={refetchTeamData}
+                    variant="neutral"
+                    size="sm"
+                    className="hidden sm:block border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all font-bold"
+                  >
+                    Refresh
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-6">
+              {/* Show team info if user is already in a team */}
+              {isUserInTeam ? (
                 <>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-medium">Team Management</h2>
-                    <span className="flex items-center gap-2">
-                      <span onClick={refetchTeamData} className={`cursor-pointer bg-green p-1 rounded-lg text-white h-6 w-6 content-center`}><FiRefreshCw className={teamDataLoading ? 'animate-spin m-auto' : 'm-auto'} /></span>
-                      <span onClick={refetchTeamData} className="cursor-pointer bg-gray-50 hover:bg-gray-200 border border-gray-200 p-1 px-4 rounded-lg hidden sm:block">Refresh</span>
-                    </span>
-                  </div>
-                    <div className="border-t-2 border-gray-200 pt-4">
-                      <h3 className="text-lg font-semibold mb-4">Your Team</h3>
-                      <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Members:</span>
-                          <span className="font-medium">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxMembers?.toString() || '0'}</span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                          <span className="text-gray-600">Team Owner:</span>
-                          <span className="font-medium text-sm">{teamData?.owner ? `${teamData.owner.slice(0, 6)}...${teamData.owner.slice(-4)}` : 'Unknown'}</span>
-                        </div>
-                        <div className="mt-4">
-                          <span className="text-gray-600 block mb-2">Team Members:</span>
-                          <div className="flex gap-3 flex-wrap">
-                            {(teamData?.members || []).map((member, index) => (
-                              <div key={index} className="flex flex-col items-center gap-3">
-                                <img 
-                                  src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${member}`}
-                                  alt="Member Avatar"
-                                  className={`w-12 h-12 rounded-full p-1 bg-slate-200 ${member === teamData?.owner ? "border-2 border-slate-800" : ""}`}
-                                />
-                                <div className="flex-1">
-                                  <span className="text-xs font-medium text-gray-500">
-                                    {member ? `${member.slice(0, 4)}...${member.slice(-4)}` : 'Unknown Member'}
-                                  </span>
+                  <div className="space-y-6">
+                    {/* Team Members List */}
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center">
+                        <h4 className="text-md font-bold text-foreground">Team Members</h4>
+                        <span className="font-bold text-lg mr-1">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxMembers?.toString() || '0'}</span>
+                      </div>
+                      <div className="space-y-2">
+                        {(teamData?.members || []).map((member, index) => (
+                          <div key={index} className="flex items-center gap-4 p-4 bg-muted rounded-lg border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all">
+                            <div className="relative">
+                              <img 
+                                src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${member}`}
+                                alt="Member Avatar"
+                                className="w-12 h-12 rounded-lg border-2 border-black"
+                              />
+                              {member === teamData?.owner && (
+                                <div className="absolute -top-1 -right-1 w-4 h-4 bg-main rounded-full border-2 border-black flex items-center justify-center">
+                                  <span className="text-xs font-bold text-main-foreground">👑</span>
                                 </div>
-                              </div>
-                            ))}
-                            {(!teamData?.members || teamData.members.length === 0) && (
-                              <div className="text-sm text-gray-500 italic">No members found</div>
-                            )}
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              {member ? (
+                                <AddressDisplay address={member} className="font-semibold text-sm" />
+                              ) : (
+                                <span className="font-bold text-sm text-foreground/60">Unknown Member</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        {(!teamData?.members || teamData.members.length === 0) && (
+                          <div className="text-sm text-foreground/60 italic p-4 bg-muted rounded-lg border-2 border-black text-center">
+                            No members found
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Show invite QR code if user is the team owner and has generated one */}
+                    {teamData?.owner === userWallet && inviteCode && (
+                      <div className="mt-6 p-4 bg-muted rounded-lg border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)]">
+                        <h4 className="text-md font-bold mb-4">Team Invite Code</h4>
+                        <div className="flex flex-col items-center space-y-4">
+                          <div className="bg-background p-4 rounded-lg border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)]">
+                            <QRCode value={inviteCode} size={150} />
+                          </div>
+                          <div className="flex items-center space-x-2 w-full max-w-md">
+                            <input
+                              type="text"
+                              value={inviteCode}
+                              readOnly
+                              className="flex-1 p-2 border-2 border-black rounded-sm bg-muted text-xs font-mono"
+                            />
+                            <Button 
+                              onClick={() => {
+                                navigator.clipboard.writeText(inviteCode);
+                                toast.success("Invite code copied to clipboard");
+                              }}
+                              variant="neutral"
+                              size="sm"
+                              className="flex items-center space-x-1 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all font-bold"
+                            >
+                              <BsLink45Deg />
+                              <span>Copy</span>
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                // Show create/join options when user is not in a team
+                <Tabs defaultValue="create" onValueChange={(value) => setActiveTab(value as "create" | "join")}>
+                  <TabsList className="grid w-full grid-cols-2 mb-4 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <TabsTrigger value="create" className="font-bold">Create Team</TabsTrigger>
+                    <TabsTrigger value="join" className="font-bold">Join Team</TabsTrigger>
+                  </TabsList>
+                
+                  {/* Create Team Tab */}
+                  <TabsContent value="create" className="mt-4">
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                      {!inviteCode ? (
+                        <div className="w-full max-w-md">
+                          <p className="text-sm mb-4 font-medium">Create a new team and generate an invite code for your teammates.</p>
+                          <Button 
+                            className="w-full border-2 border-black shadow-[-4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-bold" 
+                            onClick={generateMultiUseInvite}
+                            disabled={isGeneratingInvite}
+                          >
+                            {isGeneratingInvite ? "Creating Team..." : "Create Team & Generate Invite"}
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="w-full max-w-md">
+                          {showInviteWarning && (
+                            <Alert variant="warning" className="mb-4 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)]">
+                              <BsExclamationTriangle className="h-4 w-4" />
+                              <AlertTitle className="font-bold">Important!</AlertTitle>
+                              <AlertDescription className="font-medium">
+                                This invite code will only be shown once. Please take a screenshot or save it now.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                          
+                          <div className="bg-background p-4 rounded-lg border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] mb-4">
+                            <QRCode value={inviteCode} size={200} className="w-full" />
+                          </div>
+                          
+                          <div className="flex items-center space-x-2 mb-4">
+                            <input
+                              type="text"
+                              value={inviteCode}
+                              readOnly
+                              className="flex-1 p-2 border-2 border-black rounded-sm bg-muted font-mono"
+                            />
+                            <Button 
+                              onClick={() => {
+                                navigator.clipboard.writeText(inviteCode);
+                                toast.success("Invite code copied to clipboard");
+                              }}
+                              variant="neutral"
+                              className="flex items-center space-x-1 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all font-bold"
+                            >
+                              <BsLink45Deg />
+                              <span>Copy</span>
+                            </Button>
+                          </div>
+                          
+                          <div className="text-xs text-foreground/60 text-center font-medium">
+                            Share this code with your teammates to join your team
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+                  
+                  {/* Join Team Tab */}
+                  <TabsContent value="join" className="mt-4">
+                    <div className="flex flex-col items-center justify-center space-y-4">
+                      <div className="w-full max-w-md">
+                        <div className="mb-4">
+                          <p className="text-sm mb-2 font-medium">Scan a team QR code or enter an invite code below:</p>
+                          <div className="flex space-x-2">
+                            <input
+                              type="text"
+                              value={joinTeamCode}
+                              onChange={(e) => setJoinTeamCode(e.target.value)}
+                              placeholder="Enter invite code"
+                              className="flex-1 p-2 border-2 border-black rounded-sm font-mono"
+                            />
+                            <Button onClick={() => startScanner()} className="flex items-center space-x-1 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all font-bold">
+                              <BsQrCode />
+                              <span>Scan</span>
+                            </Button>
                           </div>
                         </div>
                         
-                        {/* Show invite QR code if user is the team owner and has generated one */}
-                        {teamData?.owner === userWallet && inviteCode && (
-                          <div className="mt-6 border-t pt-4">
-                            <h4 className="text-md font-medium mb-3">Team Invite Code</h4>
-                            <div className="flex flex-col items-center space-y-4">
-                              <div className="bg-white p-4 rounded-lg border">
-                                <QRCode value={inviteCode} size={150} />
-                              </div>
-                              <div className="flex items-center space-x-2 w-full max-w-md">
-                                <input
-                                  type="text"
-                                  value={inviteCode}
-                                  readOnly
-                                  className="flex-1 p-2 border rounded bg-gray-50 text-xs"
-                                />
-                                <Button 
-                                  onClick={() => {
-                                    navigator.clipboard.writeText(inviteCode);
-                                    toast.success("Invite code copied to clipboard");
-                                  }}
-                                  className="flex items-center space-x-1"
-                                  size="sm"
-                                >
-                                  <BsLink45Deg />
-                                  <span>Copy</span>
-                                </Button>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  // Show create/join options when user is not in a team
-                  <Tabs defaultValue="create" onValueChange={(value) => setActiveTab(value as "create" | "join")}>
-                    <TabsList className="grid w-full grid-cols-2 mb-4">
-                      <TabsTrigger value="create">Create Team</TabsTrigger>
-                      <TabsTrigger value="join">Join Team</TabsTrigger>
-                    </TabsList>
-                  
-                    {/* Create Team Tab */}
-                    <TabsContent value="create" className="mt-4">
-                      <div className="flex flex-col items-center justify-center space-y-4">
-                        {!inviteCode ? (
-                          <div className="w-full max-w-md">
-                            <p className="text-sm mb-4">Create a new team and generate an invite code for your teammates.</p>
+                        {true && (
+                          <div className={`relative w-full aspect-square mb-4 max-w-[250px] m-auto ${hasCamera ? "" : "hidden"}`}>
+                            <video ref={videoRef} className="w-full h-full object-cover rounded-lg border-2 border-black" />
                             <Button 
-                              className="w-full" 
-                              onClick={generateMultiUseInvite}
-                              disabled={isGeneratingInvite}
+                              onClick={() => {
+                                if (qrScanner) {
+                                  qrScanner.stop();
+                                  setHasCamera(false);
+                                }
+                              }} 
+                              className={`absolute bottom-2 right-2 ${buttonStyles.danger} border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all font-bold`}
+                              size="sm"
                             >
-                              {isGeneratingInvite ? "Creating Team..." : "Create Team & Generate Invite"}
+                              Stop Scanner
                             </Button>
                           </div>
-                        ) : (
-                          <div className="w-full max-w-md">
-                            {showInviteWarning && (
-                              <Alert variant="warning" className="mb-4">
-                                <BsExclamationTriangle className="h-4 w-4" />
-                                <AlertTitle>Important!</AlertTitle>
-                                <AlertDescription>
-                                  This invite code will only be shown once. Please take a screenshot or save it now.
-                                </AlertDescription>
-                              </Alert>
-                            )}
-                            
-                            <div className="bg-white p-4 rounded-lg border mb-4">
-                              <QRCode value={inviteCode} size={200} className="w-full" />
-                            </div>
-                            
-                            <div className="flex items-center space-x-2 mb-4">
-                              <input
-                                type="text"
-                                value={inviteCode}
-                                readOnly
-                                className="flex-1 p-2 border rounded bg-gray-50"
-                              />
-                              <Button 
-                                onClick={() => {
-                                  navigator.clipboard.writeText(inviteCode);
-                                  toast.success("Invite code copied to clipboard");
-                                }}
-                                className="flex items-center space-x-1"
-                              >
-                                <BsLink45Deg />
-                                <span>Copy</span>
-                              </Button>
-                            </div>
-                            
-                            <div className="text-xs text-gray-500 text-center">
-                              Share this code with your teammates to join your team
-                            </div>
+                        )}
+                        
+                        {scanResult && (
+                          <div className="p-3 bg-green-50 border-2 border-green-400 rounded-lg mb-4 shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)]">
+                            <p className="text-sm text-green-800 font-bold">QR Code scanned successfully!</p>
+                            <p className="text-xs text-green-700 mt-1 font-mono">Invite code: {scanResult}</p>
                           </div>
                         )}
+                        
+                        <Button 
+                          className="w-full border-2 border-black shadow-[-4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-bold" 
+                          onClick={async () => {
+                            const inviteData = decodeBase58Invite(joinTeamCode);
+                            await joinTeam(inviteData.signature, inviteData.teamId, inviteData.expiry);
+                          }}
+                          disabled={!joinTeamCode || isJoiningTeam}
+                        >
+                          {isJoiningTeam ? "Joining Team..." : "Join Team"}
+                        </Button>
                       </div>
-                    </TabsContent>
-                    
-                    {/* Join Team Tab */}
-                    <TabsContent value="join" className="mt-4">
-                      <div className="flex flex-col items-center justify-center space-y-4">
-                        <div className="w-full max-w-md">
-                          <div className="mb-4">
-                            <p className="text-sm mb-2">Scan a team QR code or enter an invite code below:</p>
-                            <div className="flex space-x-2">
-                              <input
-                                type="text"
-                                value={joinTeamCode}
-                                onChange={(e) => setJoinTeamCode(e.target.value)}
-                                placeholder="Enter invite code"
-                                className="flex-1 p-2 border rounded"
-                              />
-                              <Button onClick={() => startScanner()} className="flex items-center space-x-1">
-                                <BsQrCode />
-                                <span>Scan</span>
-                              </Button>
-                            </div>
-                          </div>
-                          
-                          {true && (
-                            <div className={`relative w-full aspect-square mb-4 max-w-[250px] m-auto ${hasCamera ? "" : "hidden"}`}>
-                              <video ref={videoRef} className="w-full h-full object-cover rounded-lg" />
-                              <Button 
-                                onClick={() => {
-                                  if (qrScanner) {
-                                    qrScanner.stop();
-                                    setHasCamera(false);
-                                  }
-                                }} 
-                                className={`absolute bottom-2 right-2 ${buttonStyles.danger}`}
-                                size="sm"
-                              >
-                                Stop Scanner
-                              </Button>
-                            </div>
-                          )}
-                          
-                          {scanResult && (
-                            <div className="p-3 bg-green-50 border border-green-200 rounded-lg mb-4">
-                              <p className="text-sm text-green-800 font-medium">QR Code scanned successfully!</p>
-                              <p className="text-xs text-green-700 mt-1">Invite code: {scanResult}</p>
-                            </div>
-                          )}
-                          
-                          <Button 
-                            className="w-full" 
-                            onClick={async () => {
-                              const inviteData = decodeBase58Invite(joinTeamCode);
-                              await joinTeam(inviteData.signature, inviteData.teamId, inviteData.expiry);
-                            }}
-                            disabled={!joinTeamCode || isJoiningTeam}
-                          >
-                            {isJoiningTeam ? "Joining Team..." : "Join Team"}
-                          </Button>
-                        </div>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
-                )}
-              </div>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               )}
-            </div>
-          )}
-          </div>
-          <div className="mt-8 border-t pt-6 p-6 flex flex-col w-full">
-            <div className="flex items-center justify-between mb-4"></div>
-            
-            
-            {/* Start Hunt button - always visible */}
-            <Button
-              type="submit"
-              size="lg"
-              onClick={handleHuntStart}
-              disabled={isStartingHunt || isGeneratingRiddles}
-              className={cn(
-                `w-full text-white ${buttonStyles.primary}`
-              )}
-            >
-              {isRetrying 
-                ? `Retrying... (${retryCount}/${MAX_RETRIES})`
-                : (isStartingHunt || isGeneratingRiddles) 
-                  ? "Starting Hunt..." 
-                  : "Start Hunt"
-              }
-            </Button>
-          </div>
-        </div>
+            </CardContent>
+          </Card>
+        )}
 
-        {huntId && <HuddleRoom huntId={huntId} />}
+        {/* Start Hunt Button - Always visible */}
+        <Button
+          type="submit"
+          size="lg"
+          onClick={handleHuntStart}
+          disabled={isStartingHunt || isGeneratingRiddles}
+          className="w-full font-bold"
+        >
+          {isRetrying 
+            ? `Retrying... (${retryCount}/${MAX_RETRIES})`
+            : (isStartingHunt || isGeneratingRiddles) 
+              ? "Starting Hunt..." 
+              : "Start Hunt"
+          }
+        </Button>
+
+        {huntId && <HuddleRoom huntId={huntId} teamIdentifier={teamIdentifier} />}
+        
+        {/* Leaderboard Modal */}
+        <Leaderboard 
+          huntId={huntId} 
+          huntName={huntData?.name}
+          isOpen={isLeaderboardOpen} 
+          onClose={() => setIsLeaderboardOpen(false)} 
+        />
       </div>
     </div>
   );

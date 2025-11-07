@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "./ui/card";
 import { useState, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
@@ -9,18 +10,25 @@ import {
   BsCheckCircle,
   BsXCircle,
   BsArrowRepeat,
+  BsBarChartFill,
+  BsArrowClockwise,
 } from "react-icons/bs";
-import { config, getTrueNetworkInstance } from "../../true-network/true.config";
-import { huntAttestationSchema } from "@/schemas/huntSchema";
-import { runAlgo } from "@truenetworkio/sdk/dist/pallets/algorithms/extrinsic";
 import { HuddleRoom } from "./HuddleRoom";
+import { Leaderboard } from "./Leaderboard";
 import { useReadContract, useActiveAccount } from "thirdweb/react";
 import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi";
 import { useNetworkState } from "../lib/utils";
 import { toast } from "sonner";
 import { client } from "../lib/client";
-import { Hunt } from "../types";
+import { Hunt, Team } from "../types";
+import { 
+  syncProgressAndNavigate, 
+  getTeamIdentifier,
+  validateClueAccess,
+  fetchProgress,
+  isClueSolved
+} from "../utils/progressUtils";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 const MAX_ATTEMPTS = parseInt(import.meta.env.VITE_MAX_CLUE_ATTEMPTS || "6", 10);
@@ -43,6 +51,9 @@ export function Clue() {
     "idle" | "verifying" | "success" | "error"
   >("idle");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Use the reactive network state hook
   const { contractAddress, currentChain } = useNetworkState();
@@ -65,18 +76,30 @@ export function Clue() {
   const account = useActiveAccount();
   const userWallet = account?.address;
 
+  // Fetch team data for attestation
+  const { data: teamData } = useReadContract({
+    contract,
+    method: "getTeam",
+    params: [BigInt(huntId || 0), userWallet as `0x${string}`],
+    queryOptions: { enabled: !!userWallet },
+  }) as { data: Team | undefined };
+
+  // Track attempts for attestation
+  const [attemptCount, setAttemptCount] = useState(0);
+
+  // Get team identifier for progress checking
+  const teamIdentifier = getTeamIdentifier(teamData, userWallet || "");
+
+  const currentClue = parseInt(clueId || "0");
+  const currentClueData = JSON.parse(
+    localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
+  );
+
+  // Get total clues from localStorage
+  const totalClues = currentClueData?.length || 0;
+
   useEffect(() => {
     setVerificationState("idle");
-
-    // Progress validation: prevent skipping ahead
-    const progressKey = `hunt_progress_${huntId}`;
-    let progress = JSON.parse(localStorage.getItem(progressKey) || "[]");
-    // Only allow access to the next unsolved clue or any previous clue
-    const allowedClue = (progress.length || 0) + 1;
-    if (currentClue > allowedClue) {
-      navigate(`/hunt/${huntId}/clue/${allowedClue}`);
-      return;
-    }
 
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
@@ -90,53 +113,84 @@ export function Clue() {
         }
       );
     }
-  }, [clueId, huntId, navigate]);
+
+    // Clue access validation is now handled by RouteGuard at the router level
+  }, [clueId, huntId, navigate, teamIdentifier]);
 
   if (!isValidHexAddress(contractAddress)) {
     toast.error("Invalid contract address format");
     return null;
   }
 
-  const currentClue = parseInt(clueId || "0");
-  const currentClueData = JSON.parse(
-    localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
-  );
 
-  const createHuntAttestation = async () => {
-    try {
-      const api = await getTrueNetworkInstance();
-      if (!userWallet) {
-        toast.error("Wallet not connected");
-        setIsSubmitting(false);
-        return;
-      }
-      const output = await huntAttestationSchema.attest(api, userWallet, {
-        huntId: parseInt(huntId || "0"),
-        timestamp: Math.floor(Date.now() / 1000), // Current timestamp in seconds
-        clueNumber: parseInt(clueId || "0"),
-        numberOfTries: attempts,
+  const createAttestation = async () => {
+    if (!userWallet || !huntId || !clueId) {
+      console.log("Missing required data for attestation:", {
+        userWallet: !!userWallet,
+        huntId: !!huntId,
+        clueId: !!clueId,
       });
-      console.log("Attestation created:", output);
-      await api.network.disconnect();
+      return;
+    }
+
+    try {
+      const attestationData = {
+        teamIdentifier: teamData?.teamId?.toString() || userWallet.toString(), // team id for teams, user wallet for solo users
+        huntId: parseInt(huntId),
+        clueIndex: parseInt(clueId),
+        teamLeaderAddress: teamData?.owner || userWallet.toString(), // Use userWallet as fallback for solo users
+        solverAddress: userWallet,
+        attemptCount: attemptCount + 1, // +1 because this is the successful attempt
+      };
+
+      console.log("Creating attestation:", attestationData);
+
+      const response = await fetch(`${BACKEND_URL}/attest-clue`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(attestationData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Attestation failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Attestation created successfully:", result);
+      toast.success("Clue solve recorded!");
     } catch (error) {
-      setIsSubmitting(false);
       console.error("Failed to create attestation:", error);
+      toast.error("Failed to record clue solve");
     }
   };
 
-  const getUserScore = async () => {
-    const api = await getTrueNetworkInstance();
-    if (!userWallet) {
-      throw new Error("Wallet not connected");
+  // Sync progress with team
+  const handleSyncProgress = async () => {
+    if (!huntId || !teamIdentifier) {
+      toast.error("Missing hunt or team information");
+      return;
     }
-    const score = await runAlgo(
-      api.network,
-      config.issuer.hash,
-      api.account,
-      userWallet,
-      config.algorithm?.id ?? 0
-    );
-    return score;
+
+    setIsSyncing(true);
+    setIsRedirecting(true);
+    try {
+      const currentClueIndex = parseInt(clueId || "0");
+      await syncProgressAndNavigate(
+        parseInt(huntId),
+        teamIdentifier,
+        currentClueIndex,
+        navigate,
+        totalClues
+      );
+    } catch (error) {
+      console.error("Error syncing progress:", error);
+      toast.error("Failed to sync progress");
+      setIsRedirecting(false);
+    } finally {
+      setIsSyncing(false);
+    }
   };
 
   const handleVerify = async (e: React.FormEvent) => {
@@ -153,15 +207,64 @@ export function Clue() {
       return;
     }
 
+    // Re-validate clue access before verification to handle real-time changes
+    if (huntId && teamIdentifier) {
+      console.log("Re-validating clue access before verification...", { huntId, teamIdentifier, clueId, totalClues });
+      setIsRedirecting(true);
+      const canProceed = await validateClueAccess(
+        parseInt(huntId),
+        teamIdentifier,
+        parseInt(clueId || "0"),
+        navigate,
+        totalClues
+      );
+      console.log("Clue access re-validation result:", canProceed);
+      if (!canProceed) {
+        console.log("Clue access denied during verification, returning early");
+        return; // User was redirected, don't proceed with verification
+      }
+      setIsRedirecting(false);
+    }
+
+    // Check if clue is already solved by the team before making any backend calls
+    try {
+      const progressData = await fetchProgress(
+        parseInt(huntId || "0"),
+        teamIdentifier,
+        totalClues
+      );
+      
+      if (progressData) {
+        const clueIndex = parseInt(clueId || "0");
+        
+        if (isClueSolved(progressData, clueIndex)) {
+          console.log("Clue already solved by team, skipping verification");
+          toast.info("This clue has already been solved by your team!");
+          setVerificationState("success");
+          setShowSuccessMessage(true);
+          
+          // Navigate to next clue since it's solved
+          setTimeout(async () => {
+            const nextClueId = currentClue + 1;
+            if (currentClueData && nextClueId <= currentClueData.length) {
+              navigate(`/hunt/${huntId}/clue/${nextClueId}`);
+            } else {
+              navigate(`/hunt/${huntId}/end`);
+            }
+          }, 500);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error("Error checking if clue is already solved:", error);
+      // Continue with normal flow if check fails
+    }
+
     setIsSubmitting(true);
     setVerificationState("verifying");
     console.log("huntData: ", huntData);
     console.log("=== DEBUGGING REQUEST ===");
     console.log("Current location state:", location);
-    console.log("Location type:", typeof location);
-    console.log("Location keys:", Object.keys(location));
-    console.log("huntData:", huntData);
-    console.log("huntData.answers_blobId:", huntData.answers_blobId);
     console.log("clueId param:", clueId);
     console.log("Number(clueId):", Number(clueId));
 
@@ -197,23 +300,16 @@ export function Clue() {
       const data = await response.json();
       console.log("=== BACKEND RESPONSE ===");
       console.log("Full response data:", data);
-      console.log("Response data type:", typeof data);
-      console.log("Response data keys:", Object.keys(data));
       console.log("data.isClose:", data.isClose);
-      console.log("data.isClose type:", typeof data.isClose);
 
       const isCorrect = data.isClose;
 
       if (isCorrect == "true") {
-        // Update progress in localStorage
-        const progressKey = `hunt_progress_${huntId}`;
-        let progress = JSON.parse(localStorage.getItem(progressKey) || "[]");
-        if (!progress.includes(currentClue)) {
-          progress.push(currentClue);
-          localStorage.setItem(progressKey, JSON.stringify(progress));
-        }
+        // Increment attempt count for attestation
+        setAttemptCount(prev => prev + 1);
+        
         // Create attestation when clue is solved
-        await createHuntAttestation();
+        await createAttestation();
 
         setVerificationState("success");
         setShowSuccessMessage(true);
@@ -227,18 +323,13 @@ export function Clue() {
             navigate(`/hunt/${huntId}/clue/${nextClueId}`);
           } else {
             // He has completed all clues
-            try {
-              const score = await getUserScore();
-              localStorage.setItem("trust_score", score.toString());
-            } catch (error) {
-              console.error("Failed to get user score:", error);
-            }
             navigate(`/hunt/${huntId}/end`);
           }
         }, 500);
       } else {
         setVerificationState("error");
         setAttempts((prev) => prev - 1);
+        setAttemptCount(prev => prev + 1); // Increment attempt count even for failed attempts
       }
     } catch (error) {
       console.error("Verification failed:", error);
@@ -248,17 +339,31 @@ export function Clue() {
     }
   };
 
-  const getButtonStyles = () => {
-    if (!location) return "bg-gray-400 cursor-not-allowed";
+  const getButtonVariant = () => {
+    if (!location) return "neutral";
     switch (verificationState) {
       case "verifying":
-        return "bg-gray-800 hover:bg-gray-800";
+        return "neutral";
       case "success":
-        return "bg-green hover:bg-green/90";
+        return "default";
       case "error":
-        return "bg-red hover:bg-red";
+        return "default";
       default:
-        return "bg-black hover:bg-gray-800";
+        return "default";
+    }
+  };
+
+  const getButtonStyles = () => {
+    if (!location) return "opacity-50 cursor-not-allowed";
+    switch (verificationState) {
+      case "verifying":
+        return "opacity-75";
+      case "success":
+        return "bg-green-500 hover:bg-green-600 text-white";
+      case "error":
+        return "bg-red-500 hover:bg-red-600 text-white";
+      default:
+        return "";
     }
   };
 
@@ -278,76 +383,112 @@ export function Clue() {
 
   if (attempts === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 pt-20 px-4">
+      <div className="min-h-screen bg-background pt-20 px-4">
         <div className="max-w-4xl mx-auto">
-          <div className="bg-white rounded-xl shadow-lg p-8 text-center">
-            <div className="mb-6">
-              <BsXCircle className="w-16 h-16 text-red-500 mx-auto" />
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              No More Attempts
-            </h2>
-            <p className="text-gray-600 mb-8">
-              You've used all your attempts for this clue. Try another hunt or
-              come back later.
-            </p>
-            <Button
-              onClick={() => navigate("/")}
-              className="bg-black hover:bg-gray-800 text-white px-8"
-              size="lg"
-            >
-              <BsArrowLeft className="mr-2" />
-              Return to Hunts
-            </Button>
-          </div>
+          <Card className="text-center">
+            <CardContent className="p-8">
+              <div className="mb-6">
+                <BsXCircle className="w-16 h-16 text-red-500 mx-auto" />
+              </div>
+              <CardTitle className="text-3xl mb-4">
+                No More Attempts
+              </CardTitle>
+              <p className="text-foreground/70 mb-8">
+                You've used all your attempts for this clue. Try another hunt or
+                come back later.
+              </p>
+              <Button
+                onClick={() => navigate("/")}
+                variant="default"
+                size="lg"
+                className="px-8"
+              >
+                <BsArrowLeft className="mr-2" />
+                Return to Hunts
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-20 px-4 mb-[90px]">
+    <div className="min-h-screen bg-background pt-20 px-4 mb-[90px]">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8 border-2 border-black min-h-[calc(100vh-180px)] justify-between flex flex-col">
-          <div className="bg-green p-6 text-white">
-            <div className="flex items-center justify-between my-4">
-              <h1 className="text-xl font-bold flex-1 break-words">{huntData?.name}</h1>
-              <div className="text-2xl font-bold flex-shrink-0">
-                # {currentClue}/{currentClueData?.length}
+        <Card className="mb-8 min-h-[calc(100vh-180px)] flex flex-col bg-white">
+          <CardHeader className="bg-main text-main-foreground p-6 -my-6">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-xl flex-1 wrap-break-word">{huntData?.name}</CardTitle>
+              <div className="flex items-center space-x-4">
+                <div className="text-2xl shrink-0">
+                  # {currentClue}/{currentClueData?.length}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    onClick={handleSyncProgress}
+                    disabled={isSyncing}
+                    variant="neutral"
+                    size="sm"
+                    className="p-2"
+                    title="Sync with team progress"
+                  >
+                    <BsArrowClockwise className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                  </Button>
+                  <Button
+                    onClick={() => setIsLeaderboardOpen(true)}
+                    variant="neutral"
+                    size="sm"
+                    className="p-2"
+                  >
+                    <BsBarChartFill className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          </CardHeader>
 
-          <div className="prose max-w-none p-6 h-full">
+          <CardContent className="prose max-w-none p-6 h-full flex-1 flex flex-col justify-center">
             <h1 className="text-xl font-semibold mb-2">Clue</h1>
-            <ReactMarkdown className="text-lg">
-              {currentClueData?.[currentClue - 1]?.riddle}
-            </ReactMarkdown>
-          </div>
+            {isRedirecting ? (
+              <div className="flex items-center justify-center h-32">
+                <div className="text-center">
+                  <BsArrowRepeat className="w-8 h-8 animate-spin mx-auto mb-2 text-foreground/60" />
+                  <p className="text-foreground/60">Syncing progress...</p>
+                </div>
+              </div>
+            ) : (
+              <ReactMarkdown className="text-lg">
+                {currentClueData?.[currentClue - 1]?.riddle}
+              </ReactMarkdown>
+            )}
+          </CardContent>
 
-          <div className="mt-8 border-t pt-6 p-6 flex flex-col">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center text-gray-600">
-                <BsGeoAlt className="mr-2" />
+          <CardFooter className="border-t pt-6 flex flex-col">
+            <div className="flex items-center justify-between mb-4 text-sm gap-4">
+              <div className="flex items-center text-foreground/70">
+                <BsGeoAlt className="mr-1" />
                 {location ? "Location detected" : "Detecting location..."}
               </div>
-              <div className="text-gray-600">
+              <div className="text-foreground/70">
                 Attempts remaining: {attempts}/{MAX_ATTEMPTS}
               </div>
             </div>
 
-            <form onSubmit={handleVerify}>
+            <form onSubmit={handleVerify} className="w-full">
               <Button
                 type="submit"
+                variant={getButtonVariant()}
                 size="lg"
                 className={cn(
-                  "w-full text-white transition-colors duration-300",
+                  "w-full transition-colors duration-300",
                   getButtonStyles()
                 )}
                 disabled={
                   !location ||
                   verificationState === "verifying" ||
-                  verificationState === "success"
+                  verificationState === "success" ||
+                  isRedirecting
                 }
               >
                 {verificationState === "success" && (
@@ -362,10 +503,18 @@ export function Clue() {
                 {getButtonText()}
               </Button>
             </form>
-          </div>
-        </div>
+          </CardFooter>
+        </Card>
 
-        {huntId && <HuddleRoom huntId={huntId} />}
+        {huntId && <HuddleRoom huntId={huntId} teamIdentifier={teamIdentifier} />}
+        
+        {/* Leaderboard Modal */}
+        <Leaderboard 
+          huntId={huntId} 
+          huntName={huntData?.name}
+          isOpen={isLeaderboardOpen} 
+          onClose={() => setIsLeaderboardOpen(false)} 
+        />
       </div>
     </div>
   );

@@ -2,7 +2,7 @@
 
 Always follow these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.
 
-Khoj is a Web3 treasure hunt platform with three main components: React/TypeScript frontend, Express.js backend with Web3 integrations, and Hardhat smart contracts. The platform uses True Network attestations, Lit Protocol for location verification, Huddle01 for video collaboration, and multiple blockchain networks.
+Khoj is a Web3 treasure hunt platform with three main components: React/TypeScript frontend, Express.js backend with Web3 integrations, and Hardhat smart contracts. The platform uses Sign Protocol attestations, Lit Protocol for location verification, Huddle01 for video collaboration, and multiple blockchain networks.
 
 ## Working Effectively
 
@@ -14,7 +14,6 @@ Run these commands in exact order for a fresh environment:
 cd frontend && npm install  # Takes ~90 seconds
 cd ../backend && npm install  # Takes ~25 seconds  
 cd ../contracts && npm install  # Takes ~15 seconds
-cd ../frontend/acm && npm install  # Takes ~1 second
 ```
 
 **CRITICAL TIMING**: Set timeout to 180+ seconds for dependency installations. Frontend npm install takes up to 90 seconds with dependency resolution warnings - this is NORMAL.
@@ -26,13 +25,13 @@ Before running any application:
    ```bash
    cd backend && cp .env.example .env
    ```
-   Required variables: `HUDDLE_PROJECT_ID`, `HUDDLE_API_KEY`, `PRIVATE_KEY`, `PINATA_JWT`, `PINATA_GATEWAY`, `HOST`, `PORT`, `MAX_DISTANCE_IN_METERS`
+   Required variables: `HUDDLE_PROJECT_ID`, `HUDDLE_API_KEY`, `LIT_WALLET_PRIVATE_KEY`, `PINATA_JWT`, `PINATA_GATEWAY`, `HOST`, `PORT`, `MAX_DISTANCE_IN_METERS`
 
 2. **Frontend environment**:
    ```bash
    cd frontend && cp .env.example .env  
    ```
-   Required variables: `VITE_PUBLIC_THIRDWEB_CLIENT_ID`, `VITE_PUBLIC_HUDDLE_PROJECT_ID`, `VITE_PUBLIC_HUDDLE_API_KEY`, `VITE_PUBLIC_TRUE_NETWORK_SECRET_KEY`, contract addresses for Base/Moonbase/Asset Hub, `VITE_PUBLIC_BACKEND_URL`, `VITE_PUBLIC_GEMINI_API_KEY`
+   Required variables: `VITE_PUBLIC_THIRDWEB_CLIENT_ID`, `VITE_PUBLIC_HUDDLE_PROJECT_ID`, `VITE_PUBLIC_HUDDLE_API_KEY`, contract addresses for Base/Moonbase/Asset Hub, `VITE_PUBLIC_BACKEND_URL`, `VITE_PUBLIC_GEMINI_API_KEY`
 
 ### Build and Test Commands
 
@@ -44,20 +43,14 @@ Before running any application:
    npm run dev     # Development server on http://localhost:5173
    ```
 
-2. **AssemblyScript component (True Network ACM)**:
-   ```bash
-   cd frontend/acm
-   npm run asbuild  # Takes ~3 seconds
-   ```
-
-3. **Backend server**:
+2. **Backend server**:
    ```bash
    cd backend  
    npm start  # Requires valid environment variables and network connectivity
    ```
    **Note**: Backend requires network access to Lit Protocol and external Web3 services. Will fail with connection errors if environment variables are empty or invalid.
 
-4. **Smart contracts**:
+3. **Smart contracts**:
    ```bash
    cd contracts
    npm run compile  # Requires network access to download Solidity compiler
@@ -94,7 +87,6 @@ After making changes, ALWAYS test these scenarios:
 - **Frontend build**: 35 seconds - Set timeout to 60+ seconds  
 - **Backend npm install**: 25 seconds - Set timeout to 60+ seconds
 - **Contract npm install**: 15 seconds - Set timeout to 60+ seconds
-- **ACM AssemblyScript build**: 3 seconds - Set timeout to 30+ seconds
 
 **NEVER CANCEL** any build or install operation. Dependency resolution warnings are normal and expected.
 
@@ -104,8 +96,7 @@ After making changes, ALWAYS test these scenarios:
 - **Framework**: React 18 with TypeScript, Vite build system
 - **Web3**: Thirdweb SDK v5, Wagmi, Viem for blockchain interactions
 - **UI**: TailwindCSS, Radix UI primitives, Framer Motion animations
-- **Key dependencies**: True Network SDK, Huddle01 React, Leaflet maps, React Router
-- **AssemblyScript component** (`/frontend/acm`): True Network attestation algorithms
+- **Key dependencies**: Huddle01 React, Leaflet maps, React Router
 
 ### Backend (`/backend`)
 - **Framework**: Express.js with ES modules
@@ -124,8 +115,7 @@ After making changes, ALWAYS test these scenarios:
 1. **Frontend build warnings about chunk sizes**: Normal for Web3 applications with large dependencies
 2. **Backend crashes on startup**: Check all environment variables are set correctly
 3. **Contract compilation fails**: Requires network access to download Solidity compiler
-4. **ACM build from frontend root fails**: Use `cd frontend/acm && npm run asbuild` instead
-5. **Blank frontend page**: Requires proper Web3 environment configuration
+4. **Blank frontend page**: Requires proper Web3 environment configuration
 
 ## Development Workflow
 
@@ -139,7 +129,6 @@ After making changes, ALWAYS test these scenarios:
 
 ```
 /frontend/          - React/TypeScript Web3 frontend
-  /acm/            - AssemblyScript True Network component  
   /src/components/ - React components (Clue.tsx, HuntDetails.tsx key files)
   package.json     - Frontend dependencies and scripts
 /backend/          - Express.js Web3 backend

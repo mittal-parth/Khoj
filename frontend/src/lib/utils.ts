@@ -22,16 +22,63 @@ export const SUPPORTED_CHAINS = {
   flow: flowTestnet,
 };
 
+// Parse enabled chains from env, fallback to all supported
+const parseEnabledNetworks = () => {
+  const raw = import.meta.env.VITE_ENABLED_CHAINS as string | undefined;
+  if (!raw) return Object.keys(SUPPORTED_CHAINS);
+
+  const requested = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const valid = requested.filter((key) => key in SUPPORTED_CHAINS);
+  return valid.length > 0 ? valid : Object.keys(SUPPORTED_CHAINS);
+};
+
+export const ENABLED_NETWORKS = parseEnabledNetworks();
+
+export const ENABLED_CHAINS = ENABLED_NETWORKS.reduce(
+  (acc, key) => {
+    acc[key as keyof typeof SUPPORTED_CHAINS] = SUPPORTED_CHAINS[
+      key as keyof typeof SUPPORTED_CHAINS
+    ];
+    return acc;
+  },
+  {} as Partial<typeof SUPPORTED_CHAINS>
+);
+
+export const ENABLED_CHAINS_ARRAY = ENABLED_NETWORKS.map(
+  (key) => SUPPORTED_CHAINS[key as keyof typeof SUPPORTED_CHAINS]
+);
+
 // Helper function to get chain by network name
 export const getChainByNetwork = (networkName: string) => {
-  const chainMap: Record<string, any> = {
-    base: baseSepolia,
-    moonbeam: moonbaseAlpha,
-    assetHub: paseoAssetHub,
-    flow: flowTestnet,
+  const fromEnabled = ENABLED_CHAINS[
+    networkName as keyof typeof ENABLED_CHAINS
+  ];
+  if (fromEnabled) return fromEnabled;
+
+  const fromSupported = SUPPORTED_CHAINS[
+    networkName as keyof typeof SUPPORTED_CHAINS
+  ];
+  if (fromSupported) return fromSupported;
+
+  // Default to first enabled, falling back to moonbaseAlpha
+  const firstEnabled = ENABLED_CHAINS_ARRAY[0];
+  return firstEnabled || moonbaseAlpha;
+};
+
+// Helper function to get network name by chain ID
+export const getNetworkByChainId = (chainId: number): string | undefined => {
+  const chainIdMap: Record<number, string> = {
+    [baseSepolia.id]: "base",
+    [moonbaseAlpha.id]: "moonbeam",
+    [paseoAssetHub.id]: "assetHub",
+    [flowTestnet.id]: "flow",
   };
   
-  return chainMap[networkName] || paseoAssetHub; // Default to paseoAssetHub
+  return chainIdMap[chainId];
 };
 
 // Helper function to check if network supports contracts (base and moonbeam do)
@@ -41,7 +88,11 @@ export const isContractSupportedNetwork = (networkName: string) => {
 
 // Helper function to get current network from localStorage with fallback
 export const getCurrentNetwork = () => {
-  return localStorage.getItem("current_network") || "moonbeam";
+  const stored = localStorage.getItem("current_network");
+  if (stored && ENABLED_CHAINS[stored as keyof typeof ENABLED_CHAINS]) {
+    return stored;
+  }
+  return ENABLED_NETWORKS[0] || "moonbeam";
 };
 
 // Helper function to get contract address for current network
@@ -61,7 +112,10 @@ export const getContractAddress = (networkName?: string) => {
 // Helper function to get chain ID for current network
 export const getChainId = (networkName?: string) => {
   const network = networkName || getCurrentNetwork();
-  return SUPPORTED_CHAINS[network as keyof typeof SUPPORTED_CHAINS].id;
+  const chain =
+    ENABLED_CHAINS[network as keyof typeof ENABLED_CHAINS] ||
+    SUPPORTED_CHAINS[network as keyof typeof SUPPORTED_CHAINS];
+  return chain.id;
 };
 
 // Custom hook to reactively get network values

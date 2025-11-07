@@ -9,6 +9,7 @@ import { HuntDetails } from "./components/HuntDetails";
 import { Footer } from "./components/Footer";
 import { About } from "./components/About";
 import { Create } from "./components/Create";
+import { RouteGuard } from "./components/RouteGuard";
 
 function App() {
   return (
@@ -17,7 +18,14 @@ function App() {
           <Navbar />
           <Routes>
             <Route path="/" element={<Hunts />} />
-            <Route path="/hunt/:huntId/clue/:clueId" element={<Clue />} />
+            <Route 
+              path="/hunt/:huntId/clue/:clueId" 
+              element={
+                <RouteGuard>
+                  <Clue />
+                </RouteGuard>
+              } 
+            />
             <Route path="/hunt/:huntId/end" element={<HuntEnd />} />
             <Route path="/hunt/:huntId" element={<HuntDetails />} />
             <Route path="/profile" element={<Rewards />} />

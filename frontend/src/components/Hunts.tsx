@@ -10,12 +10,13 @@ import { toast } from "sonner";
 
 import { TransactionButton } from "./TransactionButton";
 import { Button } from "./ui/button.tsx";
+import { Card, CardContent } from "./ui/card";
+import { Badge } from "./ui/badge";
 import { Loader } from "./ui/loader";
 import { useState, useEffect, useMemo } from "react";
 import { useNetworkState } from "../lib/utils";
 import { client } from "../lib/client";
-import { Hunt, bgColorClasses, textColorClasses, bgColors } from "../types";
-import { buttonStyles } from "../lib/styles.ts";
+import { Hunt } from "../types";
 
 
 
@@ -228,13 +229,21 @@ export function Hunts() {
     );
   }
 
-  // Array of background colors and icons to rotate through
-
+  // Array of icons to rotate through for visual variety
   const icons = [
     <TbLadder className="w-10 h-10 text-white" />,
     <TbChessKnight className="w-10 h-10 text-white" />,
     <FaChess className="w-10 h-10 text-white" />,
     <FaDice className="w-10 h-10 text-white" />,
+  ];
+
+  // Background colors for icon sections using theme's chart colors
+  // These are defined in your theme and provide playful variety
+  const iconBackgroundColors = [
+    "bg-chart-1",        // Chart color 1 
+    "bg-chart-2",        // Chart color 2
+    "bg-chart-3",        // Chart color 3
+    "bg-chart-4",        // Chart color 4
   ];
 
   // Function to get button text and action based on hunt state
@@ -248,7 +257,7 @@ export function Hunts() {
       return {
         text: "Ended",
         disabled: true,
-        className: buttonStyles.disabled,
+        variant: "neutral" as const,
         action: null,
       };
     }
@@ -257,7 +266,7 @@ export function Hunts() {
       return {
         text: "Coming Soon",
         disabled: true,
-        className: buttonStyles.disabled,
+        variant: "neutral" as const,
         action: null,
       };
     }
@@ -266,7 +275,7 @@ export function Hunts() {
       return {
         text: "Register",
         disabled: false,
-        className: buttonStyles.secondary,
+        variant: "default" as const,
         action: "register",
       };
     }
@@ -274,7 +283,7 @@ export function Hunts() {
     return {
       text: "Manage",
       disabled: false,
-      className: buttonStyles.primary,
+      variant: "default" as const,
       action: "manage",
     };
   };
@@ -299,105 +308,93 @@ export function Hunts() {
           const buttonConfig = getButtonConfig(hunt, originalIndex);
 
           return (
-            <div
-              key={originalIndex}
-              className="flex 
-            bg-white rounded-lg
-            border-black 
-              relative  
-              before:absolute 
-              before:inset-0 
-              before:rounded-lg
-              before:border-[16px]
-              before:border-black
-              before:-translate-x-2
-              before:translate-y-2
-              before:-z-10
-              border-[3px]"
-            >
-              <div
-                className={`w-1/4 flex items-center justify-center ${
-                  bgColorClasses[bgColors[index % bgColors.length] as keyof typeof bgColorClasses]
-                }`}
-              >
-                {icons[index % icons.length]}
-              </div>
-
-              <div className="w-3/4 p-5 flex flex-col justify-between">
-                {/* Header with title and teams pill */}
-                <div className="flex justify-between items-start mb-2">
-                  <h2 className="text-xl font-semibold text-gray-800 flex-1 pr-2 leading-tight">
-                    {hunt.name}
-                  </h2>
-                  {hunt.teamsEnabled && (
-                    <div className="flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded-full text-xs font-medium">
-                      <TbUsersGroup className="w-3 h-3" />
-                      <span>Teams</span>
-                    </div>
-                  )}
+            <Card key={originalIndex} className="overflow-hidden p-0 bg-white">
+              <div className="flex h-full min-h-[250px]">
+                <div className={`w-1/4 flex items-center justify-center border-r-2 border-black ${iconBackgroundColors[index % iconBackgroundColors.length]}`}>
+                  {icons[index % icons.length]}
                 </div>
 
-                <p className="text-sm text-gray-600 mb-3">
-                  {hunt.description}
-                </p>
+                <CardContent className="w-3/4 p-5 flex flex-col justify-between">
+                  {/* Header with title and teams badge */}
+                  <div className="flex justify-between items-start mb-2">
+                    <h2 className="text-xl font-semibold text-foreground flex-1 pr-2 leading-tight">
+                      {hunt.name}
+                    </h2>
+                    {hunt.teamsEnabled && (
+                      <Badge variant="neutral" className="bg-background text-foreground/80">
+                        <TbUsersGroup />
+                        <span>Teams</span>
+                      </Badge>
+                    )}
+                  </div>
+
+                  <p className="text-sm text-foreground/70 mb-3">
+                    {hunt.description}
+                  </p>
 
                 {/* Date and time information */}
-                <div className="flex items-center gap-1 text-sm mb-3">
-                  <BsCalendar2DateFill className={`w-4 h-4 ${textColorClasses[bgColors[index % bgColors.length] as keyof typeof textColorClasses]} mr-0.5`} />
-                  <span className="text-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 bg-main rounded-lg border-2 border-black">
+                    <BsCalendar2DateFill className="w-4 h-4 text-main-foreground" />
+                  </div>
+                  <span className="text-sm text-foreground/80">
                     {formatDateRange(hunt.startTime, hunt.endTime)}
                   </span>
                 </div>
 
                 {/* Participant count */}
-                <div className="flex items-center gap-1 text-sm mb-3">
-                  <IoIosPeople className={`w-5 h-5 ${textColorClasses[bgColors[index % bgColors.length] as keyof typeof textColorClasses]}`} />
-                  <span className="text-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 bg-main rounded-lg border-2 border-black">
+                    <IoIosPeople className="w-4 h-4 text-main-foreground" />
+                  </div>
+                  <span className="text-sm text-foreground/80">
                     {Number(hunt.participantCount)} participant{hunt.participantCount !== 1n ? 's' : ''}
                   </span>
                 </div>
 
-                {/* Single button that changes based on state */}
-                {buttonConfig.action === "register" ? (
-                  <TransactionButton
-                    contractAddress={contractAddress}
-                    abi={huntABI}
-                    functionName="registerForHunt"
-                    args={[
-                      originalIndex,
-                      address || "0x0000000000000000000000000000000000000000",
-                    ]}
-                    text={buttonConfig.text}
-                    className={`w-full py-1.5 text-sm font-medium rounded-md ${buttonConfig.className} transition-colors duration-300`}
-                    disabled={
-                      !address ||
-                      isCheckingRegistrations ||
-                      buttonConfig.disabled
-                    }
-                    onError={(error) => console.log(error)}
-                    onSuccess={(data) => handleRegisterSuccess(data, originalIndex)}
-                  />
-                ) : (
-                  <Button
-                    onClick={() => {
-                      if (buttonConfig.action === "manage") {
-                        navigate(`/hunt/${originalIndex}`);
+                  {/* Single button that changes based on state */}
+                  {buttonConfig.action === "register" ? (
+                    <TransactionButton
+                      contractAddress={contractAddress}
+                      abi={huntABI}
+                      functionName="registerForHunt"
+                      args={[
+                        originalIndex,
+                        address || "0x0000000000000000000000000000000000000000",
+                      ]}
+                      text={buttonConfig.text}
+                      className="w-full"
+                      disabled={
+                        !address ||
+                        isCheckingRegistrations ||
+                        buttonConfig.disabled
                       }
-                    }}
-                    className={`w-full py-1.5 text-sm font-medium rounded-md ${buttonConfig.className} transition-colors duration-300`}
-                    disabled={
-                      !address ||
-                      isCheckingRegistrations ||
-                      buttonConfig.disabled
-                    }
-                  >
-                    {isCheckingRegistrations
-                      ? "Checking..."
-                      : buttonConfig.text}
-                  </Button>
-                )}
+                      onError={(error) => console.log(error)}
+                      onSuccess={(data) => handleRegisterSuccess(data, originalIndex)}
+                    />
+                  ) : (
+                    <Button
+                      onClick={() => {
+                        if (buttonConfig.action === "manage") {
+                          navigate(`/hunt/${originalIndex}`);
+                        }
+                      }}
+                      variant={buttonConfig.variant}
+                      className="w-full"
+                      disabled={
+                        !address ||
+                        isCheckingRegistrations ||
+                        buttonConfig.disabled
+                      }
+                    >
+                      {isCheckingRegistrations
+                        ? "Checking..."
+                        : buttonConfig.text}
+                    </Button>
+                  )}
+                </CardContent>
               </div>
-            </div>
+            </Card>
           );
         })}
         </div>

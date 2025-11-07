@@ -6,9 +6,9 @@
 Khoj (meaning "search" or "discovery" in Hindi) is a geo-location based treasure hunt platform that combines real-world exploration with Web3 technology. Users can participate in location-based treasure hunts where they solve riddles, visit physical locations, and earn onchain rewards. Discover a new way to onboard users to Web3 with a Web2-native experience.
 
 
-- **🔗 [khoj-alpha.netlify.app](https://khoj-alpha.netlify.app)**
-- **✨ [Product Guide](https://github.com/ayush4345/Khoj/wiki/Product-Guide)**
-- **📝 [Wiki](https://github.com/ayush4345/Khoj/wiki)**
+- **🔗 [playkhoj.com](https://playkhoj.com)**
+- **✨ [Product Guide](https://github.com/mittal-parth/Khoj/wiki/Product-Guide)**
+- **📝 [Wiki](https://github.com/mittal-parth/Khoj/wiki)**
 
 ## Screenshots
 
@@ -20,41 +20,31 @@ Khoj (meaning "search" or "discovery" in Hindi) is a geo-location based treasure
       <sub><i>Hunts list</i></sub>
     </td>
     <td align="center">
-      <img width="200" alt="Hunt details" src="images/hunt-details-no-teams.png" />
-      <br>
-      <sub><i>Hunt details</i></sub>
-    </td>
-    <td align="center">
-      <img width="200" alt="Creating a team" src="images/create-team.png" />
-      <br>
-      <sub><i>Creating a team</i></sub>
-    </td>
-    <td align="center">
       <img width="200" alt="Team invite code & QR" src="images/create-team-invite-code.png" />
       <br>
-      <sub><i>Team invite code & QR</i></sub>
+      <sub><i>Creating a team and inviting teammates</i></sub>
+    </td>
+    <td align="center">
+      <img width="200" alt="Team details" src="images/join-team.png" />
+      <br>
+      <sub><i>Hunt details and joining a team</i></sub>
     </td>
   </tr>
   <tr>
     <td align="center">
-      <img width="200" alt="Join team" src="images/join-team.png" />
-      <br>
-      <sub><i>Join team</i></sub>
-    </td>
-    <td align="center">
-      <img width="200" alt="Team details" src="images/team-details.png" />
-      <br>
-      <sub><i>Team details</i></sub>
-    </td>
-    <td align="center">
       <img width="200" alt="Clue" src="images/clue.png" />
       <br>
-      <sub><i>Clue</i></sub>
+      <sub><i>Solving a clue</i></sub>
+    </td>
+    <td align="center">
+      <img width="200" alt="Leaderboard" src="images/leaderboard.png" />
+      <br>
+      <sub><i>Leaderboard</i></sub>
     </td>
     <td align="center">
       <img width="200" alt="Hunt end" src="images/hunt-end.png" />
       <br>
-      <sub><i>Hunt end</i></sub>
+      <sub><i>Hunt completion</i></sub>
     </td>
   </tr>
 </table>
@@ -62,7 +52,7 @@ Khoj (meaning "search" or "discovery" in Hindi) is a geo-location based treasure
 ## Architecture Diagram
 
 <div align="center">
-  <img src="images/main-diagram.jpeg" alt="Khoj Architecture Diagram" width="800"/>
+  <img src="images/main-diagram.png" alt="Khoj Architecture Diagram" width="800"/>
   <br>
   <sub><i>Khoj System Architecture and Flow Diagram</i></sub>
   <br><br>
@@ -90,12 +80,11 @@ Khoj (meaning "search" or "discovery" in Hindi) is a geo-location based treasure
 - **Framework**: React 18 with TypeScript, Vite build system
 - **Web3**: Thirdweb SDK v5, Wagmi, Viem for blockchain interactions
 - **UI**: TailwindCSS, Radix UI primitives, Framer Motion animations
-- **Key dependencies**: True Network SDK, Huddle01 React, Leaflet maps, React Router
-- **True Network SDK** (`/frontend/acm`): True Network attestation algorithms
+- **Key dependencies**: Huddle01 React, Leaflet maps, React Router
 
 ### Backend (`/backend`)
 - **Framework**: Express.js with ES modules
-- **Web3 Services**: Lit Protocol client, Huddle01 server SDK, Pinata IPFS
+- **Web3 Services**: Lit Protocol client, Huddle01 server SDK, Pinata IPFS, Sign Protocol for attestations
 - **Key files**: `server.js` (main server), `huddle.js` (video), `pinata.js` (storage)
 - **APIs**: Location verification, file uploads, video room management
 
@@ -107,7 +96,6 @@ Khoj (meaning "search" or "discovery" in Hindi) is a geo-location based treasure
 
 ```
 /frontend/          - React/TypeScript Web3 frontend
-  /acm/            - AssemblyScript True Network component  
   /src/components/ - React components (Clue.tsx, HuntDetails.tsx key files)
   package.json     - Frontend dependencies and scripts
 /backend/          - Express.js Web3 backend
@@ -139,17 +127,9 @@ cd ../contracts && npm install  # Takes ~15 seconds
 
 ### Environment Setup
 
-1. **Backend environment**:
-   ```bash
-   cd backend && cp .env.example .env
-   ```
-   Required variables: `HUDDLE_PROJECT_ID`, `HUDDLE_API_KEY`, `PRIVATE_KEY`, `PINATA_JWT`, `PINATA_GATEWAY`, `HOST`, `PORT`, `MAX_DISTANCE_IN_METERS`
+Follow this detailed guide in the Wiki to setup all the environment variables.
 
-2. **Frontend environment**:
-   ```bash
-   cd frontend && cp .env.example .env  
-   ```
-   Required variables: `VITE_PUBLIC_THIRDWEB_CLIENT_ID`, `VITE_PUBLIC_HUDDLE_PROJECT_ID`, `VITE_PUBLIC_TRUE_NETWORK_SECRET_KEY`, contract addresses for Base/Moonbase/AssetHub/Flow, `VITE_PUBLIC_BACKEND_URL`, `VITE_PUBLIC_GEMINI_API_KEY`
+[How to obtain env variables](https://github.com/mittal-parth/Khoj/wiki/How-to-obtain-env-variables-%F0%9F%A7%B0)
 
 ### Running the Application
 

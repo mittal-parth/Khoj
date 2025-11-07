@@ -1,6 +1,6 @@
 import express from "express";
 // Import our patch for Lit Protocol
-import { getWebCrypto } from './lit-protocol-patch.js';
+import { getWebCrypto } from './services/lit-protocol-patch.js';
 
 // Make sure crypto is available in the global scope
 if (typeof global.crypto === 'undefined' || !global.crypto.subtle) {
@@ -39,16 +39,18 @@ import { LitNetwork } from "@lit-protocol/constants";
 import dotenv from "dotenv";
 import cors from "cors";
 
-import { readObject, storeString, storeFile } from "./pinata.js";
+import { readObject, storeString, storeFile } from "./services/pinata.js";
 import multer from "multer";
 import {
   getRoomId,
   getToken,
   startStreaming,
   stopStreaming,
-} from "./huddle.js";
+} from "./services/huddle.js";
 import { GoogleGenAI, Type } from "@google/genai";
-import { withRetry } from "./retry-utils.js";
+import { withRetry } from "./utils/retry-utils.js";
+import { attestClueSolved, queryAttestationsForHunt } from "./services/sign-protocol.js";
+import { calculateLeaderboardForHunt } from "./services/leaderboard.js";
 
 const MAX_DISTANCE_IN_METERS = parseFloat(process.env.MAX_DISTANCE_IN_METERS) || 60;
 
@@ -96,13 +98,42 @@ const upload = multer({
 });
 
 const port = process.env.PORT || 8000;
-const userAddress = "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397";
+const userAddress = process.env.LIT_WALLET_PUBLIC_ADDRESS || "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397";
+
+// In-memory storage for team room mappings
+const teamHuddleRooms = new Map();
+
+// TTL configuration
+const ROOM_TTL = 15 * 24 * 60 * 60 * 1000; // 15 days in milliseconds
+const CLEANUP_INTERVAL = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+
+// TTL cleanup function
+const cleanupExpiredRooms = () => {
+  const now = Date.now();
+  let cleanedCount = 0;
+  
+  for (const [key, value] of teamHuddleRooms.entries()) {
+    if (now - value.createdAt > ROOM_TTL) {
+      teamHuddleRooms.delete(key);
+      cleanedCount++;
+    }
+  }
+  
+  if (cleanedCount > 0) {
+    console.log(`Cleaned up ${cleanedCount} expired room mappings. Current active rooms: ${teamHuddleRooms.size}`);
+  }
+};
+
+// Start TTL cleanup interval
+setInterval(cleanupExpiredRooms, CLEANUP_INTERVAL);
+console.log(`Started TTL cleanup for team rooms. Cleanup interval: ${CLEANUP_INTERVAL / (60 * 60 * 1000)} hours`);
+
 const client = new LitNodeClient({
   litNetwork: LitNetwork.DatilDev,
   debug: false,
 });
 
-const walletWithCapacityCredit = new Wallet(process.env.PRIVATE_KEY);
+const walletWithCapacityCredit = new Wallet(process.env.LIT_WALLET_PRIVATE_KEY);
 
 const authSig = await (async () => {
   const toSign = await createSiweMessageWithRecaps({
@@ -503,14 +534,6 @@ export async function run() {
     // { id: "clue2", lat: 12.7041, long: 77.1025 },
   ];
 
-  const clueId = "clue1";
-  const cLat = 12.9716; // Same as clue1 for a positive match
-  const cLong = 77.5946;
-
-  //check for negative match
-  const farLong = 10.5946; // Far away longitude for negative match
-  const farLat = 10.9716; // Far away latitude for negative match
-
   // Encrypt the clues array
   const { ciphertext, dataToEncryptHash } = await encryptRunServerMode(
     JSON.stringify(clues),
@@ -527,15 +550,6 @@ export async function run() {
     // clueId
   );
   console.log("Positive Match Result:", result);
-
-  // Test Lit clue verify function with negative match
-  // const clueResult = await decryptRunServerMode(
-  //   "bb41eeeedb7789a3482cc74a1ac8d84effb2a508b753948130e3958c39004120",
-  //   "ptDRCbVUal2Y37ATZ7da3OSRb9OXLL08YQ2osDpIEMyOP9lFrGPf+bf1a4AfDWZZljZfjZ0d0EMZ9yvcgCcnCFaRycj70c8zQkI2bmGmAaQgNMFGV6+3PUWQ2uxnj1RLZcGZnjAhfKyvPNAkaZqkU+4C",
-  //   userAddress
-
-  // );
-  // console.log("Clues Result:", clueResult);
 }
 
 app.post("/encrypt", async (req, res) => {
@@ -770,8 +784,44 @@ app.post("/upload-metadata", async (req, res) => {
 
 app.post("/startHuddle", async (req, res) => {
   try {
-    const roomId = await getRoomId();
-    const token = await getToken(roomId);
+    const { huntId, teamId } = req.body;
+    
+    // Validate required fields
+    if (!huntId || !teamId) {
+      return res.status(400).json({
+        error: "Missing required fields: huntId and teamId",
+      });
+    }
+    
+    const roomKey = `${huntId}_${teamId}`;
+    
+    // Check if room already exists for this team
+    if (teamHuddleRooms.has(roomKey)) {
+      const existingRoom = teamHuddleRooms.get(roomKey);
+      console.log(`Returning existing room for team ${teamId} in hunt ${huntId}: ${existingRoom.roomId}`);
+      
+      // Generate fresh token for the user
+      const token = await getToken(existingRoom.roomId, teamId);
+      
+      return res.json({
+        roomId: existingRoom.roomId,
+        token: token,
+      });
+    }
+    
+    // Create new room for this team
+    console.log(`Creating new room for team ${teamId} in hunt ${huntId}`);
+    const roomId = await getRoomId(teamId);
+    const token = await getToken(roomId, teamId);
+    
+    // Store room mapping with timestamp
+    teamHuddleRooms.set(roomKey, {
+      roomId: roomId,
+      createdAt: Date.now(),
+    });
+    
+    console.log(`Stored new room mapping: ${roomKey} -> ${roomId}. Total active rooms: ${teamHuddleRooms.size}`);
+    
     res.json({
       roomId: roomId,
       token: token,
@@ -905,6 +955,176 @@ app.post("/generate-riddles", async (req, res) => {
     console.error("Error generating riddles:", error);
     res.status(500).json({
       error: "Failed to generate riddles",
+      message: error.message,
+    });
+  }
+});
+
+// Attest clue solve endpoint
+app.post("/attest-clue", async (req, res) => {
+  try {
+    const { teamIdentifier, huntId, clueIndex, teamLeaderAddress, solverAddress, attemptCount } = req.body;
+
+    // Validate required fields
+    if (!huntId || !clueIndex || !teamLeaderAddress || !teamIdentifier || !solverAddress || attemptCount === undefined) {
+      return res.status(400).json({
+        error: "Missing required fields: huntId, clueIndex, teamLeaderAddress, teamIdentifier, solverAddress, attemptCount",
+      });
+    }
+
+    console.log("Creating attestation for clue solve:", {
+      teamIdentifier,
+      huntId,
+      clueIndex,
+      teamLeaderAddress,
+      solverAddress,
+      attemptCount,
+    });
+
+    const attestationInfo = await attestClueSolved(
+      teamIdentifier,
+      huntId,
+      clueIndex,
+      teamLeaderAddress,
+      solverAddress,
+      attemptCount
+    );
+
+    res.json({
+      success: true,
+      attestationId: attestationInfo.attestationId,
+      message: "Attestation created successfully",
+    });
+  } catch (error) {
+    console.error("Error creating attestation:", error);
+    res.status(500).json({
+      error: "Failed to create attestation",
+      message: error.message,
+    });
+  }
+});
+
+// Progress check endpoint
+app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
+  try {
+    const huntId = parseInt(req.params.huntId);
+    const teamIdentifier = req.params.teamIdentifier;
+    const totalClues = parseInt(req.query.totalClues) || null;
+    
+    if (isNaN(huntId)) {
+      return res.status(400).json({
+        error: "Invalid hunt ID",
+      });
+    }
+
+    if (!teamIdentifier) {
+      return res.status(400).json({
+        error: "Team identifier is required",
+      });
+    }
+
+    console.log(`Checking progress for hunt ${huntId}, team ${teamIdentifier}, totalClues: ${totalClues}...`);
+
+    // Get all attestations for this hunt
+    const attestations = await queryAttestationsForHunt(huntId);
+    
+    if (!attestations || attestations.length === 0) {
+      return res.json({
+        huntId,
+        teamIdentifier,
+        latestClueSolved: 0,
+        totalClues: totalClues || 0,
+        isHuntCompleted: false,
+        nextClue: 1,
+        message: "No progress found for this hunt"
+      });
+    }
+
+    // Filter attestations for this team
+    const teamAttestations = attestations.filter(attestation => {
+      const data = JSON.parse(attestation.data);
+      return data.teamIdentifier === teamIdentifier;
+    });
+
+    if (teamAttestations.length === 0) {
+      return res.json({
+        huntId,
+        teamIdentifier,
+        latestClueSolved: 0,
+        totalClues: totalClues || 0,
+        isHuntCompleted: false,
+        nextClue: 1,
+        message: "No progress found for this team"
+      });
+    }
+
+    // Find the highest clue index solved by this team
+    let latestClueSolved = 0;
+    
+    for (const attestation of teamAttestations) {
+      const data = JSON.parse(attestation.data);
+      const clueIndex = parseInt(data.clueIndex);
+      if (clueIndex > latestClueSolved) {
+        latestClueSolved = clueIndex;
+      }
+    }
+
+    // Use totalClues from frontend
+    const finalTotalClues = totalClues || 0; 
+    const isHuntCompleted = latestClueSolved >= finalTotalClues;
+
+    res.json({
+      huntId,
+      teamIdentifier,
+      latestClueSolved,
+      totalClues: finalTotalClues,
+      isHuntCompleted,
+      nextClue: isHuntCompleted ? null : latestClueSolved + 1
+    });
+  } catch (error) {
+    console.error("Error checking progress:", error);
+    res.status(500).json({
+      error: "Failed to check progress",
+      message: error.message,
+    });
+  }
+});
+
+// Leaderboard endpoint
+app.get("/leaderboard/:huntId", async (req, res) => {
+  try {
+    const huntId = parseInt(req.params.huntId);
+    
+    if (isNaN(huntId)) {
+      return res.status(400).json({
+        error: "Invalid hunt ID",
+      });
+    }
+
+    console.log(`Fetching leaderboard for hunt ${huntId}...`);
+
+    // Query all attestations for this hunt
+    const attestations = await queryAttestationsForHunt(huntId);
+    
+    if (attestations.length === 0) {
+      return res.json({
+        huntId,
+        leaderboard: [],
+        message: "No teams have solved any clues yet"
+      });
+    }
+
+    // Use the extracted leaderboard calculation function
+    const rankedLeaderboard = calculateLeaderboardForHunt(attestations, huntId);
+
+    res.json({
+      huntId,
+      leaderboard: rankedLeaderboard,
+    });
+  } catch (error) {
+    console.error("Error fetching leaderboard:", error);
+    res.status(500).json({
+      error: "Failed to fetch leaderboard",
       message: error.message,
     });
   }
