@@ -11,7 +11,7 @@
     "test:sign-protocol": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/sign-protocol.test.js",
     "start": "node src/server.js",
     "huddle": "node src/services/huddle.js",
-    "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --testPathPattern=integration",
+    "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --testPathPattern=integration"
   },
   "author": "",
   "license": "ISC",
