@@ -1,8 +1,34 @@
 import { VitePWA } from "vite-plugin-pwa";
-import { defineConfig } from "vite";
+import { defineConfig, Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 import { NodeGlobalsPolyfillPlugin } from "@esbuild-plugins/node-globals-polyfill";
+import fs from "fs";
+
+// Plugin to handle SPA routing fallback for preview server
+function spaFallbackPlugin(): Plugin {
+  return {
+    name: "spa-fallback",
+    configurePreviewServer(server) {
+      server.middlewares.use((req, res, next) => {
+        // Skip if it's an API request or has a file extension
+        if (req.url?.startsWith("/api") || req.url?.includes(".")) {
+          return next();
+        }
+        
+        // For all other routes, serve index.html
+        const indexPath = path.resolve(__dirname, "dist", "index.html");
+        if (fs.existsSync(indexPath)) {
+          res.setHeader("Content-Type", "text/html");
+          fs.createReadStream(indexPath).pipe(res);
+        } else {
+          next();
+        }
+      });
+    },
+  };
+}
+
 // https://vitejs.dev/config/
 export default defineConfig({
   optimizeDeps: {
@@ -21,6 +47,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    spaFallbackPlugin(),
     VitePWA({
       registerType: "prompt",
       injectRegister: false,
@@ -39,6 +66,7 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         cleanupOutdatedCaches: true,
         clientsClaim: true,
+        navigateFallback: "/index.html",
       },
       devOptions: {
         enabled: false,
@@ -52,5 +80,10 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
+  },
+  preview: {
+    port: 4173,
+    strictPort: false,
+    open: false,
   },
 });
