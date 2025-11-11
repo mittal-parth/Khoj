@@ -60,7 +60,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
 
       // Check if we have required data
       if (!huntId || !clueId || !userWallet || !contractAddress) {
-        setError("Missing required data");
+        setError("Waiting for required data...");
         setIsValidating(false);
         return;
       }
@@ -148,9 +148,10 @@ export function RouteGuard({ children }: RouteGuardProps) {
         <div className="max-w-4xl mx-auto">
           <div className="bg-white rounded-xl shadow-lg p-8 text-center">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
-              Access Error
+              Checking for access
             </h2>
-            <p className="text-gray-600 mb-8">{error}</p>
+            <p className="text-gray-600 mb-8">{error}. If the page doesn't load automatically, 
+              please return to the hunts page.</p>
             <button
               onClick={() => navigate("/")}
               className="bg-black hover:bg-gray-800 text-white px-8 py-2 rounded-sm"
