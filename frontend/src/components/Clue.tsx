@@ -184,6 +184,8 @@ export function Clue() {
         navigate,
         totalClues
       );
+      // If no navigation occurred, ensure redirecting state is cleared
+      setIsRedirecting(false);
     } catch (error) {
       console.error("Error syncing progress:", error);
       toast.error("Failed to sync progress");
