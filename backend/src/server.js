@@ -49,7 +49,7 @@ import {
 } from "./services/huddle.js";
 import { GoogleGenAI, Type } from "@google/genai";
 import { withRetry } from "./utils/retry-utils.js";
-import { attestClueSolved, queryAttestationsForHunt } from "./services/sign-protocol.js";
+import { attestClueSolved, attestClueAttempt, queryAttestationsForHunt, queryRetryAttemptsForClue } from "./services/sign-protocol.js";
 import { calculateLeaderboardForHunt } from "./services/leaderboard.js";
 
 const MAX_DISTANCE_IN_METERS = parseFloat(process.env.MAX_DISTANCE_IN_METERS) || 60;
@@ -938,15 +938,57 @@ app.post("/generate-riddles", async (req, res) => {
   }
 });
 
+// Attest clue attempt endpoint (for retry tracking)
+app.post("/attest-attempt", async (req, res) => {
+  try {
+    const { teamIdentifier, huntId, clueIndex, solverAddress, attemptCount } = req.body;
+
+    // Validate required fields
+    if (!huntId || clueIndex === undefined || !teamIdentifier || !solverAddress || attemptCount === undefined) {
+      return res.status(400).json({
+        error: "Missing required fields: huntId, clueIndex, teamIdentifier, solverAddress, attemptCount",
+      });
+    }
+
+    console.log("Creating attestation for clue attempt:", {
+      teamIdentifier,
+      huntId,
+      clueIndex,
+      solverAddress,
+      attemptCount,
+    });
+
+    const attestationInfo = await attestClueAttempt(
+      teamIdentifier,
+      huntId,
+      clueIndex,
+      solverAddress,
+      attemptCount
+    );
+
+    res.json({
+      success: true,
+      attestationId: attestationInfo.attestationId,
+      message: "Retry attestation created successfully",
+    });
+  } catch (error) {
+    console.error("Error creating retry attestation:", error);
+    res.status(500).json({
+      error: "Failed to create retry attestation",
+      message: error.message,
+    });
+  }
+});
+
 // Attest clue solve endpoint
 app.post("/attest-clue", async (req, res) => {
   try {
-    const { teamIdentifier, huntId, clueIndex, teamLeaderAddress, solverAddress, attemptCount } = req.body;
+    const { teamIdentifier, huntId, clueIndex, teamLeaderAddress, solverAddress, timeTaken, attemptCount } = req.body;
 
     // Validate required fields
-    if (!huntId || !clueIndex || !teamLeaderAddress || !teamIdentifier || !solverAddress || attemptCount === undefined) {
+    if (!huntId || clueIndex === undefined || !teamLeaderAddress || !teamIdentifier || !solverAddress || timeTaken === undefined || attemptCount === undefined) {
       return res.status(400).json({
-        error: "Missing required fields: huntId, clueIndex, teamLeaderAddress, teamIdentifier, solverAddress, attemptCount",
+        error: "Missing required fields: huntId, clueIndex, teamLeaderAddress, teamIdentifier, solverAddress, timeTaken, attemptCount",
       });
     }
 
@@ -956,6 +998,7 @@ app.post("/attest-clue", async (req, res) => {
       clueIndex,
       teamLeaderAddress,
       solverAddress,
+      timeTaken,
       attemptCount,
     });
 
@@ -965,6 +1008,7 @@ app.post("/attest-clue", async (req, res) => {
       clueIndex,
       teamLeaderAddress,
       solverAddress,
+      timeTaken,
       attemptCount
     );
 
@@ -1063,6 +1107,73 @@ app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
     console.error("Error checking progress:", error);
     res.status(500).json({
       error: "Failed to check progress",
+      message: error.message,
+    });
+  }
+});
+
+// Get retry attempts for a specific clue and team
+app.get("/retry-attempts/:huntId/:clueIndex/:teamIdentifier", async (req, res) => {
+  try {
+    const huntId = parseInt(req.params.huntId);
+    const clueIndex = parseInt(req.params.clueIndex);
+    const teamIdentifier = req.params.teamIdentifier;
+    
+    if (isNaN(huntId) || isNaN(clueIndex)) {
+      return res.status(400).json({
+        error: "Invalid hunt ID or clue index",
+      });
+    }
+
+    if (!teamIdentifier) {
+      return res.status(400).json({
+        error: "Team identifier is required",
+      });
+    }
+
+    console.log(`Fetching retry attempts for hunt ${huntId}, clue ${clueIndex}, team ${teamIdentifier}...`);
+
+    // Get all retry attestations for this clue and team
+    const retryAttestations = await queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier);
+    
+    if (!retryAttestations || retryAttestations.length === 0) {
+      return res.json({
+        huntId,
+        clueIndex,
+        teamIdentifier,
+        attemptCount: 0,
+        firstAttemptTimestamp: null,
+        latestAttemptTimestamp: null,
+        message: "No attempts found for this clue"
+      });
+    }
+
+    // Parse and sort attempts by timestamp
+    const attempts = retryAttestations.map(attestation => {
+      const data = JSON.parse(attestation.data);
+      return {
+        attemptCount: parseInt(data.attemptCount),
+        timestamp: parseInt(data.timestamp),
+        solverAddress: data.solverAddress,
+      };
+    }).sort((a, b) => a.timestamp - b.timestamp);
+
+    const firstAttempt = attempts[0];
+    const latestAttempt = attempts[attempts.length - 1];
+
+    res.json({
+      huntId,
+      clueIndex,
+      teamIdentifier,
+      attemptCount: latestAttempt.attemptCount,
+      firstAttemptTimestamp: firstAttempt.timestamp,
+      latestAttemptTimestamp: latestAttempt.timestamp,
+      attempts: attempts.length
+    });
+  } catch (error) {
+    console.error("Error fetching retry attempts:", error);
+    res.status(500).json({
+      error: "Failed to fetch retry attempts",
       message: error.message,
     });
   }

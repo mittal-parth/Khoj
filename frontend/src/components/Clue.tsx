@@ -86,6 +86,8 @@ export function Clue() {
 
   // Track attempts for attestation
   const [attemptCount, setAttemptCount] = useState(0);
+  const [firstAttemptTimestamp, setFirstAttemptTimestamp] = useState<number | null>(null);
+  const [isLoadingRetries, setIsLoadingRetries] = useState(true);
 
   // Get team identifier for progress checking
   const teamIdentifier = getTeamIdentifier(teamData, userWallet || "");
@@ -97,6 +99,46 @@ export function Clue() {
 
   // Get total clues from localStorage
   const totalClues = currentClueData?.length || 0;
+
+  // Fetch retry attempts from backend when component mounts or clue changes
+  useEffect(() => {
+    const fetchRetryAttempts = async () => {
+      if (!huntId || !clueId || !teamIdentifier) {
+        setIsLoadingRetries(false);
+        return;
+      }
+
+      try {
+        setIsLoadingRetries(true);
+        const response = await fetch(
+          `${BACKEND_URL}/retry-attempts/${huntId}/${clueId}/${teamIdentifier}`
+        );
+        
+        if (!response.ok) {
+          console.error("Failed to fetch retry attempts:", response.status);
+          setIsLoadingRetries(false);
+          return;
+        }
+
+        const data = await response.json();
+        console.log("Retry attempts data:", data);
+        
+        if (data.attemptCount > 0) {
+          setAttemptCount(data.attemptCount);
+          setFirstAttemptTimestamp(data.firstAttemptTimestamp);
+          // Calculate remaining attempts
+          const remaining = MAX_ATTEMPTS - data.attemptCount;
+          setAttempts(remaining > 0 ? remaining : 0);
+        }
+      } catch (error) {
+        console.error("Error fetching retry attempts:", error);
+      } finally {
+        setIsLoadingRetries(false);
+      }
+    };
+
+    fetchRetryAttempts();
+  }, [huntId, clueId, teamIdentifier]);
 
   useEffect(() => {
     setVerificationState("idle");
@@ -123,7 +165,52 @@ export function Clue() {
   }
 
 
-  const createAttestation = async () => {
+  // Create retry attempt attestation
+  const createRetryAttestation = async (currentAttemptCount: number) => {
+    if (!userWallet || !huntId || !clueId || !teamIdentifier) {
+      console.log("Missing required data for retry attestation:", {
+        userWallet: !!userWallet,
+        huntId: !!huntId,
+        clueId: !!clueId,
+        teamIdentifier: !!teamIdentifier,
+      });
+      return null;
+    }
+
+    try {
+      const attestationData = {
+        teamIdentifier,
+        huntId: parseInt(huntId),
+        clueIndex: parseInt(clueId),
+        solverAddress: userWallet,
+        attemptCount: currentAttemptCount,
+      };
+
+      console.log("Creating retry attestation:", attestationData);
+
+      const response = await fetch(`${BACKEND_URL}/attest-attempt`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(attestationData),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Retry attestation failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Retry attestation created successfully:", result);
+      return result;
+    } catch (error) {
+      console.error("Failed to create retry attestation:", error);
+      return null;
+    }
+  };
+
+  // Create clue solve attestation
+  const createAttestation = async (timeTaken: number, totalAttempts: number) => {
     if (!userWallet || !huntId || !clueId) {
       console.log("Missing required data for attestation:", {
         userWallet: !!userWallet,
@@ -135,15 +222,16 @@ export function Clue() {
 
     try {
       const attestationData = {
-        teamIdentifier: teamData?.teamId?.toString() || userWallet.toString(), // team id for teams, user wallet for solo users
+        teamIdentifier: teamData?.teamId?.toString() || userWallet.toString(),
         huntId: parseInt(huntId),
         clueIndex: parseInt(clueId),
-        teamLeaderAddress: teamData?.owner || userWallet.toString(), // Use userWallet as fallback for solo users
+        teamLeaderAddress: teamData?.owner || userWallet.toString(),
         solverAddress: userWallet,
-        attemptCount: attemptCount + 1, // +1 because this is the successful attempt
+        timeTaken,
+        attemptCount: totalAttempts,
       };
 
-      console.log("Creating attestation:", attestationData);
+      console.log("Creating clue solve attestation:", attestationData);
 
       const response = await fetch(`${BACKEND_URL}/attest-clue`, {
         method: "POST",
@@ -270,6 +358,18 @@ export function Clue() {
     console.log("clueId param:", clueId);
     console.log("Number(clueId):", Number(clueId));
 
+    // Calculate current attempt number (starts at 1)
+    const currentAttemptNumber = attemptCount + 1;
+    
+    // Record the timestamp for this attempt if it's the first one
+    const attemptTimestamp = Math.floor(Date.now() / 1000);
+    if (currentAttemptNumber === 1) {
+      setFirstAttemptTimestamp(attemptTimestamp);
+    }
+
+    // Create retry attestation for this attempt
+    await createRetryAttestation(currentAttemptNumber);
+
     try {
       const headersList = {
         Accept: "*/*",
@@ -307,11 +407,15 @@ export function Clue() {
       const isCorrect = data.isClose;
 
       if (isCorrect == "true") {
-        // Increment attempt count for attestation
-        setAttemptCount(prev => prev + 1);
+        // Calculate time taken in seconds
+        const currentTimestamp = Math.floor(Date.now() / 1000);
+        const effectiveFirstAttempt = firstAttemptTimestamp || attemptTimestamp;
+        const timeTaken = currentTimestamp - effectiveFirstAttempt;
         
-        // Create attestation when clue is solved
-        await createAttestation();
+        console.log("Clue solved! Time taken:", timeTaken, "seconds, Attempts:", currentAttemptNumber);
+        
+        // Create attestation when clue is solved with timeTaken and total attempts
+        await createAttestation(timeTaken, currentAttemptNumber);
 
         setVerificationState("success");
         setShowSuccessMessage(true);
@@ -331,7 +435,7 @@ export function Clue() {
       } else {
         setVerificationState("error");
         setAttempts((prev) => prev - 1);
-        setAttemptCount(prev => prev + 1); // Increment attempt count even for failed attempts
+        setAttemptCount(prev => prev + 1); // Increment attempt count for next attempt
       }
     } catch (error) {
       console.error("Verification failed:", error);
@@ -473,7 +577,7 @@ export function Clue() {
                 {location ? "Location detected" : "Detecting location..."}
               </div>
               <div className="text-foreground/70">
-                Attempts remaining: {attempts}/{MAX_ATTEMPTS}
+                {isLoadingRetries ? "Loading attempts..." : `Attempts remaining: ${attempts}/${MAX_ATTEMPTS}`}
               </div>
             </div>
 
