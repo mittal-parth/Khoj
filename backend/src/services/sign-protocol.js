@@ -116,6 +116,7 @@ export async function attestClueAttempt(
       throw new Error("Retry Schema ID not found. Please create retry schema first.");
     }
 
+    // TODO: For the first clue, this should ideally be the time the user starts the hunt
     const timestamp = Math.floor(Date.now() / 1000); // Current timestamp in seconds
     const indexingValue = getRetryIndexingValue(huntId, clueIndex, teamIdentifier);
 
