@@ -33,6 +33,7 @@ export function calculateLeaderboard(attestations) {
         teamLeaderAddress: data.teamLeaderAddress,
         clues: [],
         totalAttempts: 0,
+        totalTimeTaken: 0,
         solvers: new Set(),
       });
     }
@@ -40,11 +41,12 @@ export function calculateLeaderboard(attestations) {
     const team = teamData.get(teamIdentifier);
     team.clues.push({
       clueIndex: parseInt(data.clueIndex),
-      timestamp: parseInt(data.timestamp),
+      timeTaken: parseInt(data.timeTaken),
       attemptCount: parseInt(data.attemptCount),
       solverAddress: data.solverAddress,
     });
     team.totalAttempts += parseInt(data.attemptCount);
+    team.totalTimeTaken += parseInt(data.timeTaken);
     team.solvers.add(data.solverAddress);
   }
 
@@ -52,25 +54,21 @@ export function calculateLeaderboard(attestations) {
   const leaderboard = [];
   
   for (const [teamIdentifier, team] of teamData) {
-    // Sort clues by timestamp to get first and last solve times
-    team.clues.sort((a, b) => a.timestamp - b.timestamp);
-    
-    const firstSolveTime = team.clues[0].timestamp;
-    const lastSolveTime = team.clues[team.clues.length - 1].timestamp;
-    const totalTime = lastSolveTime - firstSolveTime;
     const cluesCompleted = team.clues.length;
     
     // Convert solvers set to array for response
     const solvers = Array.from(team.solvers);
     
-    // Calculate combined score: (time/60) + (attempts*5)
-    // Optimized for 5-15 minute clue solving times
-    const combinedScore = (totalTime / 60) + (team.totalAttempts * 5);
+    // Calculate combined score: timeTaken + (retries*5)
+    // timeTaken is already the sum of all clue times in seconds
+    // retries = totalAttempts - cluesCompleted (each clue has at least 1 attempt)
+    const retries = team.totalAttempts - cluesCompleted;
+    const combinedScore = team.totalTimeTaken + (retries * 5);
     
     leaderboard.push({
       teamIdentifier,
       teamLeaderAddress: team.teamLeaderAddress,
-      totalTime,
+      totalTime: team.totalTimeTaken, // Now represents sum of timeTaken for all clues
       totalAttempts: team.totalAttempts,
       cluesCompleted,
       solvers,

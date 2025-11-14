@@ -16,7 +16,7 @@ const mockAttestations = [
       clueIndex: "1",
       teamLeaderAddress: "0x1111111111111111111111111111111111111111",
       solverAddress: "0x1111111111111111111111111111111111111111",
-      timestamp: "1700000000", // Start time
+      timeTaken: "600", // 10 minutes to solve
       attemptCount: "2"
     })
   },
@@ -27,7 +27,7 @@ const mockAttestations = [
       clueIndex: "2",
       teamLeaderAddress: "0x1111111111111111111111111111111111111111",
       solverAddress: "0x2222222222222222222222222222222222222222",
-      timestamp: "1700000600", // 10 minutes later (600 seconds)
+      timeTaken: "300", // 5 minutes to solve
       attemptCount: "1"
     })
   },
@@ -38,7 +38,7 @@ const mockAttestations = [
       clueIndex: "3",
       teamLeaderAddress: "0x1111111111111111111111111111111111111111",
       solverAddress: "0x1111111111111111111111111111111111111111",
-      timestamp: "1700001200", // 20 minutes later (1200 seconds)
+      timeTaken: "900", // 15 minutes to solve
       attemptCount: "3"
     })
   },
@@ -51,7 +51,7 @@ const mockAttestations = [
       clueIndex: "1",
       teamLeaderAddress: "0x3333333333333333333333333333333333333333",
       solverAddress: "0x3333333333333333333333333333333333333333",
-      timestamp: "1700000000", // Same start time as Team 1
+      timeTaken: "180", // 3 minutes to solve
       attemptCount: "1"
     })
   },
@@ -62,7 +62,7 @@ const mockAttestations = [
       clueIndex: "2",
       teamLeaderAddress: "0x3333333333333333333333333333333333333333",
       solverAddress: "0x4444444444444444444444444444444444444444",
-      timestamp: "1700000300", // 5 minutes later (faster than Team 1)
+      timeTaken: "240", // 4 minutes to solve
       attemptCount: "4" // More attempts than Team 1
     })
   },
@@ -75,7 +75,7 @@ const mockAttestations = [
       clueIndex: "1",
       teamLeaderAddress: "0x5555555555555555555555555555555555555555",
       solverAddress: "0x5555555555555555555555555555555555555555",
-      timestamp: "1700000600", // 10 minutes after start
+      timeTaken: "400", // 6.67 minutes to solve
       attemptCount: "1"
     })
   },
@@ -86,7 +86,7 @@ const mockAttestations = [
       clueIndex: "2",
       teamLeaderAddress: "0x5555555555555555555555555555555555555555",
       solverAddress: "0x6666666666666666666666666666666666666666",
-      timestamp: "1700001200", // 20 minutes after start (slower than Team 2)
+      timeTaken: "500", // 8.33 minutes to solve
       attemptCount: "2" // Fewer attempts than Team 2
     })
   },
@@ -99,7 +99,7 @@ const mockAttestations = [
       clueIndex: "1",
       teamLeaderAddress: "0x7777777777777777777777777777777777777777",
       solverAddress: "0x7777777777777777777777777777777777777777",
-      timestamp: "1700000000", // Same start time
+      timeTaken: "120", // 2 minutes to solve
       attemptCount: "1"
     })
   },
@@ -110,7 +110,7 @@ const mockAttestations = [
       clueIndex: "2",
       teamLeaderAddress: "0x7777777777777777777777777777777777777777",
       solverAddress: "0x7777777777777777777777777777777777777777",
-      timestamp: "1700000300", // 5 minutes later (very fast)
+      timeTaken: "150", // 2.5 minutes to solve
       attemptCount: "1" // Very few attempts
     })
   },
@@ -123,7 +123,7 @@ const mockAttestations = [
       clueIndex: "1",
       teamLeaderAddress: "0x8888888888888888888888888888888888888888",
       solverAddress: "0x8888888888888888888888888888888888888888",
-      timestamp: "1700000000",
+      timeTaken: "200", // 3.33 minutes to solve
       attemptCount: "1" // Very few attempts but only 1 clue
     })
   }
@@ -168,7 +168,12 @@ describe('Leaderboard Logic', () => {
     });
 
     test('should have correct expected ranking order', () => {
-      const expectedRanking = ["1", "4", "3", "2", "0x8888888888888888888888888888888888888888"];
+      // Team 1: 3 clues, score = 1800 + 15 = 1815 (rank 1 - most clues)
+      // Team 4: 2 clues, score = 270 + 0 = 270 (rank 2 - best score among 2-clue teams)
+      // Team 2: 2 clues, score = 420 + 15 = 435 (rank 3 - 2nd best score among 2-clue teams)
+      // Team 3: 2 clues, score = 900 + 5 = 905 (rank 4 - 3rd best score among 2-clue teams)
+      // Solo: 1 clue, score = 200 + 0 = 200 (rank 5 - fewest clues)
+      const expectedRanking = ["1", "4", "2", "3", "0x8888888888888888888888888888888888888888"];
       const actualRanking = leaderboard.map(team => team.teamIdentifier);
       expect(actualRanking).toEqual(expectedRanking);
     });
@@ -179,7 +184,7 @@ describe('Leaderboard Logic', () => {
       const team1 = leaderboard.find(team => team.teamIdentifier === "1");
       expect(team1).toBeDefined();
       expect(team1.cluesCompleted).toBe(3);
-      expect(team1.totalTime).toBe(1200); // 20 minutes
+      expect(team1.totalTime).toBe(1800); // Sum of timeTaken: 600 + 300 + 900 = 1800 seconds
       expect(team1.totalAttempts).toBe(6);
       expect(team1.solverCount).toBe(2);
       expect(team1.rank).toBe(1);
@@ -189,7 +194,7 @@ describe('Leaderboard Logic', () => {
       const team4 = leaderboard.find(team => team.teamIdentifier === "4");
       expect(team4).toBeDefined();
       expect(team4.cluesCompleted).toBe(2);
-      expect(team4.totalTime).toBe(300); // 5 minutes
+      expect(team4.totalTime).toBe(270); // Sum of timeTaken: 120 + 150 = 270 seconds
       expect(team4.totalAttempts).toBe(2);
       expect(team4.solverCount).toBe(1);
       expect(team4.rank).toBe(2);
@@ -199,7 +204,7 @@ describe('Leaderboard Logic', () => {
       const soloUser = leaderboard.find(team => team.teamIdentifier.startsWith('0x'));
       expect(soloUser).toBeDefined();
       expect(soloUser.cluesCompleted).toBe(1);
-      expect(soloUser.totalTime).toBe(0); // Single clue = 0 time
+      expect(soloUser.totalTime).toBe(200); // timeTaken for single clue is 200 seconds
       expect(soloUser.totalAttempts).toBe(1);
       expect(soloUser.solverCount).toBe(1);
       expect(soloUser.rank).toBe(5);
@@ -237,29 +242,30 @@ describe('Leaderboard Logic', () => {
   describe('Combined Score Calculation', () => {
     test('should calculate combined score correctly', () => {
       const team1 = leaderboard.find(team => team.teamIdentifier === "1");
-      // Combined score = (totalTime / 60) + (totalAttempts * 5)
-      // Team 1: (1200 / 60) + (6 * 5) = 20 + 30 = 50
-      expect(team1.combinedScore).toBe(50);
+      // Combined score = timeTaken + (retries * 5)
+      // retries = totalAttempts - cluesCompleted
+      // Team 1: 1800 + ((6 - 3) * 5) = 1800 + 15 = 1815
+      expect(team1.combinedScore).toBe(1815);
     });
 
     test('should calculate team 4 score correctly', () => {
       const team4 = leaderboard.find(team => team.teamIdentifier === "4");
-      // Team 4: (300 / 60) + (2 * 5) = 5 + 10 = 15
-      expect(team4.combinedScore).toBe(15);
+      // Team 4: 270 + ((2 - 2) * 5) = 270 + 0 = 270
+      expect(team4.combinedScore).toBe(270);
     });
 
     test('should calculate solo user score correctly', () => {
       const soloUser = leaderboard.find(team => team.teamIdentifier.startsWith('0x'));
-      // Solo user: (0 / 60) + (1 * 5) = 0 + 5 = 5
-      expect(soloUser.combinedScore).toBe(5);
+      // Solo user: 200 + ((1 - 1) * 5) = 200 + 0 = 200
+      expect(soloUser.combinedScore).toBe(200);
     });
   });
 
   describe('Edge Cases', () => {
-    test('single clue teams should have zero total time', () => {
+    test('single clue teams should have their timeTaken value', () => {
       const singleClueTeams = leaderboard.filter(team => team.cluesCompleted === 1);
       singleClueTeams.forEach(team => {
-        expect(team.totalTime).toBe(0);
+        expect(team.totalTime).toBeGreaterThan(0); // timeTaken is now per clue, not cumulative
       });
     });
 
@@ -287,8 +293,12 @@ describe('Leaderboard Logic', () => {
 
       expect(totalTeams).toBe(5);
       expect(totalClues).toBe(10);
-      expect(avgTime).toBe(480); // (1200 + 300 + 600 + 300 + 0) / 5
-      expect(avgAttempts).toBe(3.4); // (6 + 2 + 3 + 5 + 1) / 5
+      // Total time: 1800 + 420 + 900 + 270 + 200 = 3590
+      // Average: 3590 / 5 = 718
+      expect(avgTime).toBe(718);
+      // Total attempts: 6 + 5 + 3 + 2 + 1 = 17
+      // Average: 17 / 5 = 3.4
+      expect(avgAttempts).toBe(3.4);
     });
   });
 });
