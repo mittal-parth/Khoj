@@ -7,15 +7,42 @@ import {
 } from "@ethsign/sp-sdk";
 import { privateKeyToAccount } from "viem/accounts";
 import dotenv from "dotenv";
+import { fileURLToPath } from "url";
+import { dirname, resolve } from "path";
 
-dotenv.config();
+// Get the directory of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load .env file from the backend directory
+dotenv.config({ path: resolve(__dirname, "../../.env") });
+
+// Validate required environment variables (trim to handle whitespace)
+const privateKey = process.env.SIGN_WALLET_PRIVATE_KEY?.trim();
+const apiKey = process.env.SIGN_API_KEY?.trim();
+
+if (!privateKey) {
+  throw new Error(
+    'SIGN_WALLET_PRIVATE_KEY is not set in environment variables. ' +
+    'Please create a .env file in the backend directory with SIGN_WALLET_PRIVATE_KEY and SIGN_API_KEY. ' +
+    'You can generate a wallet using: node scripts/create-wallet.js'
+  );
+}
+
+if (!apiKey) {
+  throw new Error(
+    'SIGN_API_KEY is not set in environment variables. ' +
+    'Please create a .env file in the backend directory with SIGN_API_KEY. ' +
+    'Get your API key from: https://developer.sign.global/'
+  );
+}
 
 // Initialize Sign Protocol client in hybrid mode
 const client = new SignProtocolClient(SpMode.OffChain, {
   signType: OffChainSignType.EvmEip712,
-  account: privateKeyToAccount(process.env.SIGN_WALLET_PRIVATE_KEY),
+  account: privateKeyToAccount(privateKey),
   chain: EvmChains.optimismSepolia,
-  apiKey: process.env.SIGN_API_KEY,
+  apiKey: apiKey,
 });
 
 // Initialize Index Service for querying attestations

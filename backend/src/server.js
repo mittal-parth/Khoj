@@ -1165,10 +1165,9 @@ app.get("/retry-attempts/:huntId/:clueIndex/:teamIdentifier", async (req, res) =
       huntId,
       clueIndex,
       teamIdentifier,
-      attemptCount: latestAttempt.attemptCount,
+      attemptCount: attempts.length,
       firstAttemptTimestamp: firstAttempt.timestamp,
-      latestAttemptTimestamp: latestAttempt.timestamp,
-      attempts: attempts.length
+      latestAttemptTimestamp: latestAttempt.timestamp
     });
   } catch (error) {
     console.error("Error fetching retry attempts:", error);

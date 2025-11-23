@@ -7,8 +7,15 @@
 
 import { createClueSchema, createClueRetrySchema } from '../src/services/sign-protocol.js';
 import dotenv from 'dotenv';
+import { fileURLToPath } from "url";
+import { dirname, resolve } from "path";
 
-dotenv.config();
+// Get the directory of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load .env file from the backend directory
+dotenv.config({ path: resolve(__dirname, "../.env") });
 
 async function createSchemas() {
   console.log('🔧 Creating Sign Protocol Schemas...\n');
