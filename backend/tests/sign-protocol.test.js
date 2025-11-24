@@ -26,6 +26,7 @@ describe('Sign Protocol Integration', () => {
             clueIndex: 1,
             teamLeaderAddress: '0x996090Fa3503cDB3e05E9bD78d3f00D3af867123',
             solverAddress: '0x996090Fa3503cDB3e05E9bD78d3f00D3af867123',
+            timeTaken: 300,
             attemptCount: 2
         },
         {
@@ -34,6 +35,7 @@ describe('Sign Protocol Integration', () => {
             clueIndex: 2,
             teamLeaderAddress: '0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397',
             solverAddress: '0x9F45F50996F66c66c9C97e0e0e0Be3dB019E5519',
+            timeTaken: 180,
             attemptCount: 1
         },
         {
@@ -42,6 +44,7 @@ describe('Sign Protocol Integration', () => {
             clueIndex: 1,
             teamLeaderAddress: '0xAF56F60A96F77d77dAD08f1f1f1Be4dB020F6620',
             solverAddress: '0xAF56F60A96F77d77dAD08f1f1f1Be4dB020F6620',
+            timeTaken: 450,
             attemptCount: 3
         }
     ]
@@ -57,6 +60,7 @@ describe('Sign Protocol Integration', () => {
         testData.clueIndex,
         testData.teamLeaderAddress,
         testData.solverAddress,
+        testData.timeTaken,
         testData.attemptCount
       );
 
@@ -75,6 +79,7 @@ describe('Sign Protocol Integration', () => {
         testData.clueIndex,
         testData.teamLeaderAddress,
         testData.solverAddress,
+        testData.timeTaken,
         testData.attemptCount
       );
 
@@ -94,6 +99,7 @@ describe('Sign Protocol Integration', () => {
         testData.clueIndex,
         testData.teamLeaderAddress,
         testData.solverAddress,
+        testData.timeTaken,
         testData.attemptCount
       );
 
@@ -144,7 +150,8 @@ describe('Sign Protocol Integration', () => {
         expect(attestationResultBody.teamLeaderAddress).toBe(attestationDatum.teamLeaderAddress);
         expect(attestationResultBody.solverAddress).toBe(attestationDatum.solverAddress);
         expect(attestationResultBody.attemptCount).toBe(attestationDatum.attemptCount.toString());
-        expect(attestationResultBody.timestamp).toBeDefined();
+        expect(attestationResultBody.timeTaken).toBe(attestationDatum.timeTaken.toString());
+        expect(attestationResultBody.timeTaken).toBeDefined();
       }
     });
   });

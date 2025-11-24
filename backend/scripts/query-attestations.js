@@ -1,7 +1,14 @@
 import { IndexService } from '@ethsign/sp-sdk';
 import dotenv from 'dotenv';
+import { fileURLToPath } from "url";
+import { dirname, resolve } from "path";
 
-dotenv.config();
+// Get the directory of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Load .env file from the backend directory
+dotenv.config({ path: resolve(__dirname, "../.env") });
 
 const indexService = new IndexService('mainnet');
 
@@ -10,26 +17,24 @@ schemaId: process.env.SIGN_SCHEMA_ID,
   page: 1,
   mode: 'offchain',
   registrant: process.env.SIGN_WALLET_PUBLIC_ADDRESS,
-  indexingValue: `khoj-0-0`
+  indexingValue: `khoj-hunt-29`
 });
 
+console.log("==== Attestations ====\n\n");
 console.log(attestations);
 
-for (const attestation of attestations.rows) {
-  const data = JSON.parse(attestation.data);
-  console.log(data);
-  console.log(data.teamIdentifier);
-  console.log(data.huntId);
-  console.log(data.clueIndex);
-  console.log(data.teamLeaderAddress);
-  console.log(data.solverAddress);
-  console.log(data.timestamp);
-  console.log(data.attemptCount);
-}
+const retryAttestations = await indexService.queryAttestationList({
+  schemaId: process.env.SIGN_RETRY_SCHEMA_ID,
+    page: 1,
+    mode: 'offchain',
+    registrant: process.env.SIGN_WALLET_PUBLIC_ADDRESS,
+    indexingValue: `khoj-hunt-29-clue-3-team-23`
+  });
+  
+console.log("==== Retry Attestations ====\n\n");
+console.log(retryAttestations);
 
-// // SPA_CpMJg4P3KmYO66evgrASn
+console.log("Schema ID:", process.env.SIGN_RETRY_SCHEMA_ID);
 
-console.log("Schema ID:", process.env.SIGN_SCHEMA_ID);
-
-const res = await indexService.querySchema(process.env.SIGN_SCHEMA_ID);
+const res = await indexService.querySchema(process.env.SIGN_RETRY_SCHEMA_ID);
 console.log(res);

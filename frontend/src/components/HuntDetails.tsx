@@ -85,6 +85,9 @@ export function HuntDetails() {
   // Retry state for decrypt-clues API call
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+  // Hunt start attestation state (to prevent duplicates)
+  const huntStartCreationInProgress = useRef(false);
+  const huntStartCreatedForTeam = useRef<string | null>(null);
 
   // Use the reactive network state hook
   const { currentNetwork, contractAddress, chainId, currentChain } = useNetworkState();
@@ -194,6 +197,86 @@ export function HuntDetails() {
     }
   }
 
+  // Create hunt start attestation (only once per team when starting the hunt)
+  // Uses clueIndex: 0 and attemptCount: 0 to indicate hunt start
+  const createHuntStartAttestation = async () => {
+    if (!huntId || !teamIdentifier || !userWallet) {
+      console.log("Missing required data for hunt start attestation");
+      return;
+    }
+
+    // Generate unique key for this team/hunt combination
+    const teamHuntKey = `${huntId}-${teamIdentifier}`;
+    
+    // Check if we've already created attestation for this team/hunt
+    if (huntStartCreatedForTeam.current === teamHuntKey) {
+      console.log("Hunt start attestation already created in this session");
+      return;
+    }
+
+    // Check if creation is already in progress (prevent race condition)
+    if (huntStartCreationInProgress.current) {
+      console.log("Hunt start attestation creation already in progress");
+      return;
+    }
+
+    try {
+      // Set lock to prevent duplicate calls
+      huntStartCreationInProgress.current = true;
+
+      // Check if hunt start attestation already exists using retry-attempts endpoint with clueIndex: 0
+      const response = await fetch(
+        `${BACKEND_URL}/retry-attempts/${huntId}/0/${teamIdentifier}`
+      );
+      
+      if (!response.ok) {
+        console.error("Failed to check hunt start:", response.status);
+        return;
+      }
+
+      const data = await response.json();
+      
+      // If hunt start attestation already exists (attemptCount > 0), don't create another one
+      if (data.attemptCount > 0) {
+        console.log("Hunt start attestation already exists on server");
+        huntStartCreatedForTeam.current = teamHuntKey;
+        return;
+      }
+
+      // Create hunt start attestation using attest-attempt endpoint with clueIndex: 0
+      console.log("Creating hunt start attestation...");
+      const createResponse = await fetch(`${BACKEND_URL}/attest-attempt`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          teamIdentifier,
+          huntId: parseInt(huntId),
+          clueIndex: 0, // Special value for hunt start
+          solverAddress: userWallet,
+          attemptCount: 0, // Special value for hunt start
+        }),
+      });
+
+      if (!createResponse.ok) {
+        console.error("Failed to create hunt start attestation:", createResponse.status);
+        return;
+      }
+
+      const result = await createResponse.json();
+      console.log("Hunt start attestation created successfully:", result);
+      
+      // Mark as created for this team/hunt combination
+      huntStartCreatedForTeam.current = teamHuntKey;
+    } catch (error) {
+      console.error("Error creating hunt start attestation:", error);
+    } finally {
+      // Always release lock
+      huntStartCreationInProgress.current = false;
+    }
+  };
+
   const handleHuntStart = async () => {
     setIsStartingHunt(true);
     setRetryCount(0);
@@ -282,6 +365,10 @@ export function HuntDetails() {
       const clues = JSON.parse(data);
 
       await fetchRiddles(clues, huntId || "0", huntData?.theme || "");
+      
+      // Create hunt start attestation after clues are successfully loaded
+      await createHuntStartAttestation();
+      
       navigate(`/hunt/${huntId}/clue/1`);
     };
 
