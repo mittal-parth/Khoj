@@ -85,6 +85,7 @@ export function HuntDetails() {
   // Cyclic loading message state
   const [loadingMessage, setLoadingMessage] = useState("Starting hunt");
   const messageIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const messageIndexRef = useRef(0);
   
   // Retry state for decrypt-clues API call
   const [retryCount, setRetryCount] = useState(0);
@@ -288,7 +289,7 @@ export function HuntDetails() {
     
     // Setup cyclic loading messages with ref for proper cleanup
     const messages = ["Starting hunt", "Decrypting clues", "Validating access"];
-    const messageIndexRef = { current: 0 };
+    messageIndexRef.current = 0;
     setLoadingMessage(messages[0]);
     
     // Clear any existing interval
@@ -490,6 +491,15 @@ export function HuntDetails() {
       }
     };
   }, [qrScanner]);
+
+  // Clean up loading message interval when component unmounts
+  useEffect(() => {
+    return () => {
+      if (messageIntervalRef.current) {
+        clearInterval(messageIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Log team error to understand why it's undefined
   if (teamError) {
