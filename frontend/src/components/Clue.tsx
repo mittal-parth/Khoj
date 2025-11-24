@@ -87,7 +87,6 @@ export function Clue() {
 
   // Track attempts for attestation
   const [_, setAttemptCount] = useState(0);
-  const [firstAttemptTimestamp, setFirstAttemptTimestamp] = useState<number | null>(null);
   const [isLoadingRetries, setIsLoadingRetries] = useState(true);
 
   // Get team identifier for progress checking
@@ -132,14 +131,12 @@ export function Clue() {
       
       if (data.attemptCount > 0) {
         setAttemptCount(data.attemptCount);
-        setFirstAttemptTimestamp(data.firstAttemptTimestamp);
         // Calculate remaining attempts
         const remaining = MAX_ATTEMPTS - data.attemptCount;
         setAttempts(remaining > 0 ? remaining : 0);
       } else {
         // Reset to initial state if no attempts found
         setAttemptCount(0);
-        setFirstAttemptTimestamp(null);
         setAttempts(MAX_ATTEMPTS);
       }
       
@@ -400,11 +397,9 @@ export function Clue() {
     // Calculate remaining attempts from fetched data
     let remainingAttempts = MAX_ATTEMPTS;
     let currentAttemptCount = 0;
-    let fetchedFirstAttemptTimestamp: number | null = null;
     if (retryData && retryData.attemptCount > 0) {
       currentAttemptCount = retryData.attemptCount;
       remainingAttempts = MAX_ATTEMPTS - retryData.attemptCount;
-      fetchedFirstAttemptTimestamp = retryData.firstAttemptTimestamp;
     }
     
     // Check if user still has attempts remaining
@@ -424,12 +419,6 @@ export function Clue() {
 
     // Calculate current attempt number (starts at 1) using the updated count
     const currentAttemptNumber = currentAttemptCount + 1;
-    
-    // Record the timestamp for this attempt if it's the first one
-    const attemptTimestamp = Math.floor(Date.now() / 1000);
-    if (currentAttemptNumber === 1) {
-      setFirstAttemptTimestamp(attemptTimestamp);
-    }
 
     // Create retry attestation for this attempt with the updated count
     await createRetryAttestation(currentAttemptNumber);
@@ -469,10 +458,46 @@ export function Clue() {
       if (isCorrect == "true") {
         // Calculate time taken in seconds
         const currentTimestamp = Math.floor(Date.now() / 1000);
-        // Use fetched timestamp if available, otherwise use state, otherwise use current timestamp
-        const effectiveFirstAttempt = fetchedFirstAttemptTimestamp || firstAttemptTimestamp || attemptTimestamp;
-        const timeTaken = currentTimestamp - effectiveFirstAttempt;
+        let startTimestamp = currentTimestamp; // Default fallback
         
+        // Determine the correct start timestamp based on clue number
+        // For both first attempts and retries, we measure from when the clue became available
+        if (currentClue === 1) {
+          // For first clue, use hunt start timestamp from retry-attempts with clueIndex: 0
+          try {
+            const huntStartResponse = await fetch(
+              `${BACKEND_URL}/retry-attempts/${huntId}/0/${teamIdentifier}`
+            );
+            if (huntStartResponse.ok) {
+              const huntStartData = await huntStartResponse.json();
+              if (huntStartData.firstAttemptTimestamp) {
+                startTimestamp = huntStartData.firstAttemptTimestamp;
+                console.log("Using hunt start timestamp:", startTimestamp);
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching hunt start timestamp:", error);
+          }
+        } else {
+          // For other clues, use previous clue solve timestamp from progress endpoint
+          try {
+            const progressResponse = await fetch(
+              `${BACKEND_URL}/progress/${huntId}/${teamIdentifier}?totalClues=${totalClues}`
+            );
+            if (progressResponse.ok) {
+              const progressData = await progressResponse.json();
+              const prevClueIndex = currentClue - 1;
+              if (progressData.solvedClues && progressData.solvedClues[prevClueIndex]) {
+                startTimestamp = progressData.solvedClues[prevClueIndex].solveTimestamp;
+                console.log("Using previous clue solve timestamp:", startTimestamp);
+              }
+            }
+          } catch (error) {
+            console.error("Error fetching previous clue solve timestamp:", error);
+          }
+        }
+        
+        const timeTaken = currentTimestamp - startTimestamp;
         console.log("Clue solved! Time taken:", timeTaken, "seconds, Attempts:", currentAttemptNumber);
         
         // Create attestation when clue is solved with timeTaken and total attempts

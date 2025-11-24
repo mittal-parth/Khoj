@@ -938,7 +938,7 @@ app.post("/generate-riddles", async (req, res) => {
   }
 });
 
-// Attest clue attempt endpoint (for retry tracking)
+// Attest clue attempt endpoint (for retry tracking and hunt start with clueIndex: 0)
 app.post("/attest-attempt", async (req, res) => {
   try {
     const { teamIdentifier, huntId, clueIndex, solverAddress, attemptCount } = req.body;
@@ -1080,12 +1080,19 @@ app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
       });
     }
 
-    // Find the highest clue index solved by this team
+    // Find the highest clue index solved by this team and build a map of solve timestamps
     let latestClueSolved = 0;
+    const solvedClues = {}; // Map of clueIndex -> { solveTimestamp }
     
     for (const attestation of teamAttestations) {
       const data = JSON.parse(attestation.data);
       const clueIndex = parseInt(data.clueIndex);
+      
+      // Store solve timestamp (in seconds) for each clue
+      solvedClues[clueIndex] = {
+        solveTimestamp: Math.floor(parseInt(attestation.attestTimestamp) / 1000)
+      };
+      
       if (clueIndex > latestClueSolved) {
         latestClueSolved = clueIndex;
       }
@@ -1101,7 +1108,8 @@ app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
       latestClueSolved,
       totalClues: finalTotalClues,
       isHuntCompleted,
-      nextClue: isHuntCompleted ? null : latestClueSolved + 1
+      nextClue: isHuntCompleted ? null : latestClueSolved + 1,
+      solvedClues // Include solve timestamps for each clue
     });
   } catch (error) {
     console.error("Error checking progress:", error);
@@ -1112,7 +1120,7 @@ app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
   }
 });
 
-// Get retry attempts for a specific clue and team
+// Get retry attempts for a specific clue and team (also used for hunt start with clueIndex: 0)
 app.get("/retry-attempts/:huntId/:clueIndex/:teamIdentifier", async (req, res) => {
   try {
     const huntId = parseInt(req.params.huntId);
@@ -1148,12 +1156,13 @@ app.get("/retry-attempts/:huntId/:clueIndex/:teamIdentifier", async (req, res) =
       });
     }
 
-    // Parse and sort attempts by timestamp
+    // Parse and sort attempts by attestTimestamp
+    // attestTimestamp is in milliseconds, convert to seconds for consistency
     const attempts = retryAttestations.map(attestation => {
       const data = JSON.parse(attestation.data);
       return {
         attemptCount: parseInt(data.attemptCount),
-        timestamp: parseInt(data.timestamp),
+        timestamp: Math.floor(parseInt(attestation.attestTimestamp) / 1000), // Convert from ms to seconds
         solverAddress: data.solverAddress,
       };
     }).sort((a, b) => a.timestamp - b.timestamp);

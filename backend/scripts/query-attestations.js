@@ -17,7 +17,7 @@ schemaId: process.env.SIGN_SCHEMA_ID,
   page: 1,
   mode: 'offchain',
   registrant: process.env.SIGN_WALLET_PUBLIC_ADDRESS,
-  indexingValue: `khoj-hunt-26`
+  indexingValue: `khoj-hunt-29`
 });
 
 console.log("==== Attestations ====\n\n");
@@ -28,7 +28,7 @@ const retryAttestations = await indexService.queryAttestationList({
     page: 1,
     mode: 'offchain',
     registrant: process.env.SIGN_WALLET_PUBLIC_ADDRESS,
-    indexingValue: `khoj-hunt-26-clue-1-team-20`
+    indexingValue: `khoj-hunt-29-clue-3-team-23`
   });
   
 console.log("==== Retry Attestations ====\n\n");

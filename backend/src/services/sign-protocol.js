@@ -58,7 +58,7 @@ const CLUE_SCHEMA = {
     { name: "clueIndex", type: "uint256" },
     { name: "teamLeaderAddress", type: "address" },
     { name: "solverAddress", type: "address" },
-    { name: "timeTaken", type: "uint256" }, // Time taken to solve in seconds (changed from timestamp)
+    { name: "timeTaken", type: "uint256" }, // Time taken to solve in seconds
     { name: "attemptCount", type: "uint256" },
   ],
 };
@@ -72,7 +72,6 @@ const CLUE_RETRY_SCHEMA = {
     { name: "huntId", type: "uint256" },
     { name: "clueIndex", type: "uint256" },
     { name: "solverAddress", type: "address" },
-    { name: "timestamp", type: "uint256" },
     { name: "attemptCount", type: "uint256" },
   ],
 };
@@ -124,11 +123,12 @@ export async function createClueRetrySchema() {
 
 /**
  * Create an attestation when a team attempts to solve a clue (for retry tracking)
+ * Also used for hunt start tracking with clueIndex: 0, attemptCount: 0
  * @param {string} teamIdentifier - The team identifier (teamId for teams, wallet address for solo users)
  * @param {number} huntId - The hunt ID
- * @param {number} clueIndex - The clue index (1-based)
+ * @param {number} clueIndex - The clue index (1-based, or 0 for hunt start)
  * @param {string} solverAddress - The address of the team member who attempted the clue
- * @param {number} attemptCount - Current attempt count (1-based)
+ * @param {number} attemptCount - Current attempt count (1-based, or 0 for hunt start)
  * @returns {Promise<Object>} The attestation result
  */
 export async function attestClueAttempt(
@@ -143,17 +143,18 @@ export async function attestClueAttempt(
       throw new Error("Retry Schema ID not found. Please create retry schema first.");
     }
 
-    // TODO: For the first clue, this should ideally be the time the user starts the hunt
-    const timestamp = Math.floor(Date.now() / 1000); // Current timestamp in seconds
     const indexingValue = getRetryIndexingValue(huntId, clueIndex, teamIdentifier);
 
-    console.log("Creating attestation for clue attempt:", {
+    const logMessage = clueIndex === 0 
+      ? "Creating attestation for hunt start:" 
+      : "Creating attestation for clue attempt:";
+    
+    console.log(logMessage, {
       teamIdentifier,
       huntId,
       clueIndex,
       solverAddress,
       attemptCount,
-      timestamp,
       indexingValue,
     });
 
@@ -162,7 +163,6 @@ export async function attestClueAttempt(
       huntId: huntId.toString(),
       clueIndex: clueIndex.toString(),
       solverAddress,
-      timestamp: timestamp.toString(),
       attemptCount: attemptCount.toString(),
     };
 
@@ -172,10 +172,13 @@ export async function attestClueAttempt(
       indexingValue,
     });
 
-    console.log("Retry attestation created successfully:", attestationInfo);
+    const successMessage = clueIndex === 0
+      ? "Hunt start attestation created successfully:"
+      : "Retry attestation created successfully:";
+    console.log(successMessage, attestationInfo);
     return attestationInfo;
   } catch (error) {
-    console.error("Failed to create retry attestation:", error);
+    console.error("Failed to create attestation:", error);
     throw error;
   }
 }
@@ -276,14 +279,18 @@ export async function queryAttestationsForHunt(huntId) {
 
 /**
  * Query retry attempts for a specific clue and team
+ * Also used to query hunt start (clueIndex: 0)
  * @param {number} huntId - The hunt ID
- * @param {number} clueIndex - The clue index
+ * @param {number} clueIndex - The clue index (or 0 for hunt start)
  * @param {string} teamIdentifier - The team identifier
  * @returns {Promise<Array>} Array of retry attestations for the clue
  */
 export async function queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier) {
   try {
-    console.log(`Querying retry attempts for hunt ${huntId}, clue ${clueIndex}, team ${teamIdentifier}...`);
+    const logMessage = clueIndex === 0
+      ? `Querying hunt start for hunt ${huntId}, team ${teamIdentifier}...`
+      : `Querying retry attempts for hunt ${huntId}, clue ${clueIndex}, team ${teamIdentifier}...`;
+    console.log(logMessage);
 
     if (!retrySchemaId) {
       console.warn("Retry schema ID not set, returning empty array");
@@ -300,11 +307,17 @@ export async function queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifie
     });
 
     if (!result) {
-      console.warn(`No retry attempts found for hunt ${huntId}, clue ${clueIndex}, team ${teamIdentifier}`);
+      const warnMessage = clueIndex === 0
+        ? `No hunt start found for hunt ${huntId}, team ${teamIdentifier}`
+        : `No retry attempts found for hunt ${huntId}, clue ${clueIndex}, team ${teamIdentifier}`;
+      console.warn(warnMessage);
       return [];
     }
 
-    console.log(`Found ${result.rows.length} retry attempts`);
+    const successMessage = clueIndex === 0
+      ? `Found hunt start attestation`
+      : `Found ${result.rows.length} retry attempts`;
+    console.log(successMessage);
     return result.rows;
   } catch (error) {
     console.error("Failed to query retry attempts:", error);
