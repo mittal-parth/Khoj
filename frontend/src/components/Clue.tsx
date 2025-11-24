@@ -56,6 +56,13 @@ export function Clue() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const errorResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Helper function to reset verification states
+  const resetVerificationStates = () => {
+    setIsSubmitting(false);
+    setVerificationState("idle");
+    setIsRedirecting(false);
+  };
+
   // Use the reactive network state hook
   const { contractAddress, currentChain } = useNetworkState();
 
@@ -357,9 +364,7 @@ export function Clue() {
       if (!canProceed) {
         console.log("Clue access denied during verification, returning early");
         // Reset states before returning
-        setIsSubmitting(false);
-        setVerificationState("idle");
-        setIsRedirecting(false);
+        resetVerificationStates();
         return; // User was redirected, don't proceed with verification
       }
       setIsRedirecting(false);
@@ -413,8 +418,7 @@ export function Clue() {
     // Check if user still has attempts remaining
     if (remainingAttempts <= 0) {
       toast.error("No attempts remaining for this clue");
-      setIsSubmitting(false);
-      setVerificationState("idle");
+      resetVerificationStates();
       return;
     }
 

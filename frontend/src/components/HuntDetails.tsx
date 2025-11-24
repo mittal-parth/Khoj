@@ -84,6 +84,7 @@ export function HuntDetails() {
   
   // Cyclic loading message state
   const [loadingMessage, setLoadingMessage] = useState("Starting hunt");
+  const messageIntervalRef = useRef<NodeJS.Timeout | null>(null);
   
   // Retry state for decrypt-clues API call
   const [retryCount, setRetryCount] = useState(0);
@@ -285,26 +286,31 @@ export function HuntDetails() {
     setRetryCount(0);
     setIsRetrying(false);
     
-    // Setup cyclic loading messages
+    // Setup cyclic loading messages with ref for proper cleanup
     const messages = ["Starting hunt", "Decrypting clues", "Validating access"];
-    let messageIndex = 0;
+    const messageIndexRef = { current: 0 };
     setLoadingMessage(messages[0]);
     
-    const messageInterval = setInterval(() => {
-      messageIndex = (messageIndex + 1) % messages.length;
-      setLoadingMessage(messages[messageIndex]);
+    // Clear any existing interval
+    if (messageIntervalRef.current) {
+      clearInterval(messageIntervalRef.current);
+    }
+    
+    messageIntervalRef.current = setInterval(() => {
+      messageIndexRef.current = (messageIndexRef.current + 1) % messages.length;
+      setLoadingMessage(messages[messageIndexRef.current]);
     }, 1500); // Change message every 1.5 seconds
     
     if (!userWallet) {
       toast.error("Please connect your wallet first");
-      clearInterval(messageInterval);
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
       setIsStartingHunt(false);
       return;
     }
 
     if (!huntData?.clues_blobId || !huntData?.answers_blobId) {
       toast.error("Hunt data not available");
-      clearInterval(messageInterval);
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
       setIsStartingHunt(false);
       return;
     }
@@ -316,7 +322,7 @@ export function HuntDetails() {
       toast.error(
         "You are not eligible for this hunt. Please register or check the requirements."
       );
-      clearInterval(messageInterval);
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
       setIsStartingHunt(false);
       return;
     }
@@ -340,7 +346,7 @@ export function HuntDetails() {
         
         if (shouldContinue) {
           // User was redirected, stop here
-          clearInterval(messageInterval);
+          if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
           setIsStartingHunt(false);
           return;
         }
@@ -405,7 +411,7 @@ export function HuntDetails() {
       console.error("Error starting hunt:", error);
       toast.error("Failed to start hunt");
     } finally {
-      clearInterval(messageInterval);
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
       setIsStartingHunt(false);
       setIsRetrying(false);
     }
