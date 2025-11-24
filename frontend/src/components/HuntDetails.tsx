@@ -82,6 +82,9 @@ export function HuntDetails() {
   // Local loading state for immediate button feedback
   const [isStartingHunt, setIsStartingHunt] = useState(false);
   
+  // Cyclic loading message state
+  const [loadingMessage, setLoadingMessage] = useState("Starting hunt");
+  
   // Retry state for decrypt-clues API call
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -282,14 +285,26 @@ export function HuntDetails() {
     setRetryCount(0);
     setIsRetrying(false);
     
+    // Setup cyclic loading messages
+    const messages = ["Starting hunt", "Decrypting clues", "Validating access"];
+    let messageIndex = 0;
+    setLoadingMessage(messages[0]);
+    
+    const messageInterval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % messages.length;
+      setLoadingMessage(messages[messageIndex]);
+    }, 1500); // Change message every 1.5 seconds
+    
     if (!userWallet) {
       toast.error("Please connect your wallet first");
+      clearInterval(messageInterval);
       setIsStartingHunt(false);
       return;
     }
 
     if (!huntData?.clues_blobId || !huntData?.answers_blobId) {
       toast.error("Hunt data not available");
+      clearInterval(messageInterval);
       setIsStartingHunt(false);
       return;
     }
@@ -301,6 +316,7 @@ export function HuntDetails() {
       toast.error(
         "You are not eligible for this hunt. Please register or check the requirements."
       );
+      clearInterval(messageInterval);
       setIsStartingHunt(false);
       return;
     }
@@ -324,6 +340,7 @@ export function HuntDetails() {
         
         if (shouldContinue) {
           // User was redirected, stop here
+          clearInterval(messageInterval);
           setIsStartingHunt(false);
           return;
         }
@@ -388,6 +405,7 @@ export function HuntDetails() {
       console.error("Error starting hunt:", error);
       toast.error("Failed to start hunt");
     } finally {
+      clearInterval(messageInterval);
       setIsStartingHunt(false);
       setIsRetrying(false);
     }
@@ -875,7 +893,7 @@ export function HuntDetails() {
                           <Button 
                             className="w-full border-2 border-black shadow-[-4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-bold" 
                             onClick={generateMultiUseInvite}
-                            disabled={isGeneratingInvite}
+                            disabled={isGeneratingInvite || isStartingHunt || isGeneratingRiddles}
                           >
                             {isGeneratingInvite ? "Creating Team..." : "Create Team & Generate Invite"}
                           </Button>
@@ -1000,7 +1018,7 @@ export function HuntDetails() {
           {isRetrying 
             ? `Retrying... (${retryCount}/${MAX_RETRIES})`
             : (isStartingHunt || isGeneratingRiddles) 
-              ? "Starting Hunt..." 
+              ? `${loadingMessage}...` 
               : "Start Hunt"
           }
         </Button>

@@ -338,6 +338,10 @@ export function Clue() {
       return;
     }
 
+    // Set loading state immediately when button is clicked
+    setIsSubmitting(true);
+    setVerificationState("verifying");
+
     // Re-validate clue access before verification to handle real-time changes
     if (huntId && teamIdentifier) {
       console.log("Re-validating clue access before verification...", { huntId, teamIdentifier, clueId, totalClues });
@@ -352,6 +356,10 @@ export function Clue() {
       console.log("Clue access re-validation result:", canProceed);
       if (!canProceed) {
         console.log("Clue access denied during verification, returning early");
+        // Reset states before returning
+        setIsSubmitting(false);
+        setVerificationState("idle");
+        setIsRedirecting(false);
         return; // User was redirected, don't proceed with verification
       }
       setIsRedirecting(false);
@@ -406,11 +414,10 @@ export function Clue() {
     if (remainingAttempts <= 0) {
       toast.error("No attempts remaining for this clue");
       setIsSubmitting(false);
+      setVerificationState("idle");
       return;
     }
 
-    setIsSubmitting(true);
-    setVerificationState("verifying");
     console.log("huntData: ", huntData);
     console.log("=== DEBUGGING REQUEST ===");
     console.log("Current location state:", location);
