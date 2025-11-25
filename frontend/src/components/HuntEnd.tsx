@@ -29,7 +29,7 @@ export function HuntEnd() {
   const [hasShownConfetti, setHasShownConfetti] = useState(false);
 
   // Use the reactive network state hook
-  const { contractAddress, currentChain } = useNetworkState();
+  const { contractAddress, currentChain, chainId } = useNetworkState();
 
   // Create thirdweb contract instance
   const contract = getContract({
@@ -60,13 +60,13 @@ export function HuntEnd() {
   // Fetch team score from leaderboard
   useEffect(() => {
     const loadTeamScore = async () => {
-      if (!huntId || !teamData) {
+      if (huntId === undefined || !teamData || !chainId) {
         setIsLoadingScore(false);
         return;
       }
 
       try {
-        const score = await fetchTeamCombinedScore(huntId, teamData?.teamId || userWallet as `0x${string}`);
+        const score = await fetchTeamCombinedScore(huntId, teamData?.teamId || userWallet as `0x${string}`, chainId);
         setTeamScore(score);
         // Trigger confetti only once when score is successfully loaded
         if (!hasShownConfetti) {
@@ -81,7 +81,7 @@ export function HuntEnd() {
     };
 
     loadTeamScore();
-  }, [huntId, teamData]);
+  }, [huntId, teamData, chainId]);
 
   // Use dynamic score or show loading state
   const trustScore = teamScore !== null ? teamScore.toString() : "...";

@@ -205,7 +205,7 @@ export function HuntDetails() {
   // Create hunt start attestation (only once per team when starting the hunt)
   // Uses clueIndex: 0 and attemptCount: 0 to indicate hunt start
   const createHuntStartAttestation = async () => {
-    if (!huntId || !teamIdentifier || !userWallet) {
+    if (huntId === undefined || teamIdentifier === undefined || userWallet === undefined || chainId === undefined) {
       console.log("Missing required data for hunt start attestation");
       return;
     }
@@ -231,7 +231,7 @@ export function HuntDetails() {
 
       // Check if hunt start attestation already exists using retry-attempts endpoint with clueIndex: 0
       const response = await fetch(
-        `${BACKEND_URL}/retry-attempts/${huntId}/0/${teamIdentifier}`
+        `${BACKEND_URL}/retry-attempts/${huntId}/0/${teamIdentifier}?chainId=${chainId}`
       );
       
       if (!response.ok) {
@@ -248,24 +248,29 @@ export function HuntDetails() {
         return;
       }
 
+
       // Create hunt start attestation using attest-attempt endpoint with clueIndex: 0
-      console.log("Creating hunt start attestation...");
+      const requestPayload = {
+        teamIdentifier,
+        huntId: parseInt(huntId),
+        clueIndex: 0, // Special value for hunt start
+        solverAddress: userWallet,
+        attemptCount: 0, // Special value for hunt start
+        chainId: chainId,
+      };
+      
+      console.log("Creating hunt start attestation with payload:", requestPayload);
       const createResponse = await fetch(`${BACKEND_URL}/attest-attempt`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          teamIdentifier,
-          huntId: parseInt(huntId),
-          clueIndex: 0, // Special value for hunt start
-          solverAddress: userWallet,
-          attemptCount: 0, // Special value for hunt start
-        }),
+        body: JSON.stringify(requestPayload),
       });
 
       if (!createResponse.ok) {
-        console.error("Failed to create hunt start attestation:", createResponse.status);
+        const errorData = await createResponse.json().catch(() => ({}));
+        console.error("Failed to create hunt start attestation:", createResponse.status, errorData);
         return;
       }
 
@@ -288,7 +293,7 @@ export function HuntDetails() {
     setIsRetrying(false);
     
     // Setup cyclic loading messages with ref for proper cleanup
-    const messages = ["Starting hunt", "Decrypting clues", "Validating access"];
+    const messages = ["Starting hunt...", "Decrypting clues...", "Validating access..."];
     messageIndexRef.current = 0;
     setLoadingMessage(messages[0]);
     
@@ -300,7 +305,7 @@ export function HuntDetails() {
     messageIntervalRef.current = setInterval(() => {
       messageIndexRef.current = (messageIndexRef.current + 1) % messages.length;
       setLoadingMessage(messages[messageIndexRef.current]);
-    }, 1500); // Change message every 1.5 seconds
+    }, 2000); // Change message every 2 seconds
     
     if (!userWallet) {
       toast.error("Please connect your wallet first");
@@ -337,12 +342,13 @@ export function HuntDetails() {
       const totalClues = currentClueData.length;
 
       // If we have clues data, check progress
-      if (totalClues > 0) {
+      if (totalClues > 0 && chainId) {
         const shouldContinue = await checkProgressAndNavigate(
           parseInt(huntId || "0"),
           teamIdentifier,
           totalClues,
-          navigate
+          navigate,
+          chainId
         );
         
         if (shouldContinue) {

@@ -60,6 +60,7 @@ const CLUE_SCHEMA = {
     { name: "solverAddress", type: "address" },
     { name: "timeTaken", type: "uint256" }, // Time taken to solve in seconds
     { name: "attemptCount", type: "uint256" },
+    { name: "chainId", type: "uint256" },
   ],
 };
 
@@ -73,6 +74,7 @@ const CLUE_RETRY_SCHEMA = {
     { name: "clueIndex", type: "uint256" },
     { name: "solverAddress", type: "address" },
     { name: "attemptCount", type: "uint256" },
+    { name: "chainId", type: "uint256" },
   ],
 };
 
@@ -129,6 +131,7 @@ export async function createClueRetrySchema() {
  * @param {number} clueIndex - The clue index (1-based, or 0 for hunt start)
  * @param {string} solverAddress - The address of the team member who attempted the clue
  * @param {number} attemptCount - Current attempt count (1-based, or 0 for hunt start)
+ * @param {string} chainId - The chain ID
  * @returns {Promise<Object>} The attestation result
  */
 export async function attestClueAttempt(
@@ -136,14 +139,15 @@ export async function attestClueAttempt(
   huntId,
   clueIndex,
   solverAddress,
-  attemptCount
+  attemptCount,
+  chainId
 ) {
   try {
     if (!retrySchemaId) {
       throw new Error("Retry Schema ID not found. Please create retry schema first.");
     }
 
-    const indexingValue = getRetryIndexingValue(huntId, clueIndex, teamIdentifier);
+    const indexingValue = getRetryIndexingValue(huntId, clueIndex, teamIdentifier, chainId);
 
     const logMessage = clueIndex === 0 
       ? "Creating attestation for hunt start:" 
@@ -155,6 +159,7 @@ export async function attestClueAttempt(
       clueIndex,
       solverAddress,
       attemptCount,
+      chainId,
       indexingValue,
     });
 
@@ -164,6 +169,7 @@ export async function attestClueAttempt(
       clueIndex: clueIndex.toString(),
       solverAddress,
       attemptCount: attemptCount.toString(),
+      chainId: chainId,
     };
 
     const attestationInfo = await client.createAttestation({
@@ -192,6 +198,7 @@ export async function attestClueAttempt(
  * @param {string} solverAddress - The address of the team member who solved the clue
  * @param {number} timeTaken - Time taken to solve the clue in seconds
  * @param {number} attemptCount - Number of attempts made for this clue
+ * @param {string} chainId - The chain ID
  * @returns {Promise<Object>} The attestation result
  */
 export async function attestClueSolved(
@@ -201,14 +208,15 @@ export async function attestClueSolved(
   teamLeaderAddress,
   solverAddress,
   timeTaken,
-  attemptCount
+  attemptCount,
+  chainId
 ) {
   try {
     if (!schemaId) {
       throw new Error("Schema ID not found. Please create schema first.");
     }
 
-    const indexingValue = getIndexingValue(huntId);
+    const indexingValue = getIndexingValue(huntId, chainId);
 
     console.log("Creating attestation for clue solve:", {
       teamIdentifier,
@@ -218,6 +226,7 @@ export async function attestClueSolved(
       solverAddress,
       timeTaken,
       attemptCount,
+      chainId,
       indexingValue,
     });
 
@@ -229,6 +238,7 @@ export async function attestClueSolved(
       solverAddress,
       timeTaken: timeTaken.toString(),
       attemptCount: attemptCount.toString(),
+      chainId: chainId,
     };
 
     const attestationInfo = await client.createAttestation({
@@ -248,11 +258,12 @@ export async function attestClueSolved(
 /**
  * Query all attestations for a specific hunt
  * @param {number} huntId - The hunt ID to query
+ * @param {string} chainId - The chain ID
  * @returns {Promise<Array>} Array of attestations for the hunt
  */
-export async function queryAttestationsForHunt(huntId) {
+export async function queryAttestationsForHunt(huntId, chainId) {
   try {
-    console.log(`Querying attestations for hunt ${huntId}...`);
+    console.log(`Querying attestations for hunt ${huntId} on chain ${chainId}...`);
 
     // Query attestations using the schema ID and indexing value pattern    
     const result = await indexService.queryAttestationList({
@@ -261,7 +272,7 @@ export async function queryAttestationsForHunt(huntId) {
       mode: 'offchain',
       // this is important as we should not respect any other attestations made even for the same schema by other users
       registrant: process.env.SIGN_WALLET_PUBLIC_ADDRESS,
-      indexingValue: getIndexingValue(huntId)
+      indexingValue: getIndexingValue(huntId, chainId)
     });
 
     if (!result) {
@@ -283,13 +294,14 @@ export async function queryAttestationsForHunt(huntId) {
  * @param {number} huntId - The hunt ID
  * @param {number} clueIndex - The clue index (or 0 for hunt start)
  * @param {string} teamIdentifier - The team identifier
+ * @param {string} chainId - The chain ID
  * @returns {Promise<Array>} Array of retry attestations for the clue
  */
-export async function queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier) {
+export async function queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier, chainId) {
   try {
     const logMessage = clueIndex === 0
-      ? `Querying hunt start for hunt ${huntId}, team ${teamIdentifier}...`
-      : `Querying retry attempts for hunt ${huntId}, clue ${clueIndex}, team ${teamIdentifier}...`;
+      ? `Querying hunt start for hunt ${huntId}, team ${teamIdentifier} on chain ${chainId}...`
+      : `Querying retry attempts for hunt ${huntId}, clue ${clueIndex}, team ${teamIdentifier} on chain ${chainId}...`;
     console.log(logMessage);
 
     if (!retrySchemaId) {
@@ -303,7 +315,7 @@ export async function queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifie
       page: 1,
       mode: 'offchain',
       registrant: process.env.SIGN_WALLET_PUBLIC_ADDRESS,
-      indexingValue: getRetryIndexingValue(huntId, clueIndex, teamIdentifier)
+      indexingValue: getRetryIndexingValue(huntId, clueIndex, teamIdentifier, chainId)
     });
 
     if (!result) {
@@ -360,10 +372,11 @@ export function setRetrySchemaId(id) {
 /**
  * Get the indexing value for a clue solve attestation
  * @param {number} huntId - The hunt ID
+ * @param {string} chainId - The chain ID
  * @returns {string} The indexing value
  */
-function getIndexingValue(huntId) {
-  return `khoj-hunt-${huntId}`;
+function getIndexingValue(huntId, chainId) {
+  return `khoj-chain-${chainId}-hunt-${huntId}`;
 }
 
 /**
@@ -371,9 +384,10 @@ function getIndexingValue(huntId) {
  * @param {number} huntId - The hunt ID
  * @param {number} clueIndex - The clue index
  * @param {string} teamIdentifier - The team identifier
+ * @param {string} chainId - The chain ID
  * @returns {string} The indexing value
  */
-function getRetryIndexingValue(huntId, clueIndex, teamIdentifier) {
-  return `khoj-hunt-${huntId}-clue-${clueIndex}-team-${teamIdentifier}`;
+function getRetryIndexingValue(huntId, clueIndex, teamIdentifier, chainId) {
+  return `khoj-chain-${chainId}-hunt-${huntId}-clue-${clueIndex}-team-${teamIdentifier}`;
 }
 
