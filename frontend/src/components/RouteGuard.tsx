@@ -27,7 +27,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
 
   const account = useActiveAccount();
   const userWallet = account?.address;
-  const { contractAddress, currentChain } = useNetworkState();
+  const { contractAddress, currentChain, chainId } = useNetworkState();
 
   // Create thirdweb contract instance
   const contract = getContract({
@@ -59,7 +59,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
       setError(null);
 
       // Check if we have required data
-      if (!huntId || !clueId || !userWallet || !contractAddress) {
+      if (huntId === undefined || clueId === undefined || userWallet === undefined || contractAddress === undefined) {
         setError("Waiting for required data...");
         setIsValidating(false);
         return;
@@ -93,6 +93,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
           teamIdentifier,
           parseInt(clueId),
           navigate,
+          chainId,
           totalClues
         );
 

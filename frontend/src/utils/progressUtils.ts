@@ -18,10 +18,13 @@ export interface ProgressData {
 export async function fetchProgress(
   huntId: number,
   teamIdentifier: string,
+  chainId: string | number,
   totalClues?: number
 ): Promise<ProgressData | null> {
   try {
+    console.log("fetchProgress called with:", { huntId, teamIdentifier, chainId, totalClues });
     const url = new URL(`${BACKEND_URL}/progress/${huntId}/${teamIdentifier}`);
+    url.searchParams.set('chainId', chainId.toString());
     if (totalClues) {
       url.searchParams.set('totalClues', totalClues.toString());
     }
@@ -111,6 +114,7 @@ async function handleNavigation(
   teamIdentifier: string,
   currentClueIndex: number,
   navigate: (path: string) => void,
+  chainId: string | number,
   totalClues?: number,
   options: {
     isSync?: boolean;
@@ -122,7 +126,8 @@ async function handleNavigation(
   const { isSync = false, allowVerification = false, showSuccessToast = true, isResume = false } = options;
   
   try {
-    const progress = await fetchProgress(huntId, teamIdentifier, totalClues);
+    console.log("handleNavigation called with:", { huntId, teamIdentifier, chainId, totalClues });
+    const progress = await fetchProgress(huntId, teamIdentifier, chainId, totalClues);
     
     if (!progress) {
       if (isSync) {
@@ -202,9 +207,10 @@ export async function syncProgressAndNavigate(
   teamIdentifier: string,
   currentClueIndex: number,
   navigate: (path: string) => void,
+  chainId: string | number,
   totalClues?: number
 ): Promise<boolean> {
-  return handleNavigation(huntId, teamIdentifier, currentClueIndex, navigate, totalClues, { isSync: true });
+  return handleNavigation(huntId, teamIdentifier, currentClueIndex, navigate, chainId, totalClues, { isSync: true });
 }
 
 /**
@@ -216,10 +222,12 @@ export async function validateClueAccess(
   teamIdentifier: string,
   clueIndex: number,
   navigate: (path: string) => void,
+  chainId: string | number,
   totalClues?: number
 ): Promise<boolean> {
   try {
-    const progress = await fetchProgress(huntId, teamIdentifier, totalClues);
+    console.log("validateClueAccess called with:", { huntId, teamIdentifier, chainId, totalClues });
+    const progress = await fetchProgress(huntId, teamIdentifier, chainId, totalClues);
     
     if (!progress) {
       // If we can't fetch progress, allow verification to proceed
@@ -282,7 +290,8 @@ export async function checkProgressAndNavigate(
   huntId: number,
   teamIdentifier: string,
   totalClues: number,
-  navigate: (path: string) => void
+  navigate: (path: string) => void,
+  chainId: string | number
 ): Promise<boolean> {
-  return handleNavigation(huntId, teamIdentifier, 1, navigate, totalClues, { isResume: true });
+  return handleNavigation(huntId, teamIdentifier, 1, navigate, chainId, totalClues, { isResume: true });
 }

@@ -8,15 +8,18 @@ const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
  * Fetch team combined score from leaderboard API
  * @param huntId - The hunt ID
  * @param teamIdentifier - The team identifier (teamId for teams, wallet address for solo users)
+ * @param chainId - The chain ID
  * @returns Promise resolving to the team's combined score from leaderboard (clipped to 2 decimals)
  */
-export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: bigint | string): Promise<number> {
-  if (!huntId || !teamIdentifier) {
+export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: bigint | string, chainId: string | number): Promise<number> {
+  if (huntId === undefined || teamIdentifier === undefined) {
     return 0.0; // Default score if no team data
   }
 
   try {
-    const response = await fetch(`${BACKEND_URL}/leaderboard/${huntId}`);
+    const url = new URL(`${BACKEND_URL}/leaderboard/${huntId}`);
+    url.searchParams.set('chainId', chainId.toString());
+    const response = await fetch(url.toString());
     
     if (!response.ok) {
       throw new Error(`Failed to fetch leaderboard: ${response.status}`);

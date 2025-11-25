@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { TeamIdentifierDisplay, isSoloParticipant } from './TeamIdentifierDisplay';
 import { AddressDisplay } from './AddressDisplay';
+import { useNetworkState } from '../lib/utils';
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -36,22 +37,24 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const { chainId } = useNetworkState();
 
   // Fetch leaderboard data when component opens
   useEffect(() => {
-    if (isOpen && huntId) {
+    if (isOpen && huntId && chainId) {
       fetchLeaderboard();
     }
-  }, [isOpen, huntId]);
+  }, [isOpen, huntId, chainId]);
 
   const fetchLeaderboard = async () => {
-    if (!huntId) return;
+    if (huntId === undefined || chainId === undefined) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/leaderboard/${huntId}`);
+      const response = await fetch(`${BACKEND_URL}/leaderboard/${huntId}?chainId=${chainId}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch leaderboard: ${response.status}`);
