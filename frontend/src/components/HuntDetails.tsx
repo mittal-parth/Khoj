@@ -82,6 +82,11 @@ export function HuntDetails() {
   // Local loading state for immediate button feedback
   const [isStartingHunt, setIsStartingHunt] = useState(false);
   
+  // Cyclic loading message state
+  const [loadingMessage, setLoadingMessage] = useState("Starting hunt");
+  const messageIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const messageIndexRef = useRef(0);
+  
   // Retry state for decrypt-clues API call
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
@@ -282,14 +287,31 @@ export function HuntDetails() {
     setRetryCount(0);
     setIsRetrying(false);
     
+    // Setup cyclic loading messages with ref for proper cleanup
+    const messages = ["Starting hunt", "Decrypting clues", "Validating access"];
+    messageIndexRef.current = 0;
+    setLoadingMessage(messages[0]);
+    
+    // Clear any existing interval
+    if (messageIntervalRef.current) {
+      clearInterval(messageIntervalRef.current);
+    }
+    
+    messageIntervalRef.current = setInterval(() => {
+      messageIndexRef.current = (messageIndexRef.current + 1) % messages.length;
+      setLoadingMessage(messages[messageIndexRef.current]);
+    }, 1500); // Change message every 1.5 seconds
+    
     if (!userWallet) {
       toast.error("Please connect your wallet first");
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
       setIsStartingHunt(false);
       return;
     }
 
     if (!huntData?.clues_blobId || !huntData?.answers_blobId) {
       toast.error("Hunt data not available");
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
       setIsStartingHunt(false);
       return;
     }
@@ -301,6 +323,7 @@ export function HuntDetails() {
       toast.error(
         "You are not eligible for this hunt. Please register or check the requirements."
       );
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
       setIsStartingHunt(false);
       return;
     }
@@ -324,6 +347,7 @@ export function HuntDetails() {
         
         if (shouldContinue) {
           // User was redirected, stop here
+          if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
           setIsStartingHunt(false);
           return;
         }
@@ -388,6 +412,7 @@ export function HuntDetails() {
       console.error("Error starting hunt:", error);
       toast.error("Failed to start hunt");
     } finally {
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
       setIsStartingHunt(false);
       setIsRetrying(false);
     }
@@ -466,6 +491,15 @@ export function HuntDetails() {
       }
     };
   }, [qrScanner]);
+
+  // Clean up loading message interval when component unmounts
+  useEffect(() => {
+    return () => {
+      if (messageIntervalRef.current) {
+        clearInterval(messageIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Log team error to understand why it's undefined
   if (teamError) {
@@ -875,7 +909,7 @@ export function HuntDetails() {
                           <Button 
                             className="w-full border-2 border-black shadow-[-4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-bold" 
                             onClick={generateMultiUseInvite}
-                            disabled={isGeneratingInvite}
+                            disabled={isGeneratingInvite || isStartingHunt || isGeneratingRiddles}
                           >
                             {isGeneratingInvite ? "Creating Team..." : "Create Team & Generate Invite"}
                           </Button>
@@ -1000,7 +1034,7 @@ export function HuntDetails() {
           {isRetrying 
             ? `Retrying... (${retryCount}/${MAX_RETRIES})`
             : (isStartingHunt || isGeneratingRiddles) 
-              ? "Starting Hunt..." 
+              ? `${loadingMessage}...` 
               : "Start Hunt"
           }
         </Button>
