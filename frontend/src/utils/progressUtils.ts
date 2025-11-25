@@ -22,7 +22,7 @@ export async function fetchProgress(
   totalClues?: number
 ): Promise<ProgressData | null> {
   try {
-    console.log("fetchProgress called with:", { huntId, teamIdentifier, chainId, totalClues });
+
     const url = new URL(`${BACKEND_URL}/progress/${huntId}/${teamIdentifier}`);
     url.searchParams.set('chainId', chainId.toString());
     if (totalClues) {
@@ -126,7 +126,7 @@ async function handleNavigation(
   const { isSync = false, allowVerification = false, showSuccessToast = true, isResume = false } = options;
   
   try {
-    console.log("handleNavigation called with:", { huntId, teamIdentifier, chainId, totalClues });
+    
     const progress = await fetchProgress(huntId, teamIdentifier, chainId, totalClues);
     
     if (!progress) {
@@ -226,7 +226,7 @@ export async function validateClueAccess(
   totalClues?: number
 ): Promise<boolean> {
   try {
-    console.log("validateClueAccess called with:", { huntId, teamIdentifier, chainId, totalClues });
+
     const progress = await fetchProgress(huntId, teamIdentifier, chainId, totalClues);
     
     if (!progress) {

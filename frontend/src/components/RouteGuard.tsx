@@ -59,7 +59,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
       setError(null);
 
       // Check if we have required data
-      if (huntId === undefined || clueId === undefined || userWallet === undefined || contractAddress === undefined) {
+      if (huntId === undefined || clueId === undefined || userWallet === undefined || contractAddress === undefined || chainId === undefined) {
         setError("Waiting for required data...");
         setIsValidating(false);
         return;

@@ -229,15 +229,15 @@ export function HuntDetails() {
       // Set lock to prevent duplicate calls
       huntStartCreationInProgress.current = true;
 
-    // Check if hunt start attestation already exists using retry-attempts endpoint with clueIndex: 0
-    const response = await fetch(
-      `${BACKEND_URL}/retry-attempts/${huntId}/0/${teamIdentifier}?chainId=${chainId}`
-    );
-    
-    if (!response.ok) {
-      console.error("Failed to check hunt start:", response.status);
-      return;
-    }
+      // Check if hunt start attestation already exists using retry-attempts endpoint with clueIndex: 0
+      const response = await fetch(
+        `${BACKEND_URL}/retry-attempts/${huntId}/0/${teamIdentifier}?chainId=${chainId}`
+      );
+      
+      if (!response.ok) {
+        console.error("Failed to check hunt start:", response.status);
+        return;
+      }
 
       const data = await response.json();
       
@@ -248,11 +248,6 @@ export function HuntDetails() {
         return;
       }
 
-      // Validate chainId before making the request
-      if (!chainId) {
-        console.error("Cannot create hunt start attestation: chainId is undefined");
-        throw new Error("Chain ID is not available. Please ensure network is properly configured.");
-      }
 
       // Create hunt start attestation using attest-attempt endpoint with clueIndex: 0
       const requestPayload = {

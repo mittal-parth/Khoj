@@ -60,7 +60,7 @@ export function HuntEnd() {
   // Fetch team score from leaderboard
   useEffect(() => {
     const loadTeamScore = async () => {
-      if (huntId === undefined || teamData === undefined || !chainId) {
+      if (huntId === undefined || !teamData || !chainId) {
         setIsLoadingScore(false);
         return;
       }

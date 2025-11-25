@@ -1037,7 +1037,7 @@ app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
     const teamIdentifier = req.params.teamIdentifier;
     const totalClues = parseInt(req.query.totalClues) || null;
     const chainId = req.query.chainId;
-    console.log("progress chainId: ", chainId);
+    
     
     if (isNaN(huntId)) {
       return res.status(400).json({

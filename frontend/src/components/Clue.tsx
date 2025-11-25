@@ -502,7 +502,7 @@ export function Clue() {
         } else {
           // For other clues, use previous clue solve timestamp from progress endpoint
           try {
-            console.log("fetching progress with chainId from Clue.tsx: ", chainId);
+
             const progressResponse = await fetch(
               `${BACKEND_URL}/progress/${huntId}/${teamIdentifier}?totalClues=${totalClues}&chainId=${chainId}`
             );

@@ -12,7 +12,7 @@ const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
  * @returns Promise resolving to the team's combined score from leaderboard (clipped to 2 decimals)
  */
 export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: bigint | string, chainId: string | number): Promise<number> {
-  if (huntId === undefined || teamIdentifier === undefined) {
+  if (huntId === undefined || teamIdentifier === undefined || chainId === undefined) {
     return 0.0; // Default score if no team data
   }
 
