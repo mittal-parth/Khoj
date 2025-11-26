@@ -53,6 +53,7 @@ import { attestClueSolved, attestClueAttempt, queryAttestationsForHunt, queryRet
 import { calculateLeaderboardForHunt } from "./services/leaderboard.js";
 
 const MAX_DISTANCE_IN_METERS = parseFloat(process.env.MAX_DISTANCE_IN_METERS) || 60;
+const DEFAULT_TOTAL_CLUES = 10;
 
 // Gemini configuration
 const GEMINI_MODEL = "gemini-2.5-flash";
@@ -1248,6 +1249,103 @@ app.get("/leaderboard/:huntId", async (req, res) => {
     console.error("Error fetching leaderboard:", error);
     res.status(500).json({
       error: "Failed to fetch leaderboard",
+      message: error.message,
+    });
+  }
+});
+
+// Get team attestations endpoint (for viewing attestation links)
+app.get("/team-attestations/:huntId/:teamIdentifier", async (req, res) => {
+  try {
+    const huntId = parseInt(req.params.huntId);
+    const teamIdentifier = req.params.teamIdentifier;
+    const totalClues = parseInt(req.query.totalClues) || DEFAULT_TOTAL_CLUES;
+    const chainId = req.query.chainId;
+    
+    if (isNaN(huntId)) {
+      return res.status(400).json({
+        error: "Invalid hunt ID",
+      });
+    }
+
+    if (!teamIdentifier) {
+      return res.status(400).json({
+        error: "Team identifier is required",
+      });
+    }
+
+    if (!chainId) {
+      return res.status(400).json({
+        error: "Chain ID is required",
+      });
+    }
+
+    console.log(`Fetching team attestations for hunt ${huntId}, team ${teamIdentifier}, chainId ${chainId}...`);
+
+    // Get all successful clue solve attestations for this hunt
+    const allAttestations = await queryAttestationsForHunt(huntId, chainId);
+    
+    // Filter for this team's solve attestations
+    const teamSolveAttestations = allAttestations.filter(attestation => {
+      const data = JSON.parse(attestation.data);
+      return data.teamIdentifier === teamIdentifier;
+    });
+
+    // Get retry attestations for each clue (including hunt start with clueIndex: 0)
+    // Using Promise.allSettled for parallel requests
+    const retryAttestationsPerClue = {};
+    
+    const clueIndices = Array.from({ length: totalClues + 1 }, (_, i) => i);
+    const retryPromises = clueIndices.map(clueIndex => 
+      queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier, chainId)
+        .then(retryAttestations => ({ clueIndex, retryAttestations }))
+        .catch(error => {
+          console.error(`Error fetching retry attestations for clue ${clueIndex}:`, error);
+          return { clueIndex, retryAttestations: [] };
+        })
+    );
+    
+    const retryResults = await Promise.allSettled(retryPromises);
+    
+    for (const result of retryResults) {
+      if (result.status === 'fulfilled' && result.value && result.value.retryAttestations && result.value.retryAttestations.length > 0) {
+        const { clueIndex, retryAttestations } = result.value;
+        retryAttestationsPerClue[clueIndex] = retryAttestations.map(attestation => {
+          const data = JSON.parse(attestation.data);
+          return {
+            attestationId: attestation.attestationId,
+            solverAddress: data.solverAddress,
+            attemptCount: parseInt(data.attemptCount),
+            timestamp: Math.floor(parseInt(attestation.attestTimestamp) / 1000),
+          };
+        });
+      }
+    }
+
+    // Format solve attestations
+    const solveAttestations = teamSolveAttestations.map(attestation => {
+      const data = JSON.parse(attestation.data);
+      return {
+        attestationId: attestation.attestationId,
+        clueIndex: parseInt(data.clueIndex),
+        solverAddress: data.solverAddress,
+        teamLeaderAddress: data.teamLeaderAddress,
+        timeTaken: parseInt(data.timeTaken),
+        attemptCount: parseInt(data.attemptCount),
+        timestamp: Math.floor(parseInt(attestation.attestTimestamp) / 1000),
+      };
+    }).sort((a, b) => a.clueIndex - b.clueIndex);
+
+    res.json({
+      huntId,
+      teamIdentifier,
+      solveAttestations,
+      retryAttestations: retryAttestationsPerClue,
+    });
+  } catch (error) {
+    console.error("Error fetching team attestations:", error);
+    res.status(500).json({
+      error: "Failed to fetch team attestations",
       message: error.message,
     });
   }

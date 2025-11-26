@@ -29,11 +29,13 @@ import { Hunt, Team } from "../types";
 import { buttonStyles } from "../lib/styles.ts";
 import { withRetry, MAX_RETRIES } from "@/utils/retryUtils";
 import { FiRefreshCw } from "react-icons/fi";
-import { BsBarChartFill } from "react-icons/bs";
+import { BsBarChartFill, BsFileEarmarkCheck } from "react-icons/bs";
 import { Leaderboard } from "./Leaderboard";
+import { AttestationsModal } from "./AttestationsModal";
 import { 
   checkProgressAndNavigate, 
-  getTeamIdentifier 
+  getTeamIdentifier,
+  getTotalCluesFromStorage
 } from "../utils/progressUtils";
 import { AddressDisplay } from "./AddressDisplay";
 
@@ -64,6 +66,9 @@ export function HuntDetails() {
   
   // Leaderboard state
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  
+  // Attestations modal state
+  const [isAttestationsOpen, setIsAttestationsOpen] = useState(false);
   
   
   // Video reference for QR scanner
@@ -730,14 +735,26 @@ export function HuntDetails() {
               <CardTitle className="text-xl flex-1 wrap-break-word font-bold">
                 {huntData?.name || 'Hunt Details'}
               </CardTitle>
-              <Button
-                onClick={() => setIsLeaderboardOpen(true)}
-                variant="neutral"
-                size="sm"
-                className="p-2 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
-              >
-                <BsBarChartFill className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setIsAttestationsOpen(true)}
+                  variant="neutral"
+                  size="sm"
+                  className="p-2 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  title="View Attestations"
+                >
+                  <BsFileEarmarkCheck className="w-4 h-4" />
+                </Button>
+                <Button
+                  onClick={() => setIsLeaderboardOpen(true)}
+                  variant="neutral"
+                  size="sm"
+                  className="p-2 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  title="View Leaderboard"
+                >
+                  <BsBarChartFill className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
 
@@ -1053,6 +1070,16 @@ export function HuntDetails() {
           huntName={huntData?.name}
           isOpen={isLeaderboardOpen} 
           onClose={() => setIsLeaderboardOpen(false)} 
+        />
+        
+        {/* Attestations Modal */}
+        <AttestationsModal
+          huntId={huntId}
+          huntName={huntData?.name}
+          teamIdentifier={teamIdentifier}
+          totalClues={getTotalCluesFromStorage(huntId || "")}
+          isOpen={isAttestationsOpen}
+          onClose={() => setIsAttestationsOpen(false)}
         />
       </div>
     </div>
