@@ -640,7 +640,13 @@ export function Create() {
                 </span>
                 <button
                   type="button"
-                  onClick={() => setUseDirectCID(!useDirectCID)}
+                  onClick={() => {
+                    // Clear CIDs when switching modes to keep the flow clean
+                    setCluesCID("");
+                    setAnswersCID("");
+                    setUploadedCIDs(null);
+                    setUseDirectCID(!useDirectCID);
+                  }}
                   className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                     useDirectCID ? 'bg-green-500' : 'bg-gray-300'
                   }`}
