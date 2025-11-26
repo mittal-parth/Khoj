@@ -53,6 +53,9 @@ export function Create() {
   const [answersCID, setAnswersCID] = useState("");
   const [healthCheckStatus, setHealthCheckStatus] = useState<string | null>(null);
   
+  // Mode toggle: false = Enter Clues mode, true = Direct CID mode
+  const [useDirectCID, setUseDirectCID] = useState(false);
+  
   // Image upload states
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -620,121 +623,211 @@ export function Create() {
         </div>
 
         <div className="space-y-6">
-          <div className="p-4 border rounded-lg space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-semibold">Add Clue</h2>
-              {clues.length > 0 && (
-                <Button
-                  onClick={uploadToIPFS}
-                  disabled={isUploading}
-                  variant="outline"
-                  className="bg-green-50"
+          {/* Mode Toggle */}
+          <div className="p-4 border rounded-lg bg-gray-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold">Clue Entry Mode</h3>
+                <p className="text-xs text-gray-500">
+                  {useDirectCID 
+                    ? "Enter existing CIDs directly to reuse clues" 
+                    : "Create new clues and upload to IPFS"}
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className={`text-sm ${!useDirectCID ? 'font-semibold' : 'text-gray-500'}`}>
+                  Enter Clues
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Clear CIDs when switching modes to keep the flow clean
+                    setCluesCID("");
+                    setAnswersCID("");
+                    setUploadedCIDs(null);
+                    setUseDirectCID(!useDirectCID);
+                  }}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    useDirectCID ? 'bg-green-500' : 'bg-gray-300'
+                  }`}
                 >
-                  {isUploading ? "Uploading..." : "Upload Clues to IPFS"}
-                </Button>
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      useDirectCID ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+                <span className={`text-sm ${useDirectCID ? 'font-semibold' : 'text-gray-500'}`}>
+                  Direct CID
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Direct CID Entry Mode */}
+          {useDirectCID ? (
+            <div className="p-4 border rounded-lg space-y-4">
+              <div>
+                <h2 className="text-xl font-semibold">Enter CIDs Directly</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  If you have existing clues and answers uploaded to IPFS, enter their CIDs below.
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="directCluesCID">Clues CID</Label>
+                <Input
+                  id="directCluesCID"
+                  value={cluesCID}
+                  onChange={(e) => setCluesCID(e.target.value)}
+                  placeholder="Enter the clues CID (e.g., bafk...)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  The IPFS/blob CID containing the clues data
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="directAnswersCID">Answers CID</Label>
+                <Input
+                  id="directAnswersCID"
+                  value={answersCID}
+                  onChange={(e) => setAnswersCID(e.target.value)}
+                  placeholder="Enter the answers CID (e.g., bafk...)"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  The IPFS/blob CID containing the encrypted answers data
+                </p>
+              </div>
+
+              {cluesCID && answersCID && (
+                <div className="p-3 bg-green-50 rounded-md">
+                  <p className="text-sm font-medium text-green-800">✅ CIDs Configured</p>
+                  <p className="text-xs text-green-600">Clues CID: {cluesCID}</p>
+                  <p className="text-xs text-green-600">Answers CID: {answersCID}</p>
+                </div>
               )}
             </div>
+          ) : (
+            /* Enter Clues Mode - Original UI */
+            <>
+              <div className="p-4 border rounded-lg space-y-4">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-xl font-semibold">Add Clue</h2>
+                  {clues.length > 0 && (
+                    <Button
+                      onClick={uploadToIPFS}
+                      disabled={isUploading}
+                      variant="outline"
+                      className="bg-green-50"
+                    >
+                      {isUploading ? "Uploading..." : "Upload Clues to IPFS"}
+                    </Button>
+                  )}
+                </div>
 
-            <div>
-              <Label htmlFor="clueDescription">Clue Description</Label>
-              <Textarea
-                id="clueDescription"
-                value={currentClue.description}
-                onChange={(e) =>
-                  setCurrentClue((prev) => ({
-                    ...prev,
-                    description: e.target.value,
-                  }))
-                }
-                placeholder="Enter clue description. Clues will be generated using Generative AI based on the theme and the description of the clue."
-              />
-            </div>
+                <div>
+                  <Label htmlFor="clueDescription">Clue Description</Label>
+                  <Textarea
+                    id="clueDescription"
+                    value={currentClue.description}
+                    onChange={(e) =>
+                      setCurrentClue((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter clue description. Clues will be generated using Generative AI based on the theme and the description of the clue."
+                  />
+                </div>
 
-            <div>
-              <Label htmlFor="clueAnswer">Clue Answer</Label>
-              <Input
-                id="clueAnswer"
-                value={currentClue.answer}
-                onChange={(e) =>
-                  setCurrentClue((prev) => ({
-                    ...prev,
-                    answer: e.target.value,
-                  }))
-                }
-                placeholder="Enter the answer to this clue"
-              />
-            </div>
+                <div>
+                  <Label htmlFor="clueAnswer">Clue Answer</Label>
+                  <Input
+                    id="clueAnswer"
+                    value={currentClue.answer}
+                    onChange={(e) =>
+                      setCurrentClue((prev) => ({
+                        ...prev,
+                        answer: e.target.value,
+                      }))
+                    }
+                    placeholder="Enter the answer to this clue"
+                  />
+                </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="latitude">Latitude</Label>
-                <Input
-                  id="latitude"
-                  type="number"
-                  step="0.000001"
-                  value={currentClue.lat}
-                  onChange={(e) =>
-                    setCurrentClue((prev) => ({
-                      ...prev,
-                      lat: parseFloat(e.target.value),
-                    }))
-                  }
-                  placeholder="Enter latitude"
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="latitude">Latitude</Label>
+                    <Input
+                      id="latitude"
+                      type="number"
+                      step="0.000001"
+                      value={currentClue.lat}
+                      onChange={(e) =>
+                        setCurrentClue((prev) => ({
+                          ...prev,
+                          lat: parseFloat(e.target.value),
+                        }))
+                      }
+                      placeholder="Enter latitude"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="longitude">Longitude</Label>
+                    <Input
+                      id="longitude"
+                      type="number"
+                      step="0.000001"
+                      value={currentClue.long}
+                      onChange={(e) =>
+                        setCurrentClue((prev) => ({
+                          ...prev,
+                          long: parseFloat(e.target.value),
+                        }))
+                      }
+                      placeholder="Enter longitude"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  onClick={handleAddClue}
+                  className="w-full"
+                  variant="outline"
+                >
+                  Add Clue
+                </Button>
               </div>
-              <div>
-                <Label htmlFor="longitude">Longitude</Label>
-                <Input
-                  id="longitude"
-                  type="number"
-                  step="0.000001"
-                  value={currentClue.long}
-                  onChange={(e) =>
-                    setCurrentClue((prev) => ({
-                      ...prev,
-                      long: parseFloat(e.target.value),
-                    }))
-                  }
-                  placeholder="Enter longitude"
-                />
-              </div>
-            </div>
 
-            <Button
-              onClick={handleAddClue}
-              className="w-full"
-              variant="outline"
-            >
-              Add Clue
-            </Button>
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="font-semibold">Added Clues:</h3>
-            {clues.map((clue) => (
-              <div key={clue.id} className="p-3 bg-gray-100 rounded-md">
-                <p className="font-medium">Clue {clue.id}</p>
-                <p className="text-sm text-gray-600">{clue.description}</p>
-                <p className="text-xs text-gray-500">
-                  Location: {clue.lat}, {clue.long}
-                </p>
-                <p className="text-xs text-gray-500">Answer: {clue.answer}</p>
+              <div className="space-y-2">
+                <h3 className="font-semibold">Added Clues:</h3>
+                {clues.map((clue) => (
+                  <div key={clue.id} className="p-3 bg-gray-100 rounded-md">
+                    <p className="font-medium">Clue {clue.id}</p>
+                    <p className="text-sm text-gray-600">{clue.description}</p>
+                    <p className="text-xs text-gray-500">
+                      Location: {clue.lat}, {clue.long}
+                    </p>
+                    <p className="text-xs text-gray-500">Answer: {clue.answer}</p>
+                  </div>
+                ))}
+                {uploadedCIDs && (
+                  <div className="mt-4 p-3 bg-green-50 rounded-md">
+                    <p className="text-sm font-medium text-green-800">
+                      IPFS Upload Complete
+                    </p>
+                    <p className="text-xs text-green-600">
+                      Clues CID: {uploadedCIDs.clues_blobId}
+                    </p>
+                    <p className="text-xs text-green-600">
+                      Answers CID: {uploadedCIDs.answers_blobId}
+                    </p>
+                  </div>
+                )}
               </div>
-            ))}
-            {uploadedCIDs && (
-              <div className="mt-4 p-3 bg-green-50 rounded-md">
-                <p className="text-sm font-medium text-green-800">
-                  IPFS Upload Complete
-                </p>
-                <p className="text-xs text-green-600">
-                  Clues CID: {uploadedCIDs.clues_blobId}
-                </p>
-                <p className="text-xs text-green-600">
-                  Answers CID: {uploadedCIDs.answers_blobId}
-                </p>
-              </div>
-            )}
-          </div>
+            </>
+          )}
 
           {/* Create Hunt Button - Moved to right side */}
           <div className="mt-8">
@@ -756,9 +849,13 @@ export function Create() {
                 className="w-full bg-gray-300 text-gray-500 py-2 rounded-md font-medium"
               >
                 {!account
-                  ? "Get Started to Create Hunt"
+                  ? "Connect Wallet to Create Hunt"
                   : !nftMetadataCID
                   ? "Upload NFT image to continue"
+                  : !cluesCID || !answersCID
+                  ? useDirectCID 
+                    ? "Enter both Clues CID and Answers CID"
+                    : "Upload clues to IPFS to continue"
                   : "Fill in all fields to create hunt"}
               </Button>
             )}
