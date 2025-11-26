@@ -283,6 +283,24 @@ export function getTeamIdentifier(teamData: any, userWallet: string): string {
 }
 
 /**
+ * Get total clues from localStorage for a hunt
+ * Returns the number of clues stored, or a default value if not found
+ */
+export function getTotalCluesFromStorage(huntId: string, defaultValue: number = 10): number {
+  try {
+    const storedRiddles = localStorage.getItem(`hunt_riddles_${huntId}`);
+    if (storedRiddles) {
+      const riddles = JSON.parse(storedRiddles);
+      return riddles.length || defaultValue;
+    }
+    return defaultValue;
+  } catch (error) {
+    console.error("Error reading clues from localStorage:", error);
+    return defaultValue;
+  }
+}
+
+/**
  * Check progress and navigate to appropriate location when starting a hunt
  * This is used when a user clicks "Start Hunt" to determine where to go
  */

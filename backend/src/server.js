@@ -53,6 +53,7 @@ import { attestClueSolved, attestClueAttempt, queryAttestationsForHunt, queryRet
 import { calculateLeaderboardForHunt } from "./services/leaderboard.js";
 
 const MAX_DISTANCE_IN_METERS = parseFloat(process.env.MAX_DISTANCE_IN_METERS) || 60;
+const DEFAULT_TOTAL_CLUES = 10;
 
 // Gemini configuration
 const GEMINI_MODEL = "gemini-2.5-flash";
@@ -1258,7 +1259,7 @@ app.get("/team-attestations/:huntId/:teamIdentifier", async (req, res) => {
   try {
     const huntId = parseInt(req.params.huntId);
     const teamIdentifier = req.params.teamIdentifier;
-    const totalClues = parseInt(req.query.totalClues) || 10; // Default to 10 clues max
+    const totalClues = parseInt(req.query.totalClues) || DEFAULT_TOTAL_CLUES;
     const chainId = req.query.chainId;
     
     if (isNaN(huntId)) {
@@ -1291,24 +1292,33 @@ app.get("/team-attestations/:huntId/:teamIdentifier", async (req, res) => {
     });
 
     // Get retry attestations for each clue (including hunt start with clueIndex: 0)
+    // Using Promise.allSettled for parallel requests
     const retryAttestationsPerClue = {};
     
-    for (let clueIndex = 0; clueIndex <= totalClues; clueIndex++) {
-      try {
-        const retryAttestations = await queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier, chainId);
-        if (retryAttestations && retryAttestations.length > 0) {
-          retryAttestationsPerClue[clueIndex] = retryAttestations.map(attestation => {
-            const data = JSON.parse(attestation.data);
-            return {
-              attestationId: attestation.attestationId,
-              solverAddress: data.solverAddress,
-              attemptCount: parseInt(data.attemptCount),
-              timestamp: Math.floor(parseInt(attestation.attestTimestamp) / 1000),
-            };
-          });
-        }
-      } catch (error) {
-        console.error(`Error fetching retry attestations for clue ${clueIndex}:`, error);
+    const clueIndices = Array.from({ length: totalClues + 1 }, (_, i) => i);
+    const retryPromises = clueIndices.map(clueIndex => 
+      queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier, chainId)
+        .then(retryAttestations => ({ clueIndex, retryAttestations }))
+        .catch(error => {
+          console.error(`Error fetching retry attestations for clue ${clueIndex}:`, error);
+          return { clueIndex, retryAttestations: [] };
+        })
+    );
+    
+    const retryResults = await Promise.allSettled(retryPromises);
+    
+    for (const result of retryResults) {
+      if (result.status === 'fulfilled' && result.value && result.value.retryAttestations && result.value.retryAttestations.length > 0) {
+        const { clueIndex, retryAttestations } = result.value;
+        retryAttestationsPerClue[clueIndex] = retryAttestations.map(attestation => {
+          const data = JSON.parse(attestation.data);
+          return {
+            attestationId: attestation.attestationId,
+            solverAddress: data.solverAddress,
+            attemptCount: parseInt(data.attemptCount),
+            timestamp: Math.floor(parseInt(attestation.attestTimestamp) / 1000),
+          };
+        });
       }
     }
 

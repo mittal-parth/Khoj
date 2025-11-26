@@ -34,7 +34,8 @@ import { Leaderboard } from "./Leaderboard";
 import { AttestationsModal } from "./AttestationsModal";
 import { 
   checkProgressAndNavigate, 
-  getTeamIdentifier 
+  getTeamIdentifier,
+  getTotalCluesFromStorage
 } from "../utils/progressUtils";
 import { AddressDisplay } from "./AddressDisplay";
 
@@ -1076,7 +1077,7 @@ export function HuntDetails() {
           huntId={huntId}
           huntName={huntData?.name}
           teamIdentifier={teamIdentifier}
-          totalClues={JSON.parse(localStorage.getItem(`hunt_riddles_${huntId}`) || "[]").length || 10}
+          totalClues={getTotalCluesFromStorage(huntId || "")}
           isOpen={isAttestationsOpen}
           onClose={() => setIsAttestationsOpen(false)}
         />

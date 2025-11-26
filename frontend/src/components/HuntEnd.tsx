@@ -15,7 +15,7 @@ import { toast } from "sonner";
 import { client } from "../lib/client";
 import { Hunt, Team } from "../types";
 import { fetchTeamCombinedScore } from "../utils/leaderboardUtils";
-import { getTeamIdentifier } from "../utils/progressUtils";
+import { getTeamIdentifier, getTotalCluesFromStorage } from "../utils/progressUtils";
 
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
@@ -279,7 +279,7 @@ export function HuntEnd() {
           huntId={huntId}
           huntName={huntData?.name}
           teamIdentifier={teamIdentifier}
-          totalClues={JSON.parse(localStorage.getItem(`hunt_riddles_${huntId}`) || "[]").length || 10}
+          totalClues={getTotalCluesFromStorage(huntId || "")}
           isOpen={isAttestationsOpen}
           onClose={() => setIsAttestationsOpen(false)}
         />

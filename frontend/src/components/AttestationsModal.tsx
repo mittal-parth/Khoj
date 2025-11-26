@@ -11,6 +11,10 @@ import { useNetworkState } from '../lib/utils';
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 const SIGN_EXPLORER_BASE_URL = 'https://scan.sign.global/attestation';
 
+// Constants
+const DEFAULT_TOTAL_CLUES = 10;
+const HUNT_START_CLUE_INDEX = 0;
+
 // Attestation data interfaces
 interface SolveAttestation {
   attestationId: string;
@@ -42,7 +46,7 @@ export function AttestationsModal({
   huntId, 
   huntName, 
   teamIdentifier, 
-  totalClues = 10,
+  totalClues = DEFAULT_TOTAL_CLUES,
   isOpen, 
   onClose 
 }: AttestationsModalProps) {
@@ -115,12 +119,12 @@ export function AttestationsModal({
   // Get all clue indices that have any attestations
   const getClueIndices = () => {
     const solveClues = new Set(solveAttestations.map(a => a.clueIndex));
-    const retryClues = new Set(Object.keys(retryAttestations).map(k => parseInt(k)).filter(k => k > 0));
+    const retryClues = new Set(Object.keys(retryAttestations).map(k => parseInt(k)).filter(k => k > HUNT_START_CLUE_INDEX));
     return Array.from(new Set([...solveClues, ...retryClues])).sort((a, b) => a - b);
   };
 
   const clueIndices = getClueIndices();
-  const hasHuntStart = retryAttestations[0] && retryAttestations[0].length > 0;
+  const hasHuntStart = retryAttestations[HUNT_START_CLUE_INDEX] && retryAttestations[HUNT_START_CLUE_INDEX].length > 0;
   const hasAnyAttestations = solveAttestations.length > 0 || Object.keys(retryAttestations).length > 0;
 
   return (
@@ -137,7 +141,7 @@ export function AttestationsModal({
               className="ml-4"
               title="Refresh attestations"
             >
-              <FiRefreshCw className={`w-2 h-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <FiRefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
           </DialogTitle>
         </DialogHeader>
@@ -188,7 +192,7 @@ export function AttestationsModal({
                       <h4 className="font-bold text-sm">Hunt Started</h4>
                     </div>
                     <div className="space-y-2">
-                      {retryAttestations[0].map((attestation, index) => (
+                      {retryAttestations[HUNT_START_CLUE_INDEX].map((attestation, index) => (
                         <div 
                           key={`hunt-start-${index}`}
                           className="flex items-center justify-between p-2 bg-muted rounded-lg border border-black/20"
@@ -322,7 +326,7 @@ export function AttestationsModal({
           )}
 
           {/* Footer Info */}
-          <div className="pt-4 mt-4 border-t-1 border-black">
+          <div className="pt-4 mt-4 border-t border-black">
             <div className="text-xs text-foreground/60 text-center">
               <p className="font-medium">
                 Attestations are immutable on-chain records of your hunt progress via{' '}
