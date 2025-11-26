@@ -1,10 +1,11 @@
 import { useParams } from "react-router-dom";
 import { FaCoins, FaRegClock, FaCheckCircle } from "react-icons/fa";
-import { BsBarChartFill } from "react-icons/bs";
+import { BsBarChartFill, BsFileEarmarkCheck } from "react-icons/bs";
 import { Confetti } from "./ui/confetti";
 import { Button } from "./ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Leaderboard } from "./Leaderboard";
+import { AttestationsModal } from "./AttestationsModal";
 import { useEffect, useState } from "react";
 import { useReadContract, useActiveAccount } from "thirdweb/react";
 import { getContract } from "thirdweb";
@@ -14,6 +15,7 @@ import { toast } from "sonner";
 import { client } from "../lib/client";
 import { Hunt, Team } from "../types";
 import { fetchTeamCombinedScore } from "../utils/leaderboardUtils";
+import { getTeamIdentifier } from "../utils/progressUtils";
 
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
@@ -24,6 +26,7 @@ export function HuntEnd() {
   const { huntId } = useParams();
   const [progress, setProgress] = useState(0);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
+  const [isAttestationsOpen, setIsAttestationsOpen] = useState(false);
   const [teamScore, setTeamScore] = useState<number | null>(null);
   const [isLoadingScore, setIsLoadingScore] = useState(true);
   const [hasShownConfetti, setHasShownConfetti] = useState(false);
@@ -56,6 +59,9 @@ export function HuntEnd() {
     params: [BigInt(huntId || 0), userWallet as `0x${string}`],
     queryOptions: { enabled: !!userWallet },
   }) as { data: Team | undefined };
+
+  // Get team identifier for attestations
+  const teamIdentifier = getTeamIdentifier(teamData, userWallet || "");
 
   // Fetch team score from leaderboard
   useEffect(() => {
@@ -126,14 +132,26 @@ export function HuntEnd() {
               <CardTitle className="text-xl font-bold">
                 {huntInfo.title}
               </CardTitle>
-              <Button
-                onClick={() => setIsLeaderboardOpen(true)}
-                variant="neutral"
-                size="sm"
-                className="p-2"
-              >
-                <BsBarChartFill className="w-4 h-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setIsAttestationsOpen(true)}
+                  variant="neutral"
+                  size="sm"
+                  className="p-2"
+                  title="View Attestations"
+                >
+                  <BsFileEarmarkCheck className="w-4 h-4" />
+                </Button>
+                <Button
+                  onClick={() => setIsLeaderboardOpen(true)}
+                  variant="neutral"
+                  size="sm"
+                  className="p-2"
+                  title="View Leaderboard"
+                >
+                  <BsBarChartFill className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
 
@@ -254,6 +272,16 @@ export function HuntEnd() {
           huntName={huntData?.name}
           isOpen={isLeaderboardOpen} 
           onClose={() => setIsLeaderboardOpen(false)} 
+        />
+        
+        {/* Attestations Modal */}
+        <AttestationsModal
+          huntId={huntId}
+          huntName={huntData?.name}
+          teamIdentifier={teamIdentifier}
+          totalClues={JSON.parse(localStorage.getItem(`hunt_riddles_${huntId}`) || "[]").length || 10}
+          isOpen={isAttestationsOpen}
+          onClose={() => setIsAttestationsOpen(false)}
         />
       </div>
     </div>

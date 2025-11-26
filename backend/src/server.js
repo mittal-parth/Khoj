@@ -1253,6 +1253,94 @@ app.get("/leaderboard/:huntId", async (req, res) => {
   }
 });
 
+// Get team attestations endpoint (for viewing attestation links)
+app.get("/team-attestations/:huntId/:teamIdentifier", async (req, res) => {
+  try {
+    const huntId = parseInt(req.params.huntId);
+    const teamIdentifier = req.params.teamIdentifier;
+    const totalClues = parseInt(req.query.totalClues) || 10; // Default to 10 clues max
+    const chainId = req.query.chainId;
+    
+    if (isNaN(huntId)) {
+      return res.status(400).json({
+        error: "Invalid hunt ID",
+      });
+    }
+
+    if (!teamIdentifier) {
+      return res.status(400).json({
+        error: "Team identifier is required",
+      });
+    }
+
+    if (!chainId) {
+      return res.status(400).json({
+        error: "Chain ID is required",
+      });
+    }
+
+    console.log(`Fetching team attestations for hunt ${huntId}, team ${teamIdentifier}, chainId ${chainId}...`);
+
+    // Get all successful clue solve attestations for this hunt
+    const allAttestations = await queryAttestationsForHunt(huntId, chainId);
+    
+    // Filter for this team's solve attestations
+    const teamSolveAttestations = allAttestations.filter(attestation => {
+      const data = JSON.parse(attestation.data);
+      return data.teamIdentifier === teamIdentifier;
+    });
+
+    // Get retry attestations for each clue (including hunt start with clueIndex: 0)
+    const retryAttestationsPerClue = {};
+    
+    for (let clueIndex = 0; clueIndex <= totalClues; clueIndex++) {
+      try {
+        const retryAttestations = await queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier, chainId);
+        if (retryAttestations && retryAttestations.length > 0) {
+          retryAttestationsPerClue[clueIndex] = retryAttestations.map(attestation => {
+            const data = JSON.parse(attestation.data);
+            return {
+              attestationId: attestation.attestationId,
+              solverAddress: data.solverAddress,
+              attemptCount: parseInt(data.attemptCount),
+              timestamp: Math.floor(parseInt(attestation.attestTimestamp) / 1000),
+            };
+          });
+        }
+      } catch (error) {
+        console.error(`Error fetching retry attestations for clue ${clueIndex}:`, error);
+      }
+    }
+
+    // Format solve attestations
+    const solveAttestations = teamSolveAttestations.map(attestation => {
+      const data = JSON.parse(attestation.data);
+      return {
+        attestationId: attestation.attestationId,
+        clueIndex: parseInt(data.clueIndex),
+        solverAddress: data.solverAddress,
+        teamLeaderAddress: data.teamLeaderAddress,
+        timeTaken: parseInt(data.timeTaken),
+        attemptCount: parseInt(data.attemptCount),
+        timestamp: Math.floor(parseInt(attestation.attestTimestamp) / 1000),
+      };
+    }).sort((a, b) => a.clueIndex - b.clueIndex);
+
+    res.json({
+      huntId,
+      teamIdentifier,
+      solveAttestations,
+      retryAttestations: retryAttestationsPerClue,
+    });
+  } catch (error) {
+    console.error("Error fetching team attestations:", error);
+    res.status(500).json({
+      error: "Failed to fetch team attestations",
+      message: error.message,
+    });
+  }
+});
+
 // Add health check endpoint for Docker
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
