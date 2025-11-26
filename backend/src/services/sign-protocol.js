@@ -384,7 +384,8 @@ export function setRetrySchemaId(id) {
  */
 function getIndexingValue(huntId, chainId, contractAddress) {
   const contractSuffix = contractAddress ? contractAddress.slice(-3) : '';
-  return `khoj-chain-${chainId}-hunt-${huntId}-${contractSuffix}`;
+  const baseValue = `khoj-chain-${chainId}-hunt-${huntId}`;
+  return contractSuffix ? `${baseValue}-${contractSuffix}` : baseValue;
 }
 
 /**
@@ -398,6 +399,7 @@ function getIndexingValue(huntId, chainId, contractAddress) {
  */
 function getRetryIndexingValue(huntId, clueIndex, teamIdentifier, chainId, contractAddress) {
   const contractSuffix = contractAddress ? contractAddress.slice(-3) : '';
-  return `khoj-chain-${chainId}-hunt-${huntId}-clue-${clueIndex}-team-${teamIdentifier}-${contractSuffix}`;
+  const baseValue = `khoj-chain-${chainId}-hunt-${huntId}-clue-${clueIndex}-team-${teamIdentifier}`;
+  return contractSuffix ? `${baseValue}-${contractSuffix}` : baseValue;
 }
 
