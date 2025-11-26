@@ -94,6 +94,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
           parseInt(clueId),
           navigate,
           chainId,
+          contractAddress,
           totalClues
         );
 

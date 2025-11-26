@@ -205,7 +205,7 @@ export function HuntDetails() {
   // Create hunt start attestation (only once per team when starting the hunt)
   // Uses clueIndex: 0 and attemptCount: 0 to indicate hunt start
   const createHuntStartAttestation = async () => {
-    if (huntId === undefined || teamIdentifier === undefined || userWallet === undefined || chainId === undefined) {
+    if (huntId === undefined || teamIdentifier === undefined || userWallet === undefined || chainId === undefined || contractAddress === undefined) {
       console.log("Missing required data for hunt start attestation");
       return;
     }
@@ -231,7 +231,7 @@ export function HuntDetails() {
 
       // Check if hunt start attestation already exists using retry-attempts endpoint with clueIndex: 0
       const response = await fetch(
-        `${BACKEND_URL}/retry-attempts/${huntId}/0/${teamIdentifier}?chainId=${chainId}`
+        `${BACKEND_URL}/retry-attempts/${huntId}/0/${teamIdentifier}?chainId=${chainId}&contractAddress=${contractAddress}`
       );
       
       if (!response.ok) {
@@ -257,6 +257,7 @@ export function HuntDetails() {
         solverAddress: userWallet,
         attemptCount: 0, // Special value for hunt start
         chainId: chainId,
+        contractAddress: contractAddress,
       };
       
       console.log("Creating hunt start attestation with payload:", requestPayload);
@@ -342,13 +343,14 @@ export function HuntDetails() {
       const totalClues = currentClueData.length;
 
       // If we have clues data, check progress
-      if (totalClues > 0 && chainId) {
+      if (totalClues > 0 && chainId && contractAddress) {
         const shouldContinue = await checkProgressAndNavigate(
           parseInt(huntId || "0"),
           teamIdentifier,
           totalClues,
           navigate,
-          chainId
+          chainId,
+          contractAddress
         );
         
         if (shouldContinue) {
