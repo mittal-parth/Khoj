@@ -17,7 +17,7 @@ schemaId: process.env.SIGN_SCHEMA_ID,
   page: 1,
   mode: 'offchain',
   registrant: process.env.SIGN_WALLET_PUBLIC_ADDRESS,
-  indexingValue: `khoj-chain-420420422-hunt-0`
+  indexingValue: `khoj-chain-84532-hunt-0-5Cf`
 });
 
 console.log("==== Attestations ====\n\n");
@@ -28,7 +28,7 @@ const retryAttestations = await indexService.queryAttestationList({
     page: 1,
     mode: 'offchain',
     registrant: process.env.SIGN_WALLET_PUBLIC_ADDRESS,
-    indexingValue: `khoj-chain-420420422-hunt-0-clue-1-team-1`
+    indexingValue: `khoj-chain-84532-hunt-0-clue-2-team-1-5Cf`
   });
   
 console.log("==== Retry Attestations ====\n\n");

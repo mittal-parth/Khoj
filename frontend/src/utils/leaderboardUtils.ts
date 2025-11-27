@@ -9,16 +9,18 @@ const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
  * @param huntId - The hunt ID
  * @param teamIdentifier - The team identifier (teamId for teams, wallet address for solo users)
  * @param chainId - The chain ID
+ * @param contractAddress - The contract address
  * @returns Promise resolving to the team's combined score from leaderboard (clipped to 2 decimals)
  */
-export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: bigint | string, chainId: string | number): Promise<number> {
-  if (huntId === undefined || teamIdentifier === undefined || chainId === undefined) {
+export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: bigint | string, chainId: string | number, contractAddress: string): Promise<number> {
+  if (!huntId || !teamIdentifier || !chainId || !contractAddress) {
     return 0.0; // Default score if no team data
   }
 
   try {
     const url = new URL(`${BACKEND_URL}/leaderboard/${huntId}`);
     url.searchParams.set('chainId', chainId.toString());
+    url.searchParams.set('contractAddress', contractAddress);
     const response = await fetch(url.toString());
     
     if (!response.ok) {

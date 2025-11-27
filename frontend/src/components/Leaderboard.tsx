@@ -38,23 +38,23 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  const { chainId } = useNetworkState();
+  const { chainId, contractAddress } = useNetworkState();
 
   // Fetch leaderboard data when component opens
   useEffect(() => {
-    if (isOpen && huntId && chainId) {
+    if (isOpen && huntId && chainId && contractAddress) {
       fetchLeaderboard();
     }
-  }, [isOpen, huntId, chainId]);
+  }, [isOpen, huntId, chainId, contractAddress]);
 
   const fetchLeaderboard = async () => {
-    if (huntId === undefined || chainId === undefined) return;
+    if (huntId === undefined || chainId === undefined || contractAddress === undefined) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/leaderboard/${huntId}?chainId=${chainId}`);
+      const response = await fetch(`${BACKEND_URL}/leaderboard/${huntId}?chainId=${chainId}&contractAddress=${contractAddress}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch leaderboard: ${response.status}`);
@@ -94,9 +94,9 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
   };
 
   const getScoreColor = (score: number) => {
-    if (score <= 400) return 'text-green-600';
-    if (score <= 800) return 'text-yellow-600';
-    if (score <= 1200) return 'text-orange-600';
+    if (score <= 1200) return 'text-green-600';
+    if (score <= 1800) return 'text-yellow-600';
+    if (score <= 2700) return 'text-orange-600';
     return 'text-red-600';
   };
 

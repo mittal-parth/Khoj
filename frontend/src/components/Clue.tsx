@@ -110,7 +110,7 @@ export function Clue() {
   // Reusable function to fetch retry attempts from backend
   // Returns the fetched data or null if fetch failed
   const fetchRetryAttempts = async (showLoading = true) => {
-    if (huntId === undefined || clueId === undefined || teamIdentifier === undefined || chainId === undefined) {
+    if (huntId === undefined || clueId === undefined || teamIdentifier === undefined || chainId === undefined || contractAddress === undefined) {
       if (showLoading) {
         setIsLoadingRetries(false);
       }
@@ -122,7 +122,7 @@ export function Clue() {
         setIsLoadingRetries(true);
       }
       const response = await fetch(
-        `${BACKEND_URL}/retry-attempts/${huntId}/${clueId}/${teamIdentifier}?chainId=${chainId}`
+        `${BACKEND_URL}/retry-attempts/${huntId}/${clueId}/${teamIdentifier}?chainId=${chainId}&contractAddress=${contractAddress}`
       );
       
       if (!response.ok) {
@@ -160,10 +160,10 @@ export function Clue() {
 
   // Fetch retry attempts from backend when component mounts or clue changes
   useEffect(() => {
-    if (chainId) {
+    if (chainId && contractAddress) {
       fetchRetryAttempts();
     }
-  }, [huntId, clueId, teamIdentifier, chainId]);
+  }, [huntId, clueId, teamIdentifier, chainId, contractAddress]);
 
   useEffect(() => {
     // Clear any pending error reset timeout when clue changes
@@ -206,13 +206,14 @@ export function Clue() {
 
   // Create retry attempt attestation
   const createRetryAttestation = async (currentAttemptCount: number) => {
-    if (!userWallet || huntId === undefined || clueId === undefined || teamIdentifier === undefined || chainId === undefined) {
+    if (!userWallet || huntId === undefined || clueId === undefined || teamIdentifier === undefined || chainId === undefined || contractAddress === undefined) {
       console.log("Missing required data for retry attestation:", {
         userWallet: !!userWallet,
         huntId: !!huntId,
         clueId: !!clueId,
         teamIdentifier: !!teamIdentifier,
         chainId: !!chainId,
+        contractAddress: !!contractAddress,
       });
       return null;
     }
@@ -225,6 +226,7 @@ export function Clue() {
         solverAddress: userWallet,
         attemptCount: currentAttemptCount,
         chainId: chainId,
+        contractAddress: contractAddress,
       };
 
       console.log("Creating retry attestation:", attestationData);
@@ -252,12 +254,13 @@ export function Clue() {
 
   // Create clue solve attestation
   const createAttestation = async (timeTaken: number, totalAttempts: number) => {
-    if (!userWallet || huntId === undefined || clueId === undefined || chainId === undefined) {
+    if (!userWallet || huntId === undefined || clueId === undefined || chainId === undefined || contractAddress === undefined) {
       console.log("Missing required data for attestation:", {
         userWallet: !!userWallet,
         huntId: !!huntId,
         clueId: !!clueId,
         chainId: !!chainId,
+        contractAddress: !!contractAddress,
       });
       return;
     }
@@ -272,6 +275,7 @@ export function Clue() {
         timeTaken,
         attemptCount: totalAttempts,
         chainId: chainId,
+        contractAddress: contractAddress,
       };
 
       console.log("Creating clue solve attestation:", attestationData);
@@ -299,8 +303,8 @@ export function Clue() {
 
   // Sync progress with team
   const handleSyncProgress = async () => {
-    if (huntId === undefined || teamIdentifier === undefined || chainId === undefined) {
-      toast.error("Missing hunt, team information or chainId");
+    if (huntId === undefined || teamIdentifier === undefined || chainId === undefined || contractAddress === undefined) {
+      toast.error("Missing hunt, team information, chainId or contractAddress");
       return;
     }
 
@@ -314,6 +318,7 @@ export function Clue() {
         currentClueIndex,
         navigate,
         chainId,
+        contractAddress,
         totalClues
       );
       
@@ -357,8 +362,8 @@ export function Clue() {
     setVerificationState("verifying");
 
     // Re-validate clue access before verification to handle real-time changes
-    if (huntId && teamIdentifier && chainId) {
-      console.log("Re-validating clue access before verification...", { huntId, teamIdentifier, clueId, totalClues, chainId });
+    if (huntId && teamIdentifier && chainId && contractAddress) {
+      console.log("Re-validating clue access before verification...", { huntId, teamIdentifier, clueId, totalClues, chainId, contractAddress });
       setIsRedirecting(true);
       const canProceed = await validateClueAccess(
         parseInt(huntId),
@@ -366,6 +371,7 @@ export function Clue() {
         parseInt(clueId || "0"),
         navigate,
         chainId,
+        contractAddress,
         totalClues
       );
       console.log("Clue access re-validation result:", canProceed);
@@ -380,11 +386,12 @@ export function Clue() {
 
     // Check if clue is already solved by the team before making any backend calls
     try {
-      if (huntId && teamIdentifier && chainId) {
+      if (huntId && teamIdentifier && chainId && contractAddress) {
         const progressData = await fetchProgress(
           parseInt(huntId || "0"),
           teamIdentifier,
           chainId,
+          contractAddress,
           totalClues
         );
         
@@ -487,7 +494,7 @@ export function Clue() {
           // For first clue, use hunt start timestamp from retry-attempts with clueIndex: 0
           try {
             const huntStartResponse = await fetch(
-              `${BACKEND_URL}/retry-attempts/${huntId}/0/${teamIdentifier}?chainId=${chainId}`
+              `${BACKEND_URL}/retry-attempts/${huntId}/0/${teamIdentifier}?chainId=${chainId}&contractAddress=${contractAddress}`
             );
             if (huntStartResponse.ok) {
               const huntStartData = await huntStartResponse.json();
@@ -504,7 +511,7 @@ export function Clue() {
           try {
 
             const progressResponse = await fetch(
-              `${BACKEND_URL}/progress/${huntId}/${teamIdentifier}?totalClues=${totalClues}&chainId=${chainId}`
+              `${BACKEND_URL}/progress/${huntId}/${teamIdentifier}?totalClues=${totalClues}&chainId=${chainId}&contractAddress=${contractAddress}`
             );
             if (progressResponse.ok) {
               const progressData = await progressResponse.json();

@@ -60,13 +60,13 @@ export function HuntEnd() {
   // Fetch team score from leaderboard
   useEffect(() => {
     const loadTeamScore = async () => {
-      if (huntId === undefined || !teamData || !chainId) {
+      if (huntId === undefined || !teamData || !chainId || !contractAddress) {
         setIsLoadingScore(false);
         return;
       }
 
       try {
-        const score = await fetchTeamCombinedScore(huntId, teamData?.teamId || userWallet as `0x${string}`, chainId);
+        const score = await fetchTeamCombinedScore(huntId, teamData?.teamId || userWallet as `0x${string}`, chainId, contractAddress);
         setTeamScore(score);
         // Trigger confetti only once when score is successfully loaded
         if (!hasShownConfetti) {
@@ -81,7 +81,7 @@ export function HuntEnd() {
     };
 
     loadTeamScore();
-  }, [huntId, teamData, chainId]);
+  }, [huntId, teamData, chainId, contractAddress]);
 
   // Use dynamic score or show loading state
   const trustScore = teamScore !== null ? teamScore.toString() : "...";
