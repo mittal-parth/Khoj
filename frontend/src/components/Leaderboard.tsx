@@ -94,9 +94,9 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
   };
 
   const getScoreColor = (score: number) => {
-    if (score <= 400) return 'text-green-600';
-    if (score <= 800) return 'text-yellow-600';
-    if (score <= 1200) return 'text-orange-600';
+    if (score <= 1200) return 'text-green-600';
+    if (score <= 1800) return 'text-yellow-600';
+    if (score <= 2700) return 'text-orange-600';
     return 'text-red-600';
   };
 
