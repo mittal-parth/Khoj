@@ -2,6 +2,8 @@
  * Utility functions for fetching team performance data from leaderboard
  */
 
+import { isDefined, hasRequiredTeamParams } from './validationUtils';
+
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
 /**
@@ -13,7 +15,7 @@ const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
  * @returns Promise resolving to the team's combined score from leaderboard (clipped to 2 decimals)
  */
 export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: bigint | string, chainId: string | number, contractAddress: string): Promise<number> {
-  if (!huntId || !teamIdentifier || !chainId || !contractAddress) {
+  if (!hasRequiredTeamParams({ huntId, chainId, contractAddress, teamIdentifier: teamIdentifier?.toString() })) {
     return 0.0; // Default score if no team data
   }
 
@@ -56,6 +58,6 @@ export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: big
  * @returns Shortened format (e.g., "0x1234...5678")
  */
 export const formatAddress = (address: string): string => {
-  if (!address) return '';
+  if (!isDefined(address) || address === '') return '';
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
