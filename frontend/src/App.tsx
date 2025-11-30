@@ -7,14 +7,15 @@ import { Rewards } from "./components/Rewards";
 import { HuntEnd } from "./components/HuntEnd";
 import { HuntDetails } from "./components/HuntDetails";
 import { Footer } from "./components/Footer";
-import { About } from "./components/About";
 import { Create } from "./components/Create";
 import { RouteGuard } from "./components/RouteGuard";
 import { LandingPage } from "./components/LandingPage";
+import PWABadge from "./PWABadge";
 
 function AppContent() {
   const location = useLocation();
   const isLanding = location.pathname === '/';
+
 
   return (
     <div className="min-h-screen bg-yellow/10">
@@ -33,12 +34,12 @@ function AppContent() {
         <Route path="/hunt/:huntId/end" element={<HuntEnd />} />
         <Route path="/hunt/:huntId" element={<HuntDetails />} />
         <Route path="/profile" element={<Rewards />} />
-        <Route path="/about" element={<About />} />
         <Route path="/hunt/create" element={<Create />} />
       </Routes>
       <div className="md:hidden">
         {!isLanding && <Footer />}
       </div>
+      <PWABadge />
     </div>
   );
 }

@@ -50,16 +50,42 @@ export default defineConfig({
     spaFallbackPlugin(),
     VitePWA({
       registerType: "prompt",
-      injectRegister: false,
+      injectRegister: "auto",
       pwaAssets: {
         disabled: false,
         config: true,
       },
       manifest: {
-        name: "frontend",
-        short_name: "fe",
-        description: "Frontend for Hunt App",
+        name: "Khoj",
+        short_name: "Khoj",
+        description: "Geo-location treasure hunt app that makes Web3 onboarding feel Web2-native.",
         theme_color: "#ffffff",
+        background_color: "#ffffff",
+        display: "standalone",
+        start_url: "/",
+        icons: [
+          {
+            src: "pwa-64x64.png",
+            sizes: "64x64",
+            type: "image/png",
+          },
+          {
+            src: "pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+          {
+            src: "maskable-icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
@@ -69,7 +95,7 @@ export default defineConfig({
         navigateFallback: "/index.html",
       },
       devOptions: {
-        enabled: false,
+        enabled: true,
         navigateFallback: "index.html",
         suppressWarnings: true,
         type: "module",
