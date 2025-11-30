@@ -243,7 +243,7 @@ export const LandingPage = () => {
           </motion.h1>
           
           <motion.p variants={itemVariants} className="text-xl md:text-3xl font-base text-foreground/80 max-w-2xl mx-auto leading-relaxed">
-            Bringing real-world exploration <span className="font-bold text-main-foreground bg-main px-2 rounded-sm">onchain</span>.
+            A geo-location treasure hunt app that turns Web3 onboarding into an <span className="font-bold text-main-foreground bg-main px-2 rounded-sm">adventure</span>
           </motion.p>
 
           <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
@@ -287,10 +287,10 @@ export const LandingPage = () => {
               <span className="font-bold">Khoj</span> (meaning "search" or "discovery" in Hindi) is a geo-location based treasure hunt platform where the answer to each clue is a physical location.
             </p>
             <p className="text-lg text-gray-700 leading-relaxed">
-              Users visit places, verify coordinates and earn onchain rewards, with the most Web2 friendly UX.
+              Users visit places, verify coordinates and earn onchain rewards, with the most Web2 friendly UX. Discover a new way to onboard users to Web3.
             </p>
             <p className="text-lg text-gray-700 leading-relaxed">
-              Discover a new way to onboard users to Web3 with a Web2-native experience.
+              ETHIndia'24 Finalist, supported by Polkadot Fast Grants.
             </p>
           </motion.div>
           
