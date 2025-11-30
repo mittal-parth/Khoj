@@ -9,14 +9,10 @@ import { Label } from "@/components/ui/label";
 import { TransactionButton } from "./TransactionButton";
 import { useNetworkState } from "../lib/utils";
 import { Clue, ClueData, AnswerData, IPFSResponse } from "../types";
+import { isValidHexAddress, isZeroAddress } from "../utils/validationUtils";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 const IPFS_GATEWAY = import.meta.env.VITE_PUBLIC_IPFS_GATEWAY || "harlequin-fantastic-giraffe-234.mypinata.cloud";
-
-// Type guard to ensure address is a valid hex string
-function isValidHexAddress(address: string): address is `0x${string}` {
-  return /^0x[0-9a-fA-F]{40}$/.test(address);
-}
 
 
 export function Create() {
@@ -84,7 +80,7 @@ export function Create() {
   }
 
   // Check if contract address is the zero address (not deployed)
-  if (contractAddress === "0x0000000000000000000000000000000000000000") {
+  if (isZeroAddress(contractAddress)) {
     toast.error("Contract not deployed - check environment variables");
     return null;
   }
