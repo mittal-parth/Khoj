@@ -29,7 +29,7 @@ import {
   fetchProgress,
   isClueSolved
 } from "../utils/progressUtils";
-import { isValidHexAddress, hasRequiredClueAndTeamParams, isDefined } from "../utils/validationUtils";
+import { isValidHexAddress, hasRequiredClueAndTeamParams, hasRequiredClueParams, hasRequiredTeamParams, isDefined } from "../utils/validationUtils";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 const MAX_ATTEMPTS = parseInt(import.meta.env.VITE_MAX_CLUE_ATTEMPTS || "6", 10);
@@ -250,7 +250,7 @@ export function Clue() {
 
   // Create clue solve attestation
   const createAttestation = async (timeTaken: number, totalAttempts: number) => {
-    if (!isDefined(userWallet) || !hasRequiredClueAndTeamParams({ huntId, clueId, chainId, contractAddress, teamIdentifier })) {
+    if (!isDefined(userWallet) || !hasRequiredClueParams({ huntId, clueId, chainId, contractAddress })) {
       console.log("Missing required data for attestation:", {
         userWallet: !!userWallet,
         huntId: !!huntId,
@@ -299,7 +299,7 @@ export function Clue() {
 
   // Sync progress with team
   const handleSyncProgress = async () => {
-    if (!hasRequiredClueAndTeamParams({ huntId, clueId, chainId, contractAddress, teamIdentifier })) {
+    if (!hasRequiredTeamParams({ huntId, chainId, contractAddress, teamIdentifier })) {
       toast.error("Missing required parameters for sync operation");
       return;
     }
