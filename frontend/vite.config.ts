@@ -50,7 +50,7 @@ export default defineConfig({
     spaFallbackPlugin(),
     VitePWA({
       registerType: "prompt",
-      injectRegister: false,
+      injectRegister: "auto",
       pwaAssets: {
         disabled: false,
         config: true,
@@ -95,7 +95,7 @@ export default defineConfig({
         navigateFallback: "/index.html",
       },
       devOptions: {
-        enabled: false,
+        enabled: true,
         navigateFallback: "index.html",
         suppressWarnings: true,
         type: "module",
