@@ -156,17 +156,21 @@ export function validateWalletParams(params: WalletParams): ValidationResult {
  * @returns Validation result with isValid flag and list of missing params
  */
 export function validateClueVerificationParams(params: ClueVerificationParams): ValidationResult {
-  const clueResult = validateClueParams(params);
-  const teamResult = validateTeamParams(params);
-  const walletResult = validateWalletParams(params);
+  const missingParams: string[] = [];
   
-  const missingParams = [
-    ...new Set([
-      ...clueResult.missingParams,
-      ...teamResult.missingParams,
-      ...walletResult.missingParams,
-    ]),
-  ];
+  // Validate hunt params only once
+  if (!isDefined(params.huntId)) missingParams.push('huntId');
+  if (!isDefined(params.chainId)) missingParams.push('chainId');
+  if (!isDefined(params.contractAddress)) missingParams.push('contractAddress');
+  
+  // Validate clue-specific param
+  if (!isDefined(params.clueId)) missingParams.push('clueId');
+  
+  // Validate team-specific param
+  if (!isDefined(params.teamIdentifier)) missingParams.push('teamIdentifier');
+  
+  // Validate wallet param
+  if (!isDefined(params.userWallet)) missingParams.push('userWallet');
   
   return {
     isValid: missingParams.length === 0,
