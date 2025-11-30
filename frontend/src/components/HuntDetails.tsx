@@ -36,13 +36,9 @@ import {
   getTeamIdentifier 
 } from "../utils/progressUtils";
 import { AddressDisplay } from "./AddressDisplay";
+import { isValidHexAddress, hasRequiredHuntParams, hasRequiredTeamParams } from "../utils/validationUtils";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
-
-// Type guard to ensure address is a valid hex string
-function isValidHexAddress(address: string): address is `0x${string}` {
-  return /^0x[0-9a-fA-F]{40}$/.test(address);
-}
 
 export function HuntDetails() {
   const { huntId } = useParams();
@@ -205,7 +201,9 @@ export function HuntDetails() {
   // Create hunt start attestation (only once per team when starting the hunt)
   // Uses clueIndex: 0 and attemptCount: 0 to indicate hunt start
   const createHuntStartAttestation = async () => {
-    if (huntId === undefined || teamIdentifier === undefined || userWallet === undefined || chainId === undefined || contractAddress === undefined) {
+    if (!hasRequiredHuntParams({ huntId, chainId, contractAddress }) || 
+        !hasRequiredTeamParams({ huntId, chainId, contractAddress, teamIdentifier }) ||
+        userWallet === undefined) {
       console.log("Missing required data for hunt start attestation");
       return;
     }
@@ -252,7 +250,7 @@ export function HuntDetails() {
       // Create hunt start attestation using attest-attempt endpoint with clueIndex: 0
       const requestPayload = {
         teamIdentifier,
-        huntId: parseInt(huntId),
+        huntId: parseInt(huntId!),
         clueIndex: 0, // Special value for hunt start
         solverAddress: userWallet,
         attemptCount: 0, // Special value for hunt start

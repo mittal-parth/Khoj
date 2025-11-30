@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { TeamIdentifierDisplay, isSoloParticipant } from './TeamIdentifierDisplay';
 import { AddressDisplay } from './AddressDisplay';
 import { useNetworkState } from '../lib/utils';
+import { hasRequiredHuntParams } from '../utils/validationUtils';
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -48,7 +49,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
   }, [isOpen, huntId, chainId, contractAddress]);
 
   const fetchLeaderboard = async () => {
-    if (huntId === undefined || chainId === undefined || contractAddress === undefined) return;
+    if (!hasRequiredHuntParams({ huntId, chainId, contractAddress })) return;
 
     setIsLoading(true);
     setError(null);

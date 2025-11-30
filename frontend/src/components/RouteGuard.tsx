@@ -8,11 +8,7 @@ import { client } from "../lib/client";
 import { Hunt, Team } from "../types";
 import { validateClueAccess, getTeamIdentifier } from "../utils/progressUtils";
 import { BsArrowRepeat } from "react-icons/bs";
-
-// Type guard to ensure address is a valid hex string
-function isValidHexAddress(address: string): address is `0x${string}` {
-  return /^0x[0-9a-fA-F]{40}$/.test(address);
-}
+import { isValidHexAddress, hasRequiredClueParams } from "../utils/validationUtils";
 
 interface RouteGuardProps {
   children: React.ReactNode;
@@ -59,7 +55,8 @@ export function RouteGuard({ children }: RouteGuardProps) {
       setError(null);
 
       // Check if we have required data
-      if (huntId === undefined || clueId === undefined || userWallet === undefined || contractAddress === undefined || chainId === undefined) {
+      if (!hasRequiredClueParams({ huntId, clueId, chainId, contractAddress }) || 
+          userWallet === undefined) {
         setError("Waiting for required data...");
         setIsValidating(false);
         return;
@@ -89,12 +86,12 @@ export function RouteGuard({ children }: RouteGuardProps) {
 
         // Validate clue access
         const canProceed = await validateClueAccess(
-          parseInt(huntId),
+          parseInt(huntId!),
           teamIdentifier,
-          parseInt(clueId),
+          parseInt(clueId!),
           navigate,
-          chainId,
-          contractAddress,
+          chainId!,
+          contractAddress!,
           totalClues
         );
 
