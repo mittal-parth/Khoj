@@ -300,7 +300,7 @@ export function Clue() {
   // Sync progress with team
   const handleSyncProgress = async () => {
     if (!hasRequiredClueAndTeamParams({ huntId, clueId, chainId, contractAddress, teamIdentifier })) {
-      toast.error("Missing hunt, team information, chainId or contractAddress");
+      toast.error("Missing required parameters for sync operation");
       return;
     }
 
