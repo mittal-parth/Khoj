@@ -629,7 +629,7 @@ export function Clue() {
                 come back later.
               </p>
               <Button
-                onClick={() => navigate("/")}
+                onClick={() => navigate("/hunts")}
                 variant="default"
                 size="lg"
                 className="px-8"

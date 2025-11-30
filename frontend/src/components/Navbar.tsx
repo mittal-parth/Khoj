@@ -37,7 +37,7 @@ export function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Logo/Brand */}
           <div className="shrink-0">
-            <Link to="/" className="text-xl font-bold flex items-center gap-2 text-black hover:text-green transition-colors">
+            <Link to="/hunts" className="text-xl font-bold flex items-center gap-2 text-black hover:text-green transition-colors">
               <img 
                 src="/khoj-logo-no-bg.png" 
                 alt="Khoj Logo" 
@@ -48,7 +48,7 @@ export function Navbar() {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center gap-6">
-            <Link to="/" className="text-black hover:text-green font-medium transition-colors">
+            <Link to="/hunts" className="text-black hover:text-green font-medium transition-colors">
               Hunts
             </Link>
             <Link to="/profile" className="text-black hover:text-green font-medium transition-colors">
