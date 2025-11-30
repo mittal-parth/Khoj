@@ -11,10 +11,12 @@ import { About } from "./components/About";
 import { Create } from "./components/Create";
 import { RouteGuard } from "./components/RouteGuard";
 import { LandingPage } from "./components/LandingPage";
+import PWABadge from "./PWABadge";
 
 function AppContent() {
   const location = useLocation();
   const isLanding = location.pathname === '/';
+
 
   return (
     <div className="min-h-screen bg-yellow/10">
@@ -39,6 +41,7 @@ function AppContent() {
       <div className="md:hidden">
         {!isLanding && <Footer />}
       </div>
+      <PWABadge />
     </div>
   );
 }

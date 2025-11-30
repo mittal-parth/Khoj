@@ -56,10 +56,36 @@ export default defineConfig({
         config: true,
       },
       manifest: {
-        name: "frontend",
-        short_name: "fe",
-        description: "Frontend for Hunt App",
+        name: "Khoj - Web3 Treasure Hunt",
+        short_name: "Khoj",
+        description: "A Web3 treasure hunt platform with blockchain-based rewards",
         theme_color: "#ffffff",
+        background_color: "#ffffff",
+        display: "standalone",
+        start_url: "/",
+        icons: [
+          {
+            src: "pwa-64x64.png",
+            sizes: "64x64",
+            type: "image/png",
+          },
+          {
+            src: "pwa-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+          {
+            src: "maskable-icon-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
+        ],
       },
       workbox: {
         globPatterns: ["**/*.{js,css,html,svg,png,ico}"],
