@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
@@ -31,6 +32,7 @@ import {
 
 export const LandingPage = () => {
   const navigate = useNavigate();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -69,7 +71,7 @@ export const LandingPage = () => {
     },
     {
       title: "Limited Marketing Tools",
-      description: "Brands and blockchain communities struggle to engage users meaningfully and are always on a look out for new and interactive ways to interact with their users.",
+      description: "Brands and blockchain communities struggle to engage users meaningfully and are always on the lookout for new and interactive ways to interact with their users.",
       icon: <Megaphone className="w-8 h-8 mb-2" />,
       color: "bg-chart-3"
     }
@@ -90,7 +92,7 @@ export const LandingPage = () => {
     },
     {
       title: "Airdrops",
-      description: "Distribute tokens through gamified participation. Dropping tokens taken quite seriously.",
+      description: "Distribute tokens through gamified participation. Token drops taken quite seriously.",
       icon: <Rocket className="w-8 h-8 mb-2" />,
       color: "bg-chart-3"
     },
@@ -123,7 +125,7 @@ export const LandingPage = () => {
   const steps = [
     {
       title: "Sign Up",
-      description: "Connect your wallet to get started with your Web3 identity.",
+      description: "Get a new digital identity without worrying about wallets.",
       icon: <Wallet className="w-6 h-6" />
     },
     {
@@ -138,15 +140,27 @@ export const LandingPage = () => {
     },
     {
       title: "Solve & Earn",
-      description: "Solve riddles, verify locations, and earn onchain rewards.",
+      description: "Solve riddles, visit locations, verify coordinates, and earn onchain rewards.",
       icon: <Trophy className="w-6 h-6" />
     }
   ];
 
   const scrollToSection = (id: string) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+    // Close drawer first if open
+    if (drawerOpen) {
+      setDrawerOpen(false);
+      // Wait for drawer to close before scrolling
+      setTimeout(() => {
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth' });
+        }
+      }, 300); // Delay to allow drawer animation to complete
+    } else {
+      const element = document.getElementById(id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+      }
     }
   };
 
@@ -158,7 +172,7 @@ export const LandingPage = () => {
           {/* Left Side: Links (Desktop) & Hamburger (Mobile) */}
           <div className="flex items-center gap-6">
              <div className="md:hidden">
-                <Drawer>
+                <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
                   <DrawerTrigger asChild>
                     <Button variant="ghost" size="icon" className="hover:bg-transparent">
                       <Menu className="w-6 h-6" />
@@ -169,10 +183,18 @@ export const LandingPage = () => {
                       <DrawerTitle>Menu</DrawerTitle>
                     </DrawerHeader>
                     <div className="p-4 flex flex-col gap-4">
-                      <Button variant="ghost" onClick={() => scrollToSection('about')}>About</Button>
-                      <Button variant="ghost" onClick={() => scrollToSection('problems')}>Problems</Button>
-                      <Button variant="ghost" onClick={() => scrollToSection('how-it-works')}>How It Works</Button>
-                      <Button variant="ghost" onClick={() => scrollToSection('use-cases')}>Use Cases</Button>
+                      <DrawerClose asChild>
+                        <Button variant="ghost" onClick={() => scrollToSection('about')}>About</Button>
+                      </DrawerClose>
+                      <DrawerClose asChild>
+                        <Button variant="ghost" onClick={() => scrollToSection('problems')}>Problems</Button>
+                      </DrawerClose>
+                      <DrawerClose asChild>
+                        <Button variant="ghost" onClick={() => scrollToSection('how-it-works')}>How It Works</Button>
+                      </DrawerClose>
+                      <DrawerClose asChild>
+                        <Button variant="ghost" onClick={() => scrollToSection('use-cases')}>Use Cases</Button>
+                      </DrawerClose>
                       <DrawerClose asChild>
                           <Button variant="outline">Close</Button>
                       </DrawerClose>
@@ -216,7 +238,7 @@ export const LandingPage = () => {
             </span>
           </motion.div>
           
-          <motion.h1 variants={itemVariants} className="text-6xl md:text-8xl font-heading text-foreground tracking-tight">
+          <motion.h1 variants={itemVariants} className="text-6xl md:text-8xl font-heading text-foreground tracking-tight mt-2">
             KHOJ
           </motion.h1>
           
@@ -262,10 +284,10 @@ export const LandingPage = () => {
           >
             <h2 className="text-4xl md:text-5xl font-heading">What is Khoj?</h2>
             <p className="text-lg text-gray-700 leading-relaxed">
-              <span className="font-bold">Khoj</span> (meaning "search" or "discovery" in Hindi) is a geo-location based treasure hunt platform that combines real-world exploration with Web3 technology.
+              <span className="font-bold">Khoj</span> (meaning "search" or "discovery" in Hindi) is a geo-location based treasure hunt platform where the answer to each clue is a physical location.
             </p>
             <p className="text-lg text-gray-700 leading-relaxed">
-              Users can participate in <span className="font-bold">location-based treasure hunts</span> where they solve riddles, visit physical locations, and earn on-chain rewards.
+              Users visit places, verify coordinates and earn onchain rewards, with the most Web2 friendly UX.
             </p>
             <p className="text-lg text-gray-700 leading-relaxed">
               Discover a new way to onboard users to Web3 with a Web2-native experience.
@@ -402,8 +424,7 @@ export const LandingPage = () => {
           <div className="flex flex-wrap justify-center gap-6">
             <a href="https://github.com/mittal-parth/Khoj" target="_blank" rel="noopener noreferrer" className="hover:text-main transition-colors font-base">GitHub</a>
             <a href="https://github.com/mittal-parth/Khoj/wiki" target="_blank" rel="noopener noreferrer" className="hover:text-main transition-colors font-base">Wiki</a>
-            <a href="#" className="hover:text-main transition-colors font-base">Terms</a>
-            <a href="#" className="hover:text-main transition-colors font-base">Privacy</a>
+            <a href="https://tinyurl.com/playkhoj" className="hover:text-main transition-colors font-base">Deck</a>
           </div>
 
           <div className="flex gap-4">
