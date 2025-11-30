@@ -2,7 +2,7 @@
  * Utility functions for fetching team performance data from leaderboard
  */
 
-import { isDefined } from './validationUtils';
+import { isDefined, hasRequiredHuntParams } from './validationUtils';
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -15,7 +15,7 @@ const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
  * @returns Promise resolving to the team's combined score from leaderboard (clipped to 2 decimals)
  */
 export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: bigint | string, chainId: string | number, contractAddress: string): Promise<number> {
-  if (!isDefined(huntId) || !isDefined(teamIdentifier) || !isDefined(chainId) || !isDefined(contractAddress)) {
+  if (!hasRequiredHuntParams({ huntId, chainId, contractAddress }) || !isDefined(teamIdentifier)) {
     return 0.0; // Default score if no team data
   }
 

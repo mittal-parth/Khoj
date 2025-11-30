@@ -206,6 +206,31 @@ export function hasRequiredTeamParams(params: TeamParams): boolean {
 }
 
 /**
+ * Parameters for combined clue and team operations
+ */
+export interface ClueTeamParams {
+  huntId: string | undefined;
+  clueId: string | undefined;
+  chainId: string | number | undefined;
+  contractAddress: string | undefined;
+  teamIdentifier: string | undefined;
+}
+
+/**
+ * Check if all required clue and team params are present (combined check)
+ * This avoids duplicate validation of common hunt params
+ * @param params - Combined clue and team parameters to validate
+ * @returns True if all params are defined
+ */
+export function hasRequiredClueAndTeamParams(params: ClueTeamParams): boolean {
+  return isDefined(params.huntId) && 
+         isDefined(params.clueId) && 
+         isDefined(params.chainId) && 
+         isDefined(params.contractAddress) && 
+         isDefined(params.teamIdentifier);
+}
+
+/**
  * Assert that hunt parameters are defined - for use after validation checks
  * This helps TypeScript understand the types are narrowed after validation
  * @param huntId - The hunt ID 

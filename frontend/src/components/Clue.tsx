@@ -29,7 +29,7 @@ import {
   fetchProgress,
   isClueSolved
 } from "../utils/progressUtils";
-import { isValidHexAddress, hasRequiredClueParams, hasRequiredTeamParams } from "../utils/validationUtils";
+import { isValidHexAddress, hasRequiredClueAndTeamParams, isDefined } from "../utils/validationUtils";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 const MAX_ATTEMPTS = parseInt(import.meta.env.VITE_MAX_CLUE_ATTEMPTS || "6", 10);
@@ -106,8 +106,7 @@ export function Clue() {
   // Reusable function to fetch retry attempts from backend
   // Returns the fetched data or null if fetch failed
   const fetchRetryAttempts = async (showLoading = true) => {
-    if (!hasRequiredClueParams({ huntId, clueId, chainId, contractAddress }) || 
-        !hasRequiredTeamParams({ huntId, chainId, contractAddress, teamIdentifier })) {
+    if (!hasRequiredClueAndTeamParams({ huntId, clueId, chainId, contractAddress, teamIdentifier })) {
       if (showLoading) {
         setIsLoadingRetries(false);
       }
@@ -203,8 +202,7 @@ export function Clue() {
 
   // Create retry attempt attestation
   const createRetryAttestation = async (currentAttemptCount: number) => {
-    if (!userWallet || !hasRequiredClueParams({ huntId, clueId, chainId, contractAddress }) ||
-        !hasRequiredTeamParams({ huntId, chainId, contractAddress, teamIdentifier })) {
+    if (!isDefined(userWallet) || !hasRequiredClueAndTeamParams({ huntId, clueId, chainId, contractAddress, teamIdentifier })) {
       console.log("Missing required data for retry attestation:", {
         userWallet: !!userWallet,
         huntId: !!huntId,
@@ -252,7 +250,7 @@ export function Clue() {
 
   // Create clue solve attestation
   const createAttestation = async (timeTaken: number, totalAttempts: number) => {
-    if (!userWallet || !hasRequiredClueParams({ huntId, clueId, chainId, contractAddress })) {
+    if (!isDefined(userWallet) || !hasRequiredClueAndTeamParams({ huntId, clueId, chainId, contractAddress, teamIdentifier })) {
       console.log("Missing required data for attestation:", {
         userWallet: !!userWallet,
         huntId: !!huntId,
@@ -301,7 +299,7 @@ export function Clue() {
 
   // Sync progress with team
   const handleSyncProgress = async () => {
-    if (!hasRequiredTeamParams({ huntId, chainId, contractAddress, teamIdentifier })) {
+    if (!hasRequiredClueAndTeamParams({ huntId, clueId, chainId, contractAddress, teamIdentifier })) {
       toast.error("Missing hunt, team information, chainId or contractAddress");
       return;
     }
