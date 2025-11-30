@@ -152,7 +152,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
             <p className="text-gray-600 mb-8">{error}. If the page doesn't load automatically, 
               please return to the hunts page.</p>
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/hunts")}
               className="bg-black hover:bg-gray-800 text-white px-8 py-2 rounded-sm"
             >
               Return to Hunts
