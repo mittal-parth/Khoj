@@ -56,9 +56,9 @@ export default defineConfig({
         config: true,
       },
       manifest: {
-        name: "Khoj - Web3 Treasure Hunt",
+        name: "Khoj",
         short_name: "Khoj",
-        description: "A Web3 treasure hunt platform with blockchain-based rewards",
+        description: "Geo-location treasure hunt app that makes Web3 onboarding feel Web2-native.",
         theme_color: "#ffffff",
         background_color: "#ffffff",
         display: "standalone",

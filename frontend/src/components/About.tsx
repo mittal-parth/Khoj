@@ -64,13 +64,37 @@ export function About() {
                 animate={{ scale: [1, 1.02, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
-                Khojo
+                Khoj
               </motion.h1>
             </motion.div>
+            <motion.p
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-xl md:text-3xl font-base text-white/80 max-w-2xl mx-auto leading-relaxed mt-4"
+            >
+              A geo-location treasure hunt app that turns Web3 onboarding into an <span className="font-bold text-white bg-white/20 px-2 rounded-sm">adventure</span>.
+            </motion.p>
           </div>
 
           {/* Main Content */}
           <div className="p-6 sm:p-12">
+            {/* Introduction Section */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="text-center mb-8 sm:mb-12"
+            >
+              <p className="text-lg text-gray-700 leading-relaxed mb-4">
+                Users visit places, verify coordinates and earn onchain rewards, with the most Web2 friendly UX. Discover a new way to onboard users to Web3.
+              </p>
+              <p className="text-lg text-gray-700 leading-relaxed">
+                ETHIndia'24 Finalist, supported by Polkadot Fast Grants.
+              </p>
+            </motion.div>
+
             {/* Mission Statement */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
