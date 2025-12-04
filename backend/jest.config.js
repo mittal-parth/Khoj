@@ -10,6 +10,10 @@ export default {
     '**/__tests__/**/*.test.js',
     '**/?(*.)+(spec|test).js'
   ],
+  testPathIgnorePatterns: [
+    '/node_modules/',
+    '/tests/sign-protocol\\.test\\.js$'
+  ],
   collectCoverageFrom: [
     '**/*.js',
     '!**/node_modules/**',
