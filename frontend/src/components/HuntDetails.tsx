@@ -36,13 +36,9 @@ import {
   getTeamIdentifier 
 } from "../utils/progressUtils";
 import { AddressDisplay } from "./AddressDisplay";
+import { isValidHexAddress, hasRequiredTeamParams, isDefined } from "../utils/validationUtils";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
-
-// Type guard to ensure address is a valid hex string
-function isValidHexAddress(address: string): address is `0x${string}` {
-  return /^0x[0-9a-fA-F]{40}$/.test(address);
-}
 
 export function HuntDetails() {
   const { huntId } = useParams();
@@ -82,9 +78,17 @@ export function HuntDetails() {
   // Local loading state for immediate button feedback
   const [isStartingHunt, setIsStartingHunt] = useState(false);
   
+  // Cyclic loading message state
+  const [loadingMessage, setLoadingMessage] = useState("Starting hunt");
+  const messageIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const messageIndexRef = useRef(0);
+  
   // Retry state for decrypt-clues API call
   const [retryCount, setRetryCount] = useState(0);
   const [isRetrying, setIsRetrying] = useState(false);
+  // Hunt start attestation state (to prevent duplicates)
+  const huntStartCreationInProgress = useRef(false);
+  const huntStartCreatedForTeam = useRef<string | null>(null);
 
   // Use the reactive network state hook
   const { currentNetwork, contractAddress, chainId, currentChain } = useNetworkState();
@@ -194,19 +198,122 @@ export function HuntDetails() {
     }
   }
 
+  // Create hunt start attestation (only once per team when starting the hunt)
+  // Uses clueIndex: 0 and attemptCount: 0 to indicate hunt start
+  const createHuntStartAttestation = async () => {
+    if (!hasRequiredTeamParams({ huntId, chainId, contractAddress, teamIdentifier }) || !isDefined(userWallet)) {
+      console.log("Missing required data for hunt start attestation");
+      return;
+    }
+
+    // Generate unique key for this team/hunt combination
+    const teamHuntKey = `${huntId}-${teamIdentifier}`;
+    
+    // Check if we've already created attestation for this team/hunt
+    if (huntStartCreatedForTeam.current === teamHuntKey) {
+      console.log("Hunt start attestation already created in this session");
+      return;
+    }
+
+    // Check if creation is already in progress (prevent race condition)
+    if (huntStartCreationInProgress.current) {
+      console.log("Hunt start attestation creation already in progress");
+      return;
+    }
+
+    try {
+      // Set lock to prevent duplicate calls
+      huntStartCreationInProgress.current = true;
+
+      // Check if hunt start attestation already exists using retry-attempts endpoint with clueIndex: 0
+      const response = await fetch(
+        `${BACKEND_URL}/retry-attempts/${huntId}/0/${teamIdentifier}?chainId=${chainId}&contractAddress=${contractAddress}`
+      );
+      
+      if (!response.ok) {
+        console.error("Failed to check hunt start:", response.status);
+        return;
+      }
+
+      const data = await response.json();
+      
+      // If hunt start attestation already exists (attemptCount > 0), don't create another one
+      if (data.attemptCount > 0) {
+        console.log("Hunt start attestation already exists on server");
+        huntStartCreatedForTeam.current = teamHuntKey;
+        return;
+      }
+
+
+      // Create hunt start attestation using attest-attempt endpoint with clueIndex: 0
+      const requestPayload = {
+        teamIdentifier,
+        huntId: parseInt(huntId!),
+        clueIndex: 0, // Special value for hunt start
+        solverAddress: userWallet,
+        attemptCount: 0, // Special value for hunt start
+        chainId: chainId,
+        contractAddress: contractAddress,
+      };
+      
+      console.log("Creating hunt start attestation with payload:", requestPayload);
+      const createResponse = await fetch(`${BACKEND_URL}/attest-attempt`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestPayload),
+      });
+
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json().catch(() => ({}));
+        console.error("Failed to create hunt start attestation:", createResponse.status, errorData);
+        return;
+      }
+
+      const result = await createResponse.json();
+      console.log("Hunt start attestation created successfully:", result);
+      
+      // Mark as created for this team/hunt combination
+      huntStartCreatedForTeam.current = teamHuntKey;
+    } catch (error) {
+      console.error("Error creating hunt start attestation:", error);
+    } finally {
+      // Always release lock
+      huntStartCreationInProgress.current = false;
+    }
+  };
+
   const handleHuntStart = async () => {
     setIsStartingHunt(true);
     setRetryCount(0);
     setIsRetrying(false);
     
+    // Setup cyclic loading messages with ref for proper cleanup
+    const messages = ["Starting hunt...", "Decrypting clues...", "Validating access..."];
+    messageIndexRef.current = 0;
+    setLoadingMessage(messages[0]);
+    
+    // Clear any existing interval
+    if (messageIntervalRef.current) {
+      clearInterval(messageIntervalRef.current);
+    }
+    
+    messageIntervalRef.current = setInterval(() => {
+      messageIndexRef.current = (messageIndexRef.current + 1) % messages.length;
+      setLoadingMessage(messages[messageIndexRef.current]);
+    }, 2000); // Change message every 2 seconds
+    
     if (!userWallet) {
       toast.error("Please connect your wallet first");
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
       setIsStartingHunt(false);
       return;
     }
 
     if (!huntData?.clues_blobId || !huntData?.answers_blobId) {
       toast.error("Hunt data not available");
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
       setIsStartingHunt(false);
       return;
     }
@@ -218,6 +325,7 @@ export function HuntDetails() {
       toast.error(
         "You are not eligible for this hunt. Please register or check the requirements."
       );
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
       setIsStartingHunt(false);
       return;
     }
@@ -231,16 +339,19 @@ export function HuntDetails() {
       const totalClues = currentClueData.length;
 
       // If we have clues data, check progress
-      if (totalClues > 0) {
+      if (totalClues > 0 && chainId && contractAddress) {
         const shouldContinue = await checkProgressAndNavigate(
           parseInt(huntId || "0"),
           teamIdentifier,
           totalClues,
-          navigate
+          navigate,
+          chainId,
+          contractAddress
         );
         
         if (shouldContinue) {
           // User was redirected, stop here
+          if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
           setIsStartingHunt(false);
           return;
         }
@@ -282,6 +393,10 @@ export function HuntDetails() {
       const clues = JSON.parse(data);
 
       await fetchRiddles(clues, huntId || "0", huntData?.theme || "");
+      
+      // Create hunt start attestation after clues are successfully loaded
+      await createHuntStartAttestation();
+      
       navigate(`/hunt/${huntId}/clue/1`);
     };
 
@@ -301,6 +416,7 @@ export function HuntDetails() {
       console.error("Error starting hunt:", error);
       toast.error("Failed to start hunt");
     } finally {
+      if (messageIntervalRef.current) clearInterval(messageIntervalRef.current);
       setIsStartingHunt(false);
       setIsRetrying(false);
     }
@@ -379,6 +495,15 @@ export function HuntDetails() {
       }
     };
   }, [qrScanner]);
+
+  // Clean up loading message interval when component unmounts
+  useEffect(() => {
+    return () => {
+      if (messageIntervalRef.current) {
+        clearInterval(messageIntervalRef.current);
+      }
+    };
+  }, []);
 
   // Log team error to understand why it's undefined
   if (teamError) {
@@ -788,7 +913,7 @@ export function HuntDetails() {
                           <Button 
                             className="w-full border-2 border-black shadow-[-4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-bold" 
                             onClick={generateMultiUseInvite}
-                            disabled={isGeneratingInvite}
+                            disabled={isGeneratingInvite || isStartingHunt || isGeneratingRiddles}
                           >
                             {isGeneratingInvite ? "Creating Team..." : "Create Team & Generate Invite"}
                           </Button>
@@ -913,7 +1038,7 @@ export function HuntDetails() {
           {isRetrying 
             ? `Retrying... (${retryCount}/${MAX_RETRIES})`
             : (isStartingHunt || isGeneratingRiddles) 
-              ? "Starting Hunt..." 
+              ? `${loadingMessage}...` 
               : "Start Hunt"
           }
         </Button>

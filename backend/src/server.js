@@ -49,7 +49,7 @@ import {
 } from "./services/huddle.js";
 import { GoogleGenAI, Type } from "@google/genai";
 import { withRetry } from "./utils/retry-utils.js";
-import { attestClueSolved, queryAttestationsForHunt } from "./services/sign-protocol.js";
+import { attestClueSolved, attestClueAttempt, queryAttestationsForHunt, queryRetryAttemptsForClue } from "./services/sign-protocol.js";
 import { calculateLeaderboardForHunt } from "./services/leaderboard.js";
 
 const MAX_DISTANCE_IN_METERS = parseFloat(process.env.MAX_DISTANCE_IN_METERS) || 60;
@@ -787,7 +787,7 @@ app.post("/startHuddle", async (req, res) => {
     const { huntId, teamId } = req.body;
     
     // Validate required fields
-    if (!huntId || !teamId) {
+    if (huntId === undefined || teamId === undefined) {
       return res.status(400).json({
         error: "Missing required fields: huntId and teamId",
       });
@@ -960,15 +960,61 @@ app.post("/generate-riddles", async (req, res) => {
   }
 });
 
+// Attest clue attempt endpoint (for retry tracking and hunt start with clueIndex: 0)
+app.post("/attest-attempt", async (req, res) => {
+  try {
+    const { teamIdentifier, huntId, clueIndex, solverAddress, attemptCount, chainId, contractAddress } = req.body;
+
+    // Validate required fields
+    if (huntId === undefined || clueIndex === undefined || !teamIdentifier || !solverAddress || attemptCount === undefined || !chainId || !contractAddress) {
+      return res.status(400).json({
+        error: "Missing required fields: huntId, clueIndex, teamIdentifier, solverAddress, attemptCount, chainId, contractAddress",
+      });
+    }
+
+    console.log("Creating attestation for clue attempt:", {
+      teamIdentifier,
+      huntId,
+      clueIndex,
+      solverAddress,
+      attemptCount,
+      chainId,
+      contractAddress,
+    });
+
+    const attestationInfo = await attestClueAttempt(
+      teamIdentifier,
+      huntId,
+      clueIndex,
+      solverAddress,
+      attemptCount,
+      chainId,
+      contractAddress
+    );
+
+    res.json({
+      success: true,
+      attestationId: attestationInfo.attestationId,
+      message: "Retry attestation created successfully",
+    });
+  } catch (error) {
+    console.error("Error creating retry attestation:", error);
+    res.status(500).json({
+      error: "Failed to create retry attestation",
+      message: error.message,
+    });
+  }
+});
+
 // Attest clue solve endpoint
 app.post("/attest-clue", async (req, res) => {
   try {
-    const { teamIdentifier, huntId, clueIndex, teamLeaderAddress, solverAddress, attemptCount } = req.body;
+    const { teamIdentifier, huntId, clueIndex, teamLeaderAddress, solverAddress, timeTaken, attemptCount, chainId, contractAddress } = req.body;
 
     // Validate required fields
-    if (!huntId || !clueIndex || !teamLeaderAddress || !teamIdentifier || !solverAddress || attemptCount === undefined) {
+    if (huntId === undefined || clueIndex === undefined || !teamLeaderAddress || !teamIdentifier || !solverAddress || timeTaken === undefined || attemptCount === undefined || !chainId || !contractAddress) {
       return res.status(400).json({
-        error: "Missing required fields: huntId, clueIndex, teamLeaderAddress, teamIdentifier, solverAddress, attemptCount",
+        error: "Missing required fields: huntId, clueIndex, teamLeaderAddress, teamIdentifier, solverAddress, timeTaken, attemptCount, chainId, contractAddress",
       });
     }
 
@@ -978,7 +1024,10 @@ app.post("/attest-clue", async (req, res) => {
       clueIndex,
       teamLeaderAddress,
       solverAddress,
+      timeTaken,
       attemptCount,
+      chainId,
+      contractAddress,
     });
 
     const attestationInfo = await attestClueSolved(
@@ -987,7 +1036,10 @@ app.post("/attest-clue", async (req, res) => {
       clueIndex,
       teamLeaderAddress,
       solverAddress,
-      attemptCount
+      timeTaken,
+      attemptCount,
+      chainId,
+      contractAddress
     );
 
     res.json({
@@ -1010,6 +1062,9 @@ app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
     const huntId = parseInt(req.params.huntId);
     const teamIdentifier = req.params.teamIdentifier;
     const totalClues = parseInt(req.query.totalClues) || null;
+    const chainId = req.query.chainId;
+    const contractAddress = req.query.contractAddress;
+    
     
     if (isNaN(huntId)) {
       return res.status(400).json({
@@ -1023,10 +1078,22 @@ app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
       });
     }
 
-    console.log(`Checking progress for hunt ${huntId}, team ${teamIdentifier}, totalClues: ${totalClues}...`);
+    if (!chainId) {
+      return res.status(400).json({
+        error: "Chain ID is required",
+      });
+    }
+
+    if (!contractAddress) {
+      return res.status(400).json({
+        error: "Contract address is required",
+      });
+    }
+
+    console.log(`Checking progress for hunt ${huntId}, team ${teamIdentifier}, totalClues: ${totalClues}, chainId: ${chainId}, contractAddress: ${contractAddress}...`);
 
     // Get all attestations for this hunt
-    const attestations = await queryAttestationsForHunt(huntId);
+    const attestations = await queryAttestationsForHunt(huntId, chainId, contractAddress);
     
     if (!attestations || attestations.length === 0) {
       return res.json({
@@ -1058,12 +1125,19 @@ app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
       });
     }
 
-    // Find the highest clue index solved by this team
+    // Find the highest clue index solved by this team and build a map of solve timestamps
     let latestClueSolved = 0;
+    const solvedClues = {}; // Map of clueIndex -> { solveTimestamp }
     
     for (const attestation of teamAttestations) {
       const data = JSON.parse(attestation.data);
       const clueIndex = parseInt(data.clueIndex);
+      
+      // Store solve timestamp (in seconds) for each clue
+      solvedClues[clueIndex] = {
+        solveTimestamp: Math.floor(parseInt(attestation.attestTimestamp) / 1000)
+      };
+      
       if (clueIndex > latestClueSolved) {
         latestClueSolved = clueIndex;
       }
@@ -1079,7 +1153,8 @@ app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
       latestClueSolved,
       totalClues: finalTotalClues,
       isHuntCompleted,
-      nextClue: isHuntCompleted ? null : latestClueSolved + 1
+      nextClue: isHuntCompleted ? null : latestClueSolved + 1,
+      solvedClues // Include solve timestamps for each clue
     });
   } catch (error) {
     console.error("Error checking progress:", error);
@@ -1090,10 +1165,93 @@ app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
   }
 });
 
+// Get retry attempts for a specific clue and team (also used for hunt start with clueIndex: 0)
+app.get("/retry-attempts/:huntId/:clueIndex/:teamIdentifier", async (req, res) => {
+  try {
+    const huntId = parseInt(req.params.huntId);
+    const clueIndex = parseInt(req.params.clueIndex);
+    const teamIdentifier = req.params.teamIdentifier;
+    const chainId = req.query.chainId;
+    const contractAddress = req.query.contractAddress;
+    
+    if (isNaN(huntId) || isNaN(clueIndex)) {
+      return res.status(400).json({
+        error: "Invalid hunt ID or clue index",
+      });
+    }
+
+    if (!teamIdentifier) {
+      return res.status(400).json({
+        error: "Team identifier is required",
+      });
+    }
+
+    if (!chainId) {
+      return res.status(400).json({
+        error: "Chain ID is required",
+      });
+    }
+
+    if (!contractAddress) {
+      return res.status(400).json({
+        error: "Contract address is required",
+      });
+    }
+
+    console.log(`Fetching retry attempts for hunt ${huntId}, clue ${clueIndex}, team ${teamIdentifier}, chainId ${chainId}, contractAddress ${contractAddress}...`);
+
+    // Get all retry attestations for this clue and team
+    const retryAttestations = await queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier, chainId, contractAddress);
+    
+    if (!retryAttestations || retryAttestations.length === 0) {
+      return res.json({
+        huntId,
+        clueIndex,
+        teamIdentifier,
+        attemptCount: 0,
+        firstAttemptTimestamp: null,
+        latestAttemptTimestamp: null,
+        message: "No attempts found for this clue"
+      });
+    }
+
+    // Parse and sort attempts by attestTimestamp
+    // attestTimestamp is in milliseconds, convert to seconds for consistency
+    const attempts = retryAttestations.map(attestation => {
+      const data = JSON.parse(attestation.data);
+      return {
+        attemptCount: parseInt(data.attemptCount),
+        timestamp: Math.floor(parseInt(attestation.attestTimestamp) / 1000), // Convert from ms to seconds
+        solverAddress: data.solverAddress,
+      };
+    }).sort((a, b) => a.timestamp - b.timestamp);
+
+    const firstAttempt = attempts[0];
+    const latestAttempt = attempts[attempts.length - 1];
+
+    res.json({
+      huntId,
+      clueIndex,
+      teamIdentifier,
+      attemptCount: attempts.length,
+      firstAttemptTimestamp: firstAttempt.timestamp,
+      latestAttemptTimestamp: latestAttempt.timestamp
+    });
+  } catch (error) {
+    console.error("Error fetching retry attempts:", error);
+    res.status(500).json({
+      error: "Failed to fetch retry attempts",
+      message: error.message,
+    });
+  }
+});
+
 // Leaderboard endpoint
 app.get("/leaderboard/:huntId", async (req, res) => {
   try {
     const huntId = parseInt(req.params.huntId);
+    const chainId = req.query.chainId;
+    const contractAddress = req.query.contractAddress;
     
     if (isNaN(huntId)) {
       return res.status(400).json({
@@ -1101,10 +1259,22 @@ app.get("/leaderboard/:huntId", async (req, res) => {
       });
     }
 
-    console.log(`Fetching leaderboard for hunt ${huntId}...`);
+    if (!chainId) {
+      return res.status(400).json({
+        error: "Chain ID is required",
+      });
+    }
+
+    if (!contractAddress) {
+      return res.status(400).json({
+        error: "Contract address is required",
+      });
+    }
+
+    console.log(`Fetching leaderboard for hunt ${huntId}, chainId ${chainId}, contractAddress ${contractAddress}...`);
 
     // Query all attestations for this hunt
-    const attestations = await queryAttestationsForHunt(huntId);
+    const attestations = await queryAttestationsForHunt(huntId, chainId, contractAddress);
     
     if (attestations.length === 0) {
       return res.json({

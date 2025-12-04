@@ -14,11 +14,7 @@ import { toast } from "sonner";
 import { client } from "../lib/client";
 import { Hunt, Team } from "../types";
 import { fetchTeamCombinedScore } from "../utils/leaderboardUtils";
-
-// Type guard to ensure address is a valid hex string
-function isValidHexAddress(address: string): address is `0x${string}` {
-  return /^0x[0-9a-fA-F]{40}$/.test(address);
-}
+import { isValidHexAddress, hasRequiredHuntParams } from "../utils/validationUtils";
 
 export function HuntEnd() {
   const { huntId } = useParams();
@@ -29,7 +25,7 @@ export function HuntEnd() {
   const [hasShownConfetti, setHasShownConfetti] = useState(false);
 
   // Use the reactive network state hook
-  const { contractAddress, currentChain } = useNetworkState();
+  const { contractAddress, currentChain, chainId } = useNetworkState();
 
   // Create thirdweb contract instance
   const contract = getContract({
@@ -60,13 +56,13 @@ export function HuntEnd() {
   // Fetch team score from leaderboard
   useEffect(() => {
     const loadTeamScore = async () => {
-      if (!huntId || !teamData) {
+      if (!hasRequiredHuntParams({ huntId, chainId, contractAddress }) || !teamData) {
         setIsLoadingScore(false);
         return;
       }
 
       try {
-        const score = await fetchTeamCombinedScore(huntId, teamData?.teamId || userWallet as `0x${string}`);
+        const score = await fetchTeamCombinedScore(huntId!, teamData?.teamId || userWallet as `0x${string}`, chainId!, contractAddress!);
         setTeamScore(score);
         // Trigger confetti only once when score is successfully loaded
         if (!hasShownConfetti) {
@@ -81,7 +77,7 @@ export function HuntEnd() {
     };
 
     loadTeamScore();
-  }, [huntId, teamData]);
+  }, [huntId, teamData, chainId, contractAddress]);
 
   // Use dynamic score or show loading state
   const trustScore = teamScore !== null ? teamScore.toString() : "...";

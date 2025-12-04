@@ -2,21 +2,28 @@
  * Utility functions for fetching team performance data from leaderboard
  */
 
+import { isDefined, hasRequiredTeamParams } from './validationUtils';
+
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
 /**
  * Fetch team combined score from leaderboard API
  * @param huntId - The hunt ID
  * @param teamIdentifier - The team identifier (teamId for teams, wallet address for solo users)
+ * @param chainId - The chain ID
+ * @param contractAddress - The contract address
  * @returns Promise resolving to the team's combined score from leaderboard (clipped to 2 decimals)
  */
-export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: bigint | string): Promise<number> {
-  if (!huntId || !teamIdentifier) {
+export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: bigint | string, chainId: string | number, contractAddress: string): Promise<number> {
+  if (!hasRequiredTeamParams({ huntId, chainId, contractAddress, teamIdentifier: teamIdentifier?.toString() })) {
     return 0.0; // Default score if no team data
   }
 
   try {
-    const response = await fetch(`${BACKEND_URL}/leaderboard/${huntId}`);
+    const url = new URL(`${BACKEND_URL}/leaderboard/${huntId}`);
+    url.searchParams.set('chainId', chainId.toString());
+    url.searchParams.set('contractAddress', contractAddress);
+    const response = await fetch(url.toString());
     
     if (!response.ok) {
       throw new Error(`Failed to fetch leaderboard: ${response.status}`);
@@ -51,6 +58,6 @@ export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: big
  * @returns Shortened format (e.g., "0x1234...5678")
  */
 export const formatAddress = (address: string): string => {
-  if (!address) return '';
+  if (!isDefined(address) || address === '') return '';
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };

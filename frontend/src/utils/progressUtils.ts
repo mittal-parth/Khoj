@@ -18,10 +18,15 @@ export interface ProgressData {
 export async function fetchProgress(
   huntId: number,
   teamIdentifier: string,
+  chainId: string | number,
+  contractAddress: string,
   totalClues?: number
 ): Promise<ProgressData | null> {
   try {
+
     const url = new URL(`${BACKEND_URL}/progress/${huntId}/${teamIdentifier}`);
+    url.searchParams.set('chainId', chainId.toString());
+    url.searchParams.set('contractAddress', contractAddress);
     if (totalClues) {
       url.searchParams.set('totalClues', totalClues.toString());
     }
@@ -111,6 +116,8 @@ async function handleNavigation(
   teamIdentifier: string,
   currentClueIndex: number,
   navigate: (path: string) => void,
+  chainId: string | number,
+  contractAddress: string,
   totalClues?: number,
   options: {
     isSync?: boolean;
@@ -122,7 +129,8 @@ async function handleNavigation(
   const { isSync = false, allowVerification = false, showSuccessToast = true, isResume = false } = options;
   
   try {
-    const progress = await fetchProgress(huntId, teamIdentifier, totalClues);
+    
+    const progress = await fetchProgress(huntId, teamIdentifier, chainId, contractAddress, totalClues);
     
     if (!progress) {
       if (isSync) {
@@ -202,9 +210,11 @@ export async function syncProgressAndNavigate(
   teamIdentifier: string,
   currentClueIndex: number,
   navigate: (path: string) => void,
+  chainId: string | number,
+  contractAddress: string,
   totalClues?: number
 ): Promise<boolean> {
-  return handleNavigation(huntId, teamIdentifier, currentClueIndex, navigate, totalClues, { isSync: true });
+  return handleNavigation(huntId, teamIdentifier, currentClueIndex, navigate, chainId, contractAddress, totalClues, { isSync: true });
 }
 
 /**
@@ -216,10 +226,13 @@ export async function validateClueAccess(
   teamIdentifier: string,
   clueIndex: number,
   navigate: (path: string) => void,
+  chainId: string | number,
+  contractAddress: string,
   totalClues?: number
 ): Promise<boolean> {
   try {
-    const progress = await fetchProgress(huntId, teamIdentifier, totalClues);
+
+    const progress = await fetchProgress(huntId, teamIdentifier, chainId, contractAddress, totalClues);
     
     if (!progress) {
       // If we can't fetch progress, allow verification to proceed
@@ -282,7 +295,9 @@ export async function checkProgressAndNavigate(
   huntId: number,
   teamIdentifier: string,
   totalClues: number,
-  navigate: (path: string) => void
+  navigate: (path: string) => void,
+  chainId: string | number,
+  contractAddress: string
 ): Promise<boolean> {
-  return handleNavigation(huntId, teamIdentifier, 1, navigate, totalClues, { isResume: true });
+  return handleNavigation(huntId, teamIdentifier, 1, navigate, chainId, contractAddress, totalClues, { isResume: true });
 }

@@ -8,6 +8,8 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { TeamIdentifierDisplay, isSoloParticipant } from './TeamIdentifierDisplay';
 import { AddressDisplay } from './AddressDisplay';
+import { useNetworkState } from '../lib/utils';
+import { hasRequiredHuntParams } from '../utils/validationUtils';
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
@@ -36,22 +38,24 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const { chainId, contractAddress } = useNetworkState();
 
   // Fetch leaderboard data when component opens
   useEffect(() => {
-    if (isOpen && huntId) {
+    if (isOpen && huntId && chainId && contractAddress) {
       fetchLeaderboard();
     }
-  }, [isOpen, huntId]);
+  }, [isOpen, huntId, chainId, contractAddress]);
 
   const fetchLeaderboard = async () => {
-    if (!huntId) return;
+    if (!hasRequiredHuntParams({ huntId, chainId, contractAddress })) return;
 
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/leaderboard/${huntId}`);
+      const response = await fetch(`${BACKEND_URL}/leaderboard/${huntId}?chainId=${chainId}&contractAddress=${contractAddress}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch leaderboard: ${response.status}`);
@@ -91,9 +95,9 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
   };
 
   const getScoreColor = (score: number) => {
-    if (score <= 30) return 'text-green-600';
-    if (score <= 50) return 'text-yellow-600';
-    if (score <= 75) return 'text-orange-600';
+    if (score <= 1200) return 'text-green-600';
+    if (score <= 1800) return 'text-yellow-600';
+    if (score <= 2700) return 'text-orange-600';
     return 'text-red-600';
   };
 
