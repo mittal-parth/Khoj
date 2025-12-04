@@ -46,7 +46,7 @@ jobs:
           PORT: ${{ secrets.PORT }}
           HUDDLE_PROJECT_ID: ${{ secrets.HUDDLE_PROJECT_ID }}
           HUDDLE_API_KEY: ${{ secrets.HUDDLE_API_KEY }}
-          PRIVATE_KEY: ${{ secrets.PRIVATE_KEY }}
+          LIT_WALLET_PRIVATE_KEY: ${{ secrets.LIT_WALLET_PRIVATE_KEY }}
           PINATA_JWT: ${{ secrets.PINATA_JWT }}
           PINATA_GATEWAY: ${{ secrets.PINATA_GATEWAY }}
           HOST: ${{ secrets.HOST }}
