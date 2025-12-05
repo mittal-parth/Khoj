@@ -1,0 +1,138 @@
+name: Backend Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        node-version: [24.x]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+    
+    - name: Prepare cache directories
+      run: |
+        mkdir -p ~/.npm
+    
+    - name: Cache npm dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.npm
+          backend/node_modules
+        key: ${{ runner.os }}-npm-${{ hashFiles('backend/package-lock.json', 'backend/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: |
+        if [ -f package-lock.json ]; then
+          npm ci --prefer-offline --no-audit --progress=false
+        else
+          npm install --no-audit --progress=false
+        fi
+    
+    - name: Run linting
+      working-directory: ./backend
+      run: npm run lint --if-present
+    
+    - name: Run tests
+      working-directory: ./backend
+      run: npm test
+      env:
+          NODE_ENV: test
+          PORT: ${{ secrets.PORT }}
+          HUDDLE_PROJECT_ID: ${{ secrets.HUDDLE_PROJECT_ID }}
+          HUDDLE_API_KEY: ${{ secrets.HUDDLE_API_KEY }}
+          LIT_WALLET_PRIVATE_KEY: ${{ secrets.LIT_WALLET_PRIVATE_KEY }}
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+          PINATA_GATEWAY: ${{ secrets.PINATA_GATEWAY }}
+          HOST: ${{ secrets.HOST }}
+          MAX_DISTANCE_IN_METERS: ${{ secrets.MAX_DISTANCE_IN_METERS }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+    
+    - name: Upload coverage reports
+      if: matrix.node-version == '20.x'
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./backend/coverage/coverage-final.json
+        flags: backend
+        name: backend-coverage
+        fail_ci_if_error: false
+    
+    - name: Archive test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.node-version }}
+        path: |
+          backend/coverage/
+          backend/test-results/
+        retention-days: 30
+
+  integration-test:
+    runs-on: ubuntu-latest
+    needs: test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '24.x'
+    
+    - name: Prepare cache directories
+      run: |
+        mkdir -p ~/.npm
+    
+    - name: Cache npm dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.npm
+          backend/node_modules
+        key: ${{ runner.os }}-npm-${{ hashFiles('backend/package-lock.json', 'backend/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
+    
+    - name: Install dependencies
+      working-directory: ./backend
+      run: |
+        if [ -f package-lock.json ]; then
+          npm ci --prefer-offline --no-audit --progress=false
+        else
+          npm install --no-audit --progress=false
+        fi
+    
+    - name: Run integration tests
+      working-directory: ./backend
+      run: npm run test:integration
+      env:
+        NODE_ENV: test
+    
+    - name: Test summary
+      if: always()
+      run: |
+        echo "## Integration Test Results" >> $GITHUB_STEP_SUMMARY
+        echo "✅ Integration tests completed" >> $GITHUB_STEP_SUMMARY
