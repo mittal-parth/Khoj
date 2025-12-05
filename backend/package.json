@@ -10,7 +10,8 @@
     "test:leaderboard": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/leaderboard.test.js",
     "test:sign-protocol": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/sign-protocol.test.js",
     "start": "node src/server.js",
-    "huddle": "node src/services/huddle.js"
+    "huddle": "node src/services/huddle.js",
+    "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --testPathPattern=integration"
   },
   "author": "",
   "license": "ISC",
@@ -33,7 +34,9 @@
   },
   "devDependencies": {
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
-    "jest": "^30.2.0",
-    "prettier": "3.6.2"
+    "prettier": "3.6.2",
+    "jest": "^29.7.0",
+    "supertest": "^7.0.0",
+    "@jest/globals": "^29.7.0"
   }
 }
