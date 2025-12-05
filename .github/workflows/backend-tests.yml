@@ -23,16 +23,32 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Setup Node.js ${{ matrix.node-version }}
+    - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: backend/package-lock.json
+        node-version: '24'
     
-    - name: Install dependencies
+    - name: Prepare npm cache directory
+      run: mkdir -p ~/.npm
+    
+    - name: Cache npm dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.npm
+          backend/node_modules
+        key: ${{ runner.os }}-npm-${{ hashFiles('backend/package-lock.json', 'backend/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
+    
+    - name: Install dependencies (npm)
       working-directory: ./backend
-      run: npm ci
+      run: |
+        if [ -f package-lock.json ]; then
+          npm ci --prefer-offline --no-audit --progress=false
+        else
+          npm install --no-audit --progress=false
+        fi
     
     - name: Run linting
       working-directory: ./backend
@@ -80,16 +96,32 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Setup Node.js
+    - name: Set up Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '24.x'
-        cache: 'npm'
-        cache-dependency-path: backend/package-lock.json
+        node-version: '24'
     
-    - name: Install dependencies
+    - name: Prepare npm cache directory
+      run: mkdir -p ~/.npm
+    
+    - name: Cache npm dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          ~/.npm
+          backend/node_modules
+        key: ${{ runner.os }}-npm-${{ hashFiles('backend/package-lock.json', 'backend/package.json') }}
+        restore-keys: |
+          ${{ runner.os }}-npm-
+    
+    - name: Install dependencies (npm)
       working-directory: ./backend
-      run: npm ci
+      run: |
+        if [ -f package-lock.json ]; then
+          npm ci --prefer-offline --no-audit --progress=false
+        else
+          npm install --no-audit --progress=false
+        fi
     
     - name: Run integration tests
       working-directory: ./backend
