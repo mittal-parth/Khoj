@@ -6,7 +6,7 @@ describe('Khoj Backend API Integration Tests', () => {
 
   beforeAll(async () => {
     // Import server
-    const serverModule = await import('../../server.js');
+    const serverModule = await import('../../src/server.js');
     app = serverModule.default || serverModule.app;
   });
 
