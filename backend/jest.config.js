@@ -31,7 +31,7 @@ export default {
       statements: 20
     }
   },
-  setupFilesAfterEnv: ['<rootDir>/__tests__/setup.js'],
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.js', '<rootDir>/__tests__/setup.js'],
   testTimeout: 30000,
   verbose: true
 };
