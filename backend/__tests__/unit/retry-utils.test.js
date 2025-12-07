@@ -1,5 +1,5 @@
 import { describe, it, expect, jest } from '@jest/globals';
-import { withRetry, isRetryableError, sleep } from '../../retry-utils.js';
+import { withRetry, isRetryableError, sleep } from '../../src/utils/retry-utils.js';
 
 describe('Retry Utilities', () => {
   describe('withRetry', () => {

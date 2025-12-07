@@ -1,5 +1,5 @@
 import { describe, it, expect } from '@jest/globals';
-import haversineDistance from '../../haversine-distance.js';
+import haversineDistance from '../../src/utils/haversine-distance.js';
 
 describe('Haversine Distance Calculation', () => {
   it('should calculate distance between two coordinates correctly', () => {
