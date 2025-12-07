@@ -5,7 +5,7 @@ describe('Edge Cases and Security Tests', () => {
   let app;
 
   beforeAll(async () => {
-    const serverModule = await import('../../server.js');
+    const serverModule = await import('../../src/server.js');
     app = serverModule.default || serverModule.app;
   });
 
