@@ -59,6 +59,7 @@ jobs:
       run: npm test
       env:
           NODE_ENV: test
+          CI_SKIP_SIGN_PROTOCOL: true
           PORT: ${{ secrets.PORT }}
           HUDDLE_PROJECT_ID: ${{ secrets.HUDDLE_PROJECT_ID }}
           HUDDLE_API_KEY: ${{ secrets.HUDDLE_API_KEY }}
@@ -128,6 +129,7 @@ jobs:
       run: npm run test:integration
       env:
         NODE_ENV: test
+        CI_SKIP_SIGN_PROTOCOL: true
     
     - name: Test summary
       if: always()
