@@ -114,7 +114,7 @@ export async function readObject(blobId) {
       }
     } catch (fetchError) {
       console.error('Gateway fetch also failed:', fetchError.message || fetchError);
-      throw new Error(`Failed to read object from Pinata: ${sdkError.message}. Gateway fallback also failed: ${fetchError.message}`);
+      throw new Error(`Failed to read object from Pinata: ${sdkError.message || sdkError}. Gateway fallback also failed: ${fetchError.message || fetchError}`);
     }
   }
 }
