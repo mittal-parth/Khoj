@@ -63,7 +63,14 @@ export async function readObject(blobId) {
 
   // Security validation: ensure blobId doesn't contain path traversal sequences
   // Check both original and decoded forms to prevent double-encoding bypasses
-  const decodedBlobId = decodeURIComponent(blobId);
+  let decodedBlobId;
+  try {
+    decodedBlobId = decodeURIComponent(blobId);
+  } catch (decodeError) {
+    // Malformed URI, treat as invalid
+    throw new Error('Invalid blobId: malformed URI encoding');
+  }
+  
   if (blobId.includes('..') || blobId.includes('/') || blobId.includes('\\') ||
       decodedBlobId.includes('..') || decodedBlobId.includes('/') || decodedBlobId.includes('\\')) {
     throw new Error('Invalid blobId: path traversal sequences are not allowed');
@@ -79,9 +86,10 @@ export async function readObject(blobId) {
 
   const gateway = process.env.PINATA_GATEWAY || 'gateway.pinata.cloud';
   
-  // Validate gateway hostname to prevent HTTP header injection
-  if (!/^[a-zA-Z0-9.-]+$/.test(gateway.replace(/^https?:\/\//, '').split('/')[0])) {
-    throw new Error('Invalid gateway hostname');
+  // Validate gateway hostname to prevent HTTP header injection and ensure proper format
+  const gatewayHost = gateway.replace(/^https?:\/\//, '').split('/')[0];
+  if (!/^[a-zA-Z0-9]+([.-][a-zA-Z0-9]+)*$/.test(gatewayHost)) {
+    throw new Error('Invalid gateway hostname format');
   }
 
   try {
