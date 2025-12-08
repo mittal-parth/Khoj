@@ -62,9 +62,10 @@ export async function readObject(blobId) {
   }
 
   // Security validation: ensure blobId doesn't contain path traversal sequences
-  // Check for both plain and URL-encoded forms
+  // Check both original and decoded forms to prevent double-encoding bypasses
   const decodedBlobId = decodeURIComponent(blobId);
-  if (decodedBlobId.includes('..') || decodedBlobId.includes('/') || decodedBlobId.includes('\\')) {
+  if (blobId.includes('..') || blobId.includes('/') || blobId.includes('\\') ||
+      decodedBlobId.includes('..') || decodedBlobId.includes('/') || decodedBlobId.includes('\\')) {
     throw new Error('Invalid blobId: path traversal sequences are not allowed');
   }
 
@@ -77,6 +78,11 @@ export async function readObject(blobId) {
   }
 
   const gateway = process.env.PINATA_GATEWAY || 'gateway.pinata.cloud';
+  
+  // Validate gateway hostname to prevent HTTP header injection
+  if (!/^[a-zA-Z0-9.-]+$/.test(gateway.replace(/^https?:\/\//, '').split('/')[0])) {
+    throw new Error('Invalid gateway hostname');
+  }
 
   try {
     // Try using Pinata SDK first
@@ -117,8 +123,9 @@ export async function readObject(blobId) {
           return json.content;
         }
         return text;
-      } catch (_parseError) {
+      } catch (parseError) {
         // Not JSON or no content field, return as-is
+        console.log('Gateway response is not JSON:', parseError.message);
         return text;
       }
     } catch (fetchError) {
