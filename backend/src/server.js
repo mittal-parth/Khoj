@@ -124,9 +124,13 @@ const cleanupExpiredRooms = () => {
   }
 };
 
-// Start TTL cleanup interval
-setInterval(cleanupExpiredRooms, CLEANUP_INTERVAL);
-console.log(`Started TTL cleanup for team rooms. Cleanup interval: ${CLEANUP_INTERVAL / (60 * 60 * 1000)} hours`);
+// Start TTL cleanup interval (skip during tests to avoid leaking timers)
+if (process.env.NODE_ENV !== 'test') {
+  setInterval(cleanupExpiredRooms, CLEANUP_INTERVAL);
+  console.log(`Started TTL cleanup for team rooms. Cleanup interval: ${CLEANUP_INTERVAL / (60 * 60 * 1000)} hours`);
+} else {
+  console.log('Skipping TTL cleanup in test environment');
+}
 
 const client = new LitNodeClient({
   litNetwork: LitNetwork.DatilDev,
@@ -640,41 +644,51 @@ app.post("/encrypt", async (req, res) => {
   res.send({ clues_blobId: clues_blobId, answers_blobId: answers_blobId });
 });
 app.post("/decrypt-ans", async (req, res) => {
-  const bodyData = req.body;
-  const curLat = bodyData.cLat;
-  const curLong = bodyData.cLong;
-  const clueId = bodyData.clueId;
+  try {
+    const bodyData = req.body;
 
-  console.log("=== DECRYPT-ANS ENDPOINT DEBUG ===");
-  console.log("Request body:", JSON.stringify(bodyData, null, 2));
-  console.log("answers_blobId:", bodyData.answers_blobId);
+    console.log("=== DECRYPT-ANS ENDPOINT DEBUG ===");
+    console.log("Request body:", JSON.stringify(bodyData, null, 2));
+    console.log("answers_blobId:", bodyData.answers_blobId);
 
-  const answersData = await readObject(bodyData.answers_blobId);
-  const parsedAnswersData = typeof answersData === 'string' ? JSON.parse(answersData) : answersData;
-  
-  const {
-    ciphertext: answers_ciphertext,
-    dataToEncryptHash: answers_dataToEncryptHash,
-  } = parsedAnswersData;
+    // Validate required fields - throw to be handled by catch so tests receive 500
+    if (bodyData.answers_blobId === undefined || bodyData.userAddress === undefined) {
+      throw new Error("Missing required fields: answers_blobId and userAddress are required");
+    }
 
-  console.log("Data read from answers_blobId:");
-  console.log("answers_ciphertext:", answers_ciphertext);
-  console.log("answers_dataToEncryptHash:", answers_dataToEncryptHash);
+    const curLat = bodyData.cLat;
+    const curLong = bodyData.cLong;
+    const clueId = bodyData.clueId;
 
-  console.log("userAddress: ", bodyData.userAddress);
-  console.log("answers_dataToEncryptHash: ", answers_dataToEncryptHash);
+    const answersData = await readObject(bodyData.answers_blobId);
+    const parsedAnswersData = typeof answersData === 'string' ? JSON.parse(answersData) : answersData;
+    const {
+      ciphertext: answers_ciphertext,
+      dataToEncryptHash: answers_dataToEncryptHash,
+    } = parsedAnswersData;
 
-  const { response } = await decryptRunServerMode(
-    answers_dataToEncryptHash,
-    answers_ciphertext,
-    bodyData.userAddress,
-    curLat,
-    curLong,
-    clueId
-  );
+    console.log("Data read from answers_blobId:");
+    console.log("answers_ciphertext:", answers_ciphertext);
+    console.log("answers_dataToEncryptHash:", answers_dataToEncryptHash);
 
-  console.log("Final response:", response);
-  res.send({ isClose: response });
+    const { response } = await decryptRunServerMode(
+      answers_dataToEncryptHash,
+      answers_ciphertext,
+      bodyData.userAddress,
+      curLat,
+      curLong,
+      clueId
+    );
+
+    console.log("Final response:", response);
+    res.send({ isClose: response });
+  } catch (error) {
+    console.error("Error decrypting answers:", error);
+    res.status(500).json({
+      error: "Failed to decrypt answers",
+      message: error.message,
+    });
+  }
 });
 
 app.post("/decrypt-clues", async (req, res) => {
