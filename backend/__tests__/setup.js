@@ -15,13 +15,14 @@ jest.setTimeout(30000);
 global.testUtils = {
   // Helper to create mock request data
   createMockEncryptRequest: () => ({
+    userAddress: '0x0000000000000000000000000000000000000000',
     clues: [
-      { clue: 'Test clue 1', location: 'Location 1' },
-      { clue: 'Test clue 2', location: 'Location 2' }
+      { id: 1, description: 'Test clue 1', location: 'Location 1' },
+      { id: 2, description: 'Test clue 2', location: 'Location 2' }
     ],
     answers: [
-      { lat: 40.7128, long: -74.0060 },
-      { lat: 34.0522, long: -118.2437 }
+      { id: 1, answer: 'Answer 1', lat: 40.7128, long: -74.0060 },
+      { id: 2, answer: 'Answer 2', lat: 34.0522, long: -118.2437 }
     ]
   }),
 

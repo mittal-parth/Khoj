@@ -75,7 +75,8 @@ describe('Khoj Backend API Integration Tests', () => {
       const requestData = {
         ...global.testUtils.createMockLocation(),
         answers_blobId: encryptedAnswersBlobId || 'mock-answers-blob-id',
-        curClueIndex: 0
+        clueId: 1,
+        userAddress: '0x0000000000000000000000000000000000000000'
       };
 
       const response = await request(app)
@@ -137,7 +138,8 @@ describe('Khoj Backend API Integration Tests', () => {
 
     it('POST /startHuddle should handle room creation', async () => {
       const response = await request(app)
-        .post('/startHuddle');
+        .post('/startHuddle')
+        .send({ huntId: 'test-hunt-id', teamId: 'test-team-id' });
 
       expect([200, 500]).toContain(response.status);
       
