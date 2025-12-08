@@ -1,6 +1,9 @@
 import { PinataSDK } from "pinata";
 import dotenv from "dotenv";
 
+// Note: This file uses global fetch (available in Node.js 18+)
+// The project requires Node.js 24 (see .github/workflows/backend-tests.yml)
+
 dotenv.config();
 
 const pinata = new PinataSDK({
