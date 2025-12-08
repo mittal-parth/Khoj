@@ -652,7 +652,8 @@ app.post("/decrypt-ans", async (req, res) => {
     console.log("answers_blobId:", bodyData.answers_blobId);
 
     // Validate required fields - throw to be handled by catch so tests receive 500
-    if (!bodyData.answers_blobId || !bodyData.userAddress) {
+    if (!bodyData.answers_blobId || typeof bodyData.answers_blobId !== 'string' || bodyData.answers_blobId.trim() === '' ||
+        !bodyData.userAddress || typeof bodyData.userAddress !== 'string' || bodyData.userAddress.trim() === '') {
       throw new Error("Missing required fields: answers_blobId and userAddress are required");
     }
 

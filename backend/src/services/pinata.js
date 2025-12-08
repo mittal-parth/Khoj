@@ -62,7 +62,9 @@ export async function readObject(blobId) {
   }
 
   // Security validation: ensure blobId doesn't contain path traversal sequences
-  if (blobId.includes('..') || blobId.includes('/') || blobId.includes('\\')) {
+  // Check for both plain and URL-encoded forms
+  const decodedBlobId = decodeURIComponent(blobId);
+  if (decodedBlobId.includes('..') || decodedBlobId.includes('/') || decodedBlobId.includes('\\')) {
     throw new Error('Invalid blobId: path traversal sequences are not allowed');
   }
 
@@ -94,7 +96,9 @@ export async function readObject(blobId) {
     
     // Fallback: treat blobId as CID and fetch directly from gateway
     try {
-      const url = `https://${gateway.replace(/^https?:\/\//, '').replace(/\/+$/, '')}/ipfs/${blobId}`;
+      // Properly encode blobId for URL safety
+      const encodedBlobId = encodeURIComponent(blobId);
+      const url = `https://${gateway.replace(/^https?:\/\//, '').replace(/\/+$/, '')}/ipfs/${encodedBlobId}`;
       console.log("pinata: Attempting gateway fetch from:", url);
       
       // Using global fetch (available in Node.js 18+)
