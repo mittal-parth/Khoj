@@ -51,7 +51,7 @@ describe('Edge Cases and Security Tests', () => {
       const response = await request(app)
         .post('/decrypt-ans')
         .send({ cLat: undefined, cLong: undefined })
-        .expect(500);
+        .expect(400);
 
       expect(response.body).toHaveProperty('error');
     });
