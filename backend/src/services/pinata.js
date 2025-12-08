@@ -92,6 +92,7 @@ export async function readObject(blobId) {
       const url = `https://${gateway.replace(/^https?:\/\//, '').replace(/\/+$/, '')}/ipfs/${blobId}`;
       console.log("pinata: Attempting gateway fetch from:", url);
       
+      // Using global fetch (available in Node.js 18+)
       const resp = await fetch(url);
       if (!resp.ok) {
         throw new Error(`Failed to fetch blobId ${blobId} from gateway ${url}: ${resp.status}`);
@@ -107,7 +108,7 @@ export async function readObject(blobId) {
           return json.content;
         }
         return text;
-      } catch {
+      } catch (_parseError) {
         // Not JSON or no content field, return as-is
         return text;
       }
