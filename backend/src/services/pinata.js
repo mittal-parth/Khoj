@@ -61,6 +61,11 @@ export async function readObject(blobId) {
     throw new Error('Invalid blobId provided to readObject');
   }
 
+  // Security validation: ensure blobId doesn't contain path traversal sequences
+  if (blobId.includes('..') || blobId.includes('/') || blobId.includes('\\')) {
+    throw new Error('Invalid blobId: path traversal sequences are not allowed');
+  }
+
   // During tests or for mock ids, return a deterministic mock payload
   if (process.env.NODE_ENV === 'test' || blobId.startsWith('mock-')) {
     return JSON.stringify({
@@ -113,8 +118,9 @@ export async function readObject(blobId) {
         return text;
       }
     } catch (fetchError) {
-      console.error('Gateway fetch also failed:', fetchError.message || fetchError);
-      throw new Error(`Failed to read object from Pinata: ${sdkError.message || sdkError}. Gateway fallback also failed: ${fetchError.message || fetchError}`);
+      console.error('Gateway fetch also failed:', fetchError.message || 'Unknown error');
+      // Use generic error message to avoid leaking sensitive information
+      throw new Error('Failed to read object from Pinata: both SDK and gateway fetch failed');
     }
   }
 }
