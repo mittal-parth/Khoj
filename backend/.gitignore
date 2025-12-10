@@ -1,2 +1,14 @@
 .env
 node_modules
+
+# Test coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Test results
+test-results/
+junit.xml
+
+# Jest cache
+.jest-cache/
