@@ -14,5 +14,5 @@ if (process.env.CI_SKIP_SIGN_PROTOCOL === 'true') {
   
   // Set dummy Lit Protocol environment variable (64-char hex string as required by ethers.js)
   // This is Hardhat's default test account #0 private key - well-known and safe for testing
-  process.env.LIT_WALLET_PRIVATE_KEY = process.env.LIT_WALLET_PRIVATE_KEY || '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+  process.env.LIT_WALLET_PRIVATE_KEY = process.env.LIT_WALLET_PRIVATE_KEY;
 }

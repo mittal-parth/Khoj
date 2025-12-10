@@ -1,4 +1,8 @@
 import { jest } from '@jest/globals';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config();
 
 // Set test environment variables
 // Environment variables are now set via GitHub secrets in CI/CD
