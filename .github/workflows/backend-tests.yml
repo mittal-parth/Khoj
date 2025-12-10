@@ -12,7 +12,7 @@ on:
       - 'backend/**'
 
 jobs:
-  test:
+  integration-test:
     runs-on: ubuntu-latest
     
     strategy:
@@ -89,51 +89,3 @@ jobs:
           backend/coverage/
           backend/test-results/
         retention-days: 30
-
-  integration-test:
-    runs-on: ubuntu-latest
-    needs: test
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '24'
-    
-    - name: Prepare npm cache directory
-      run: mkdir -p ~/.npm
-    
-    - name: Cache npm dependencies
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.npm
-          backend/node_modules
-        key: ${{ runner.os }}-npm-${{ hashFiles('backend/package-lock.json', 'backend/package.json') }}
-        restore-keys: |
-          ${{ runner.os }}-npm-
-    
-    - name: Install dependencies (npm)
-      working-directory: ./backend
-      run: |
-        if [ -f package-lock.json ]; then
-          npm ci --prefer-offline --no-audit --progress=false
-        else
-          npm install --no-audit --progress=false
-        fi
-    
-    - name: Run integration tests
-      working-directory: ./backend
-      run: npm run test:integration
-      env:
-        NODE_ENV: test
-        CI_SKIP_SIGN_PROTOCOL: true
-    
-    - name: Test summary
-      if: always()
-      run: |
-        echo "## Integration Test Results" >> $GITHUB_STEP_SUMMARY
-        echo "✅ Integration tests completed" >> $GITHUB_STEP_SUMMARY
