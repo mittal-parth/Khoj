@@ -13,6 +13,8 @@ process.env.HOST = process.env.HOST || 'http://localhost:8001';
 process.env.MAX_DISTANCE_IN_METERS = process.env.MAX_DISTANCE_IN_METERS || '60';
 // process.env.USER_ADDRESS = process.env.USER_ADDRESS
 
+console.log(process.env.TEST_USER_ADDRESS)
+
 // Increase timeout for integration tests
 jest.setTimeout(30000);
 
