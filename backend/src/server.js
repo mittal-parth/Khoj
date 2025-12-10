@@ -640,55 +640,62 @@ app.post("/encrypt", async (req, res) => {
   res.send({ clues_blobId: clues_blobId, answers_blobId: answers_blobId });
 });
 app.post("/decrypt-ans", async (req, res) => {
-  const bodyData = req.body;
+  try {
+    const bodyData = req.body;
 
-  console.log("=== DECRYPT-ANS ENDPOINT DEBUG ===");
-  console.log("Request body:", JSON.stringify(bodyData, null, 2));
-  console.log("answers_blobId:", bodyData.answers_blobId);
+    console.log("=== DECRYPT-ANS ENDPOINT DEBUG ===");
+    console.log("Request body:", JSON.stringify(bodyData, null, 2));
+    console.log("answers_blobId:", bodyData.answers_blobId);
 
-  // Validate required fields
-  if (
-    bodyData.cLat === undefined ||
-    bodyData.cLong === undefined ||
-    bodyData.clueId === undefined ||
-    bodyData.answers_blobId === undefined ||
-    bodyData.userAddress === undefined
-  ) {
-    return res.status(400).json({
-      error: "Missing required fields: cLat, cLong, clueId, answers_blobId, and userAddress are required",
+    // Validate required fields
+    if (
+      bodyData.cLat === undefined ||
+      bodyData.cLong === undefined ||
+      bodyData.clueId === undefined ||
+      bodyData.answers_blobId === undefined ||
+      bodyData.userAddress === undefined
+    ) {
+      return res.status(400).json({
+        error: "Missing required fields: cLat, cLong, clueId, answers_blobId, and userAddress are required",
+      });
+    }
+
+    const curLat = bodyData.cLat;
+    const curLong = bodyData.cLong;
+    const clueId = bodyData.clueId;
+
+    const answersData = await readObject(bodyData.answers_blobId);
+    const parsedAnswersData = typeof answersData === 'string' ? JSON.parse(answersData) : answersData;
+    
+    const {
+      ciphertext: answers_ciphertext,
+      dataToEncryptHash: answers_dataToEncryptHash,
+    } = parsedAnswersData;
+
+    console.log("Data read from answers_blobId:");
+    console.log("answers_ciphertext:", answers_ciphertext);
+    console.log("answers_dataToEncryptHash:", answers_dataToEncryptHash);
+
+    console.log("userAddress: ", bodyData.userAddress);
+    console.log("answers_dataToEncryptHash: ", answers_dataToEncryptHash);
+
+    const { response } = await decryptRunServerMode(
+      answers_dataToEncryptHash,
+      answers_ciphertext,
+      bodyData.userAddress,
+      curLat,
+      curLong,
+      clueId
+    );
+
+    console.log("Final response:", response);
+    res.send({ isClose: response });
+  } catch (error) {
+    console.error("Error in /decrypt-ans:", error);
+    res.status(500).json({
+      error: error.message || "Failed to decrypt answer - Lit Protocol network error",
     });
   }
-
-  const curLat = bodyData.cLat;
-  const curLong = bodyData.cLong;
-  const clueId = bodyData.clueId;
-
-  const answersData = await readObject(bodyData.answers_blobId);
-  const parsedAnswersData = typeof answersData === 'string' ? JSON.parse(answersData) : answersData;
-  
-  const {
-    ciphertext: answers_ciphertext,
-    dataToEncryptHash: answers_dataToEncryptHash,
-  } = parsedAnswersData;
-
-  console.log("Data read from answers_blobId:");
-  console.log("answers_ciphertext:", answers_ciphertext);
-  console.log("answers_dataToEncryptHash:", answers_dataToEncryptHash);
-
-  console.log("userAddress: ", bodyData.userAddress);
-  console.log("answers_dataToEncryptHash: ", answers_dataToEncryptHash);
-
-  const { response } = await decryptRunServerMode(
-    answers_dataToEncryptHash,
-    answers_ciphertext,
-    bodyData.userAddress,
-    curLat,
-    curLong,
-    clueId
-  );
-
-  console.log("Final response:", response);
-  res.send({ isClose: response });
 });
 
 app.post("/decrypt-clues", async (req, res) => {

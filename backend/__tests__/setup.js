@@ -7,6 +7,7 @@ process.env.NODE_ENV = process.env.NODE_ENV || 'test';
 process.env.PORT = process.env.PORT || '8001';
 process.env.HOST = process.env.HOST || 'http://localhost:8001';
 process.env.MAX_DISTANCE_IN_METERS = process.env.MAX_DISTANCE_IN_METERS || '60';
+// process.env.USER_ADDRESS = process.env.USER_ADDRESS
 
 // Increase timeout for integration tests
 jest.setTimeout(30000);
@@ -15,7 +16,7 @@ jest.setTimeout(30000);
 global.testUtils = {
   // Helper to create mock request data
   createMockEncryptRequest: () => ({
-    userAddress: '0x0000000000000000000000000000000000000000',
+    userAddress: process.env.TEST_USER_ADDRESS,
     clues: [
       { id: 1, description: 'Test clue 1', location: 'Location 1' },
       { id: 2, description: 'Test clue 2', location: 'Location 2' }
