@@ -69,6 +69,7 @@ jobs:
           HOST: ${{ secrets.HOST }}
           MAX_DISTANCE_IN_METERS: ${{ secrets.MAX_DISTANCE_IN_METERS }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TEST_USER_ADDRESS: ${{ secrets.TEST_USER_ADDRESS }}
     
     - name: Upload coverage reports
       if: matrix.node-version == '20.x'
