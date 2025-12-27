@@ -51,8 +51,16 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { withRetry } from "./utils/retry-utils.js";
 import { attestClueSolved, attestClueAttempt, queryAttestationsForHunt, queryRetryAttemptsForClue } from "./services/sign-protocol.js";
 import { calculateLeaderboardForHunt } from "./services/leaderboard.js";
+import { generateImageEmbedding, EMBEDDING_DIMENSION } from "./services/vertex-ai.js";
+
+// Hunt type constants matching the smart contract enum (GEO_LOCATION = 0, IMAGE = 1)
+const HUNT_TYPE = {
+  GEO_LOCATION: "GEO_LOCATION",
+  IMAGE: "IMAGE",
+};
 
 const MAX_DISTANCE_IN_METERS = parseFloat(process.env.MAX_DISTANCE_IN_METERS) || 60;
+const SIMILARITY_THRESHOLD = parseFloat(process.env.IMAGE_SIMILARITY_THRESHOLD) || 0.7;
 
 // Gemini configuration
 const GEMINI_MODEL = "gemini-2.5-flash";
@@ -324,7 +332,9 @@ export class Lit {
     userAddress,
     cLat,
     cLong,
-    clueId
+    clueId,
+    huntType = "GEO_LOCATION",
+    userEmbedding = null
   ) {
     const chain = "baseSepolia";
 
@@ -338,6 +348,89 @@ export class Lit {
         sessionSigs,
       });
 
+      // Handle image-based hunts
+      if (huntType === "IMAGE") {
+        function cosineSimilarity(embedding1, embedding2) {
+          if (!Array.isArray(embedding1) || !Array.isArray(embedding2)) {
+            console.log("Invalid embeddings - not arrays");
+            return 0;
+          }
+
+          if (embedding1.length !== embedding2.length) {
+            console.log(`Embedding dimensions don't match: ${embedding1.length} vs ${embedding2.length}`);
+            return 0;
+          }
+
+          // Calculate dot product
+          let dotProduct = 0;
+          for (let i = 0; i < embedding1.length; i++) {
+            dotProduct += embedding1[i] * embedding2[i];
+          }
+
+          // Calculate norms
+          let norm1 = 0;
+          let norm2 = 0;
+          for (let i = 0; i < embedding1.length; i++) {
+            norm1 += embedding1[i] * embedding1[i];
+            norm2 += embedding2[i] * embedding2[i];
+          }
+          norm1 = Math.sqrt(norm1);
+          norm2 = Math.sqrt(norm2);
+
+          if (norm1 === 0 || norm2 === 0) {
+            return 0.0;
+          }
+
+          // Calculate cosine similarity
+          const similarity = dotProduct / (norm1 * norm2);
+          return similarity;
+        }
+
+        const isImageSimilar = await Lit.Actions.runOnce(
+          { waitForResponse: true, name: "Image similarity check" },
+          async () => {
+            try {
+              console.log("answers: ", answers);
+              const answerData = JSON.parse(answers).find(
+                (answer) => answer.id === clueId
+              );
+              console.log("answerData: ", answerData);
+
+            if (!answerData) {
+              console.log("No answer found for clueId:", clueId);
+              return false;
+            }
+
+              if (!answerData.embedding || !Array.isArray(answerData.embedding)) {
+                console.log("No embedding found in answer data");
+                return false;
+              }
+
+            if (!userEmbedding || !Array.isArray(userEmbedding)) {
+              console.log("No user embedding provided");
+              return false;
+            }
+
+              const similarity = cosineSimilarity(
+                answerData.embedding,
+                userEmbedding
+              );
+
+              console.log("cosine similarity: ", similarity);
+              console.log("threshold: ", SIMILARITY_THRESHOLD);
+              return similarity >= SIMILARITY_THRESHOLD;
+            } catch (e) {
+              console.log("Error in image similarity check:", e);
+              return false;
+            }
+          }
+        );
+
+        Lit.Actions.setResponse({ response: isImageSimilar });
+        return;
+      }
+
+      // Handle geolocation-based hunts (existing logic)
       const asin = Math.asin;
       const cos = Math.cos;
       const sin = Math.sin;
@@ -417,25 +510,34 @@ export class Lit {
       },
     ];
 
-    console.log(cLat, cLong, clueId);
+    console.log("Verification params:", { cLat, cLong, clueId, huntType });
 
     const sessionSigs = await this.getSessionSigsServer();
     // Decrypt the private key inside a lit action
+    const jsParams = {
+      accessControlConditions: accessControlConditions,
+      ciphertext,
+      dataToEncryptHash,
+      sessionSigs,
+      authSig,
+      clueId: clueId,
+      huntType: huntType,
+      MAX_DISTANCE_IN_METERS: MAX_DISTANCE_IN_METERS,
+    };
+
+    // Add parameters based on hunt type
+    if (huntType === "IMAGE") {
+      jsParams.userEmbedding = userEmbedding;
+      jsParams.SIMILARITY_THRESHOLD = SIMILARITY_THRESHOLD;
+    } else {
+      jsParams.cLat = cLat;
+      jsParams.cLong = cLong;
+    }
+
     const res = await this.litNodeClient.executeJs({
       sessionSigs,
       code: code,
-      jsParams: {
-        accessControlConditions: accessControlConditions,
-        ciphertext,
-        dataToEncryptHash,
-        sessionSigs,
-        authSig,
-        clueId: clueId,
-        cLat: cLat,
-        cLong: cLong,
-        haversineDistance: MAX_DISTANCE_IN_METERS,
-        MAX_DISTANCE_IN_METERS: MAX_DISTANCE_IN_METERS,
-      },
+      jsParams,
     });
     console.log("result from action execution:", res);
 
@@ -479,13 +581,20 @@ export const decryptRunServerMode = async (
   userAddress,
   cLat,
   cLong,
-  clueId
+  clueId,
+  huntType = "GEO_LOCATION",
+  userEmbedding = null
 ) => {
   const chain = "baseSepolia";
   console.log("userAddress: ", userAddress);
-  console.log("cLat: ", cLat);
-  console.log("cLong: ", cLong);
   console.log("clueId: ", clueId);
+  console.log("huntType: ", huntType);
+  if (huntType === "GEO_LOCATION") {
+    console.log("cLat: ", cLat);
+    console.log("cLong: ", cLong);
+  } else {
+    console.log("userEmbedding length: ", userEmbedding ? userEmbedding.length : 0);
+  }
 
   const accessControlConditions = [
     {
@@ -513,7 +622,9 @@ export const decryptRunServerMode = async (
       userAddress,
       cLat,
       cLong,
-      clueId
+      clueId,
+      huntType,
+      userEmbedding
     );
   } else {
     console.log("decrypting clues");
@@ -570,9 +681,11 @@ app.post("/encrypt", async (req, res) => {
 
   const clues = bodyData.clues;
   const answers = bodyData.answers;
+  const huntType = bodyData.huntType || HUNT_TYPE.GEO_LOCATION; // Default to GEO_LOCATION for backward compatibility
 
   console.log("Raw clues received:", JSON.stringify(clues, null, 2));
   console.log("Raw answers received:", JSON.stringify(answers, null, 2));
+  console.log("Hunt type:", huntType);
 
   // Validate clues
   for (const clue of clues) {
@@ -583,18 +696,36 @@ app.post("/encrypt", async (req, res) => {
     }
   }
 
-  // Validate answers
-  for (const answer of answers) {
-    if (
-      !answer.id ||
-      !answer.answer ||
-      typeof answer.lat !== "number" ||
-      typeof answer.long !== "number"
-    ) {
-      console.log("Invalid answer:", answer);
-      return res.status(400).json({
-        error: "Each answer must have id, answer, lat, and long fields",
-      });
+  // Validate answers based on hunt type
+  if (huntType === HUNT_TYPE.IMAGE) {
+    // For image hunts: validate embedding field
+    for (const answer of answers) {
+      if (
+        !answer.id ||
+        !answer.answer ||
+        !Array.isArray(answer.embedding) ||
+        answer.embedding.length === 0
+      ) {
+        console.log("Invalid answer:", answer);
+        return res.status(400).json({
+          error: "Each answer must have id, answer, and embedding (array) fields for image hunts",
+        });
+      }
+    }
+  } else {
+    // For geolocation hunts: validate lat/long (existing behavior)
+    for (const answer of answers) {
+      if (
+        !answer.id ||
+        !answer.answer ||
+        typeof answer.lat !== "number" ||
+        typeof answer.long !== "number"
+      ) {
+        console.log("Invalid answer:", answer);
+        return res.status(400).json({
+          error: "Each answer must have id, answer, lat, and long fields for geolocation hunts",
+        });
+      }
     }
   }
 
@@ -603,12 +734,23 @@ app.post("/encrypt", async (req, res) => {
     id,
     description,
   }));
-  const answersParsed = answers.map(({ id, answer, lat, long }) => ({
-    id,
-    answer,
-    lat,
-    long,
-  }));
+
+  // Parse answers based on hunt type
+  let answersParsed;
+  if (huntType === HUNT_TYPE.IMAGE) {
+    answersParsed = answers.map(({ id, answer, embedding }) => ({
+      id,
+      answer,
+      embedding,
+    }));
+  } else {
+    answersParsed = answers.map(({ id, answer, lat, long }) => ({
+      id,
+      answer,
+      lat,
+      long,
+    }));
+  }
 
   console.log("cluesParsed: ", JSON.stringify(cluesParsed, null, 2));
   console.log("answersParsed: ", JSON.stringify(answersParsed, null, 2));
@@ -644,10 +786,28 @@ app.post("/decrypt-ans", async (req, res) => {
   const curLat = bodyData.cLat;
   const curLong = bodyData.cLong;
   const clueId = bodyData.clueId;
+  const huntType = bodyData.huntType || HUNT_TYPE.GEO_LOCATION; // Default to GEO_LOCATION for backward compatibility
+  const userEmbedding = bodyData.userEmbedding || null;
 
   console.log("=== DECRYPT-ANS ENDPOINT DEBUG ===");
   console.log("Request body:", JSON.stringify(bodyData, null, 2));
   console.log("answers_blobId:", bodyData.answers_blobId);
+  console.log("huntType:", huntType);
+
+  // Validate required fields based on hunt type
+  if (huntType === HUNT_TYPE.GEO_LOCATION) {
+    if (curLat === undefined || curLong === undefined) {
+      return res.status(400).json({
+        error: "Missing required fields for geolocation hunt: cLat and cLong",
+      });
+    }
+  } else if (huntType === HUNT_TYPE.IMAGE) {
+    if (!userEmbedding || !Array.isArray(userEmbedding)) {
+      return res.status(400).json({
+        error: "Missing required field for image hunt: userEmbedding (array)",
+      });
+    }
+  }
 
   const answersData = await readObject(bodyData.answers_blobId);
   const parsedAnswersData = typeof answersData === 'string' ? JSON.parse(answersData) : answersData;
@@ -670,7 +830,9 @@ app.post("/decrypt-ans", async (req, res) => {
     bodyData.userAddress,
     curLat,
     curLong,
-    clueId
+    clueId,
+    huntType,
+    userEmbedding
   );
 
   console.log("Final response:", response);
@@ -753,6 +915,96 @@ app.post("/upload-metadata", async (req, res) => {
     console.error("Error uploading metadata:", error);
     res.status(500).json({
       error: "Failed to upload metadata",
+      message: error.message
+    });
+  }
+});
+
+app.post("/generate-embedding", upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file provided" });
+    }
+
+    const { buffer } = req.file;
+    
+    // Generate embedding using Vertex AI
+    const embedding = await generateImageEmbedding(buffer);
+    
+    res.json({
+      success: true,
+      embedding,
+      dimension: embedding.length
+    });
+  } catch (error) {
+    console.error("Error generating embedding:", error);
+    res.status(500).json({
+      error: "Failed to generate embedding",
+      message: error.message
+    });
+  }
+});
+
+app.post("/compare-images", upload.single('image'), async (req, res) => {
+  try {
+    const bodyData = req.body;
+    const { answers_blobId, userAddress, clueId, huntID } = bodyData;
+
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file provided" });
+    }
+
+    if (!answers_blobId || !userAddress || clueId === undefined || huntID === undefined
+      || userAddress === "0x0000" || clueId === "0"
+    ) {
+      return res.status(400).json({
+        error: "Missing required fields: answers_blobId, userAddress, clueId, and huntID",
+      });
+    }
+
+    console.log("=== COMPARE-IMAGES ENDPOINT DEBUG ===");
+    console.log("Request body:", JSON.stringify(bodyData, null, 2));
+    console.log("answers_blobId:", answers_blobId);
+
+    // Generate embedding for user's image
+    const { buffer } = req.file;
+    const userEmbedding = await generateImageEmbedding(buffer);
+    console.log("User embedding generated, dimension:", userEmbedding.length);
+
+    // Load answer embedding from IPFS via Lit Protocol
+    const answersData = await readObject(answers_blobId);
+    const parsedAnswersData = typeof answersData === 'string' ? JSON.parse(answersData) : answersData;
+    
+    const {
+      ciphertext: answers_ciphertext,
+      dataToEncryptHash: answers_dataToEncryptHash,
+    } = parsedAnswersData;
+
+    console.log("Data read from answers_blobId");
+    console.log("answers_dataToEncryptHash: ", answers_dataToEncryptHash);
+
+    // Use Lit Action to decrypt and compare embeddings
+    const { response } = await decryptRunServerMode(
+      answers_dataToEncryptHash,
+      answers_ciphertext,
+      userAddress,
+      null, // cLat - not needed for image hunts
+      null, // cLong - not needed for image hunts
+      Number(clueId),
+      HUNT_TYPE.IMAGE, // huntType
+      userEmbedding // userEmbedding
+    );
+
+    console.log("Final response from Lit Action:", response);
+
+    res.json({
+      isClose: response,
+      message: response ? "Images are similar!" : "Images are not similar enough"
+    });
+  } catch (error) {
+    console.error("Error comparing images:", error);
+    res.status(500).json({
+      error: "Failed to compare images",
       message: error.message
     });
   }

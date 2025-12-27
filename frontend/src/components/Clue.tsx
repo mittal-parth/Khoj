@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "./ui/card"
 import { useState, useEffect, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
 import {
   BsArrowLeft,
   BsGeoAlt,
@@ -21,7 +22,7 @@ import { huntABI } from "../assets/hunt_abi";
 import { useNetworkState } from "../lib/utils";
 import { toast } from "sonner";
 import { client } from "../lib/client";
-import { Hunt, Team } from "../types";
+import { Hunt, Team, HUNT_TYPE, enumToHuntType, HuntType } from "../types";
 import { 
   syncProgressAndNavigate, 
   getTeamIdentifier,
@@ -41,6 +42,8 @@ export function Clue() {
     latitude: number;
     longitude: number;
   } | null>(null);
+  const [capturedImage, setCapturedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attempts, setAttempts] = useState(MAX_ATTEMPTS);
   const [verificationState, setVerificationState] = useState<
@@ -50,6 +53,10 @@ export function Clue() {
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const errorResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Helper function to reset verification states
@@ -76,6 +83,11 @@ export function Clue() {
     method: "getHunt",
     params: [BigInt(huntId || 0)],
   }) as { data: Hunt | undefined };
+
+  // Determine hunt type from contract enum: 0 = GEO_LOCATION, 1 = IMAGE
+  const huntType: HuntType = huntData?.huntType !== undefined 
+    ? enumToHuntType(Number(huntData.huntType))
+    : HUNT_TYPE.GEO_LOCATION; // Default to GEO_LOCATION for backward compatibility
 
   const account = useActiveAccount();
   const userWallet = account?.address;
@@ -169,8 +181,11 @@ export function Clue() {
     }
     
     setVerificationState("idle");
+    setCapturedImage(null);
+    setImagePreview(null);
 
-    if ("geolocation" in navigator) {
+    // Only request location for geolocation hunts
+    if (huntType === HUNT_TYPE.GEO_LOCATION && "geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
           const { latitude, longitude } = coords;
@@ -342,11 +357,15 @@ export function Clue() {
       errorResetTimeoutRef.current = null;
     }
     
-    if (!location) {
+    // Validate based on hunt type
+    if (huntType === HUNT_TYPE.GEO_LOCATION && !location) {
       console.log("location is null");
+      toast.error("Please wait for location to be detected");
       return;
-    } else {
-      console.log("location is not null ", location);
+    } else if (huntType === HUNT_TYPE.IMAGE && !capturedImage) {
+      console.log("capturedImage is null");
+      toast.error("Please capture an image first");
+      return;
     }
     if (!huntData) {
       console.log("huntData is null");
@@ -449,31 +468,52 @@ export function Clue() {
     await createRetryAttestation(currentAttemptNumber);
 
     try {
-      const headersList = {
-        Accept: "*/*",
-        "Content-Type": "application/json",
-      };
+      let data;
+      
+      if (huntType === HUNT_TYPE.IMAGE) {
+        // For image hunts: use /compare-images endpoint
+        const formData = new FormData();
+        formData.append('image', capturedImage!);
+        formData.append('answers_blobId', huntData.answers_blobId);
+        formData.append('userAddress', userWallet || "0x0000");
+        formData.append('clueId', clueId || "0");
+        formData.append('huntID', huntId || "0");
 
-      const requestBody = {
-        userAddress: "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
-        answers_blobId: huntData.answers_blobId,
-        cLat: location.latitude,
-        cLong: location.longitude,
-        clueId: Number(clueId),
-      };
+        const response = await fetch(`${BACKEND_URL}/compare-images`, {
+          method: "POST",
+          body: formData,
+        });
 
-      console.log("Request body object:", requestBody);
-      console.log("Request body object keys:", Object.keys(requestBody));
+        data = await response.json();
+      } else {
+        // For geolocation hunts: use /decrypt-ans endpoint
+        const headersList = {
+          Accept: "*/*",
+          "Content-Type": "application/json",
+        };
 
-      const bodyContent = JSON.stringify(requestBody);
+        const requestBody = {
+          userAddress: userWallet || "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
+          answers_blobId: huntData.answers_blobId,
+          cLat: location!.latitude,
+          cLong: location!.longitude,
+          clueId: Number(clueId),
+          huntType: HUNT_TYPE.GEO_LOCATION,
+        };
 
-      const response = await fetch(`${BACKEND_URL}/decrypt-ans`, {
-        method: "POST",
-        body: bodyContent,
-        headers: headersList,
-      });
+        console.log("Request body object:", requestBody);
+        console.log("Request body object keys:", Object.keys(requestBody));
 
-      const data = await response.json();
+        const bodyContent = JSON.stringify(requestBody);
+
+        const response = await fetch(`${BACKEND_URL}/decrypt-ans`, {
+          method: "POST",
+          body: bodyContent,
+          headers: headersList,
+        });
+
+        data = await response.json();
+      }
       console.log("=== BACKEND RESPONSE ===");
       console.log("data.isClose:", data.isClose);
 
@@ -566,8 +606,74 @@ export function Clue() {
     }
   };
 
+  const openCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }, // Use rear camera on mobile
+        audio: false
+      });
+      setStream(mediaStream);
+      setIsCameraOpen(true);
+      
+      // Wait for video element to be available
+      setTimeout(() => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = mediaStream;
+        }
+      }, 100);
+    } catch (error) {
+      console.error("Error accessing camera:", error);
+      toast.error("Unable to access camera. Please grant camera permissions.");
+    }
+  };
+
+  const closeCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setIsCameraOpen(false);
+  };
+
+  const captureImage = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      
+      // Set canvas dimensions to match video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      // Draw video frame to canvas
+      const context = canvas.getContext('2d');
+      if (context) {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Convert canvas to blob and create file
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+            setCapturedImage(file);
+            setImagePreview(canvas.toDataURL('image/jpeg'));
+            closeCamera();
+          }
+        }, 'image/jpeg', 0.95);
+      }
+    }
+  };
+
+  // Cleanup camera stream on unmount
+  useEffect(() => {
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [stream]);
+
   const getButtonVariant = () => {
-    if (!location) return "neutral";
+    if (huntType === HUNT_TYPE.GEO_LOCATION && !location) return "neutral";
+    if (huntType === HUNT_TYPE.IMAGE && !capturedImage) return "neutral";
     switch (verificationState) {
       case "verifying":
         return "neutral";
@@ -581,7 +687,11 @@ export function Clue() {
   };
 
   const getButtonStyles = () => {
-    if (!location) return "opacity-50 cursor-not-allowed";
+    // For geolocation hunts, check location
+    if (huntType === HUNT_TYPE.GEO_LOCATION && !location) {
+      return "opacity-50 cursor-not-allowed";
+    }
+    // For image hunts, button is only shown when image is captured, so no need to check
     switch (verificationState) {
       case "verifying":
         return "opacity-75";
@@ -595,16 +705,23 @@ export function Clue() {
   };
 
   const getButtonText = () => {
-    if (!location) return "Waiting for location...";
+    // For geolocation hunts, check location first
+    if (huntType === HUNT_TYPE.GEO_LOCATION && !location) {
+      return "Waiting for location...";
+    }
+    // For image hunts, this function is only called when image is captured
+    // (since the verify button is hidden when no image is captured)
     switch (verificationState) {
       case "verifying":
-        return "Verifying location...";
+        return huntType === HUNT_TYPE.IMAGE ? "Verifying image..." : "Verifying location...";
       case "success":
         return "Correct Answer!";
       case "error":
-        return `Wrong location - ${attempts} attempts remaining`;
+        return huntType === HUNT_TYPE.IMAGE 
+          ? `Wrong image - ${attempts} attempts remaining`
+          : `Wrong location - ${attempts} attempts remaining`;
       default:
-        return "Verify Location";
+        return huntType === HUNT_TYPE.IMAGE ? "Verify Image" : "Verify Location";
     }
   };
 
@@ -692,44 +809,126 @@ export function Clue() {
           </CardContent>
 
           <CardFooter className="border-t pt-6 flex flex-col">
-            <div className="flex items-center justify-between mb-4 text-sm gap-4">
-              <div className="flex items-center text-foreground/70">
-                <BsGeoAlt className="mr-1" />
-                {location ? "Location detected" : "Detecting location..."}
-              </div>
-              <div className="text-foreground/70">
+            <div className="flex mb-4 text-sm justify-between text-foreground/70">
+              {huntType === HUNT_TYPE.GEO_LOCATION ? (
+                <div className="flex items-center ">
+                  <BsGeoAlt className="mr-1" />
+                  {location ? "Location detected" : "Detecting location..."}
+                </div>
+              ) : (
+                <div className="mr-8">
+                  {capturedImage ? "Image captured" : "Take a picture to verify"}
+                </div>
+              )}
+              <div>
                 {isLoadingRetries ? "Loading attempts..." : `Attempts remaining: ${attempts}/${MAX_ATTEMPTS}`}
               </div>
             </div>
 
-            <form onSubmit={handleVerify} className="w-full">
-              <Button
-                type="submit"
-                variant={getButtonVariant()}
-                size="lg"
-                className={cn(
-                  "w-full transition-colors duration-300",
-                  getButtonStyles()
+            {huntType === HUNT_TYPE.IMAGE ? (
+              <div className=" space-y-2 w-full">
+                {!capturedImage ? (
+                  // Show only Capture Image button when no image is captured
+                  <Button
+                    type="button"
+                    variant={getButtonVariant()}
+                    size="lg"
+                    onClick={openCamera}
+                    className={cn(
+                      "w-full transition-colors duration-300",
+                      getButtonStyles()
+                    )}
+                    disabled={verificationState === "verifying" || verificationState === "success"}
+                  >
+                    Take a picture
+                  </Button>
+                ) : (
+                  // Show image preview and two buttons side by side when image is captured
+                  <>
+                    {imagePreview && (
+                      <div className="mb-4">
+                        <img
+                          src={imagePreview}
+                          alt="Captured"
+                          className="w-full max-w-md mx-auto rounded-md border"
+                        />
+                      </div>
+                    )}
+                    <div className="flex gap-2">
+                      <div className="flex-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="lg"
+                          onClick={openCamera}
+                          className="w-full"
+                          disabled={verificationState === "verifying" || verificationState === "success"}
+                        >
+                          Retry
+                        </Button>
+                      </div>
+                      <form onSubmit={handleVerify} className="flex-1">
+                        <Button
+                          type="submit"
+                          variant={getButtonVariant()}
+                          size="lg"
+                          className={cn(
+                            "w-full transition-colors duration-300",
+                            getButtonStyles()
+                          )}
+                          disabled={
+                            verificationState === "verifying" ||
+                            verificationState === "success" ||
+                            isRedirecting
+                          }
+                        >
+                          {verificationState === "success" && (
+                            <BsCheckCircle className="mr-2" />
+                          )}
+                          {verificationState === "error" && (
+                            <BsXCircle className="mr-2" />
+                          )}
+                          {isSubmitting && (
+                            <BsArrowRepeat className="mr-2 animate-spin" />
+                          )}
+                          {getButtonText()}
+                        </Button>
+                      </form>
+                    </div>
+                  </>
                 )}
-                disabled={
-                  !location ||
-                  verificationState === "verifying" ||
-                  verificationState === "success" ||
-                  isRedirecting
-                }
-              >
-                {verificationState === "success" && (
-                  <BsCheckCircle className="mr-2" />
-                )}
-                {verificationState === "error" && (
-                  <BsXCircle className="mr-2" />
-                )}
-                {isSubmitting && (
-                  <BsArrowRepeat className="mr-2 animate-spin" />
-                )}
-                {getButtonText()}
-              </Button>
-            </form>
+              </div>
+            ) : (
+              // Geolocation hunt - show verify button as before
+              <form onSubmit={handleVerify} className="w-full">
+                <Button
+                  type="submit"
+                  variant={getButtonVariant()}
+                  size="lg"
+                  className={cn(
+                    "w-full transition-colors duration-300",
+                    getButtonStyles()
+                  )}
+                  disabled={
+                    !location ||
+                    verificationState === "verifying" ||
+                    verificationState === "success" ||
+                    isRedirecting
+                  }
+                >
+                  {verificationState === "success" && (
+                    <BsCheckCircle className="mr-2" />
+                  )}
+                  {verificationState === "error" && (
+                    <BsXCircle className="mr-2" />
+                  )}
+                  {isSubmitting && (
+                    <BsArrowRepeat className="mr-2 animate-spin" />
+                  )}
+                  {getButtonText()}
+                </Button>
+              </form>
+            )}
           </CardFooter>
         </Card>
 
@@ -742,6 +941,44 @@ export function Clue() {
           isOpen={isLeaderboardOpen} 
           onClose={() => setIsLeaderboardOpen(false)} 
         />
+
+        {/* Camera Modal */}
+        <Dialog open={isCameraOpen} onOpenChange={(open) => !open && closeCamera()}>
+          <DialogContent className="max-w-4xl w-full">
+            <DialogHeader>
+              <DialogTitle>Take a Picture</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-cover"
+                />
+                <canvas ref={canvasRef} className="hidden" />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={closeCamera}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  onClick={captureImage}
+                  className="flex-1"
+                >
+                  Capture
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

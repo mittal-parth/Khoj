@@ -8,6 +8,8 @@ import {
   BsExclamationTriangle,
   BsLink45Deg,
   BsCalendar2DateFill,
+  BsGeoAlt,
+  BsCamera,
 } from "react-icons/bs";
 import { TbUsersGroup } from "react-icons/tb";
 import { IoIosPeople } from "react-icons/io";
@@ -25,7 +27,7 @@ import { extractTeamIdFromTransactionLogs } from "../utils/transactionUtils.ts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { huntABI } from "../assets/hunt_abi.ts";
 import { useGenerateRiddles } from "@/hooks/useGenerateRiddles.ts";
-import { Hunt, Team } from "../types";
+import { Hunt, Team, HUNT_TYPE, enumToHuntType } from "../types";
 import { buttonStyles } from "../lib/styles.ts";
 import { withRetry, MAX_RETRIES } from "@/utils/retryUtils";
 import { FiRefreshCw } from "react-icons/fi";
@@ -121,6 +123,11 @@ export function HuntDetails() {
 
   // Get team identifier for progress checking and huddle rooms
   const teamIdentifier = getTeamIdentifier(teamData, userWallet || "");
+
+  // Determine hunt type from contract data: 0 = GEO_LOCATION, 1 = IMAGE
+  const huntTypeDisplay = huntData?.huntType !== undefined 
+    ? enumToHuntType(Number(huntData.huntType))
+    : HUNT_TYPE.GEO_LOCATION; // Default to GEO_LOCATION for backward compatibility
 
   const joinTeam = async (signature: string, teamId: string, expiry: number) => {
     setIsJoiningTeam(true);
@@ -769,6 +776,23 @@ export function HuntDetails() {
                         <p className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">Participants</p>
                         <p className="text-sm text-foreground">
                           {Number(huntData.participantCount)} registered
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Hunt Type */}
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-main rounded-lg border-2 border-black">
+                        {huntTypeDisplay === HUNT_TYPE.IMAGE ? (
+                          <BsCamera className="w-6 h-6 text-main-foreground" />
+                        ) : (
+                          <BsGeoAlt className="w-6 h-6 text-main-foreground" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">Clue Verification</p>
+                        <p className="text-sm text-foreground">
+                          {huntTypeDisplay === HUNT_TYPE.IMAGE ? 'Image Matching' : 'Geolocation'}
                         </p>
                       </div>
                     </div>

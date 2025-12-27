@@ -16,6 +16,7 @@
   "license": "ISC",
   "dependencies": {
     "@ethsign/sp-sdk": "^1.2.7",
+    "@google-cloud/aiplatform": "^4.4.0",
     "@google/genai": "^1.21.0",
     "@huddle01/server-sdk": "^2.5.4",
     "@lit-protocol/auth-helpers": "^6.4.10",
