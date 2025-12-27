@@ -339,183 +339,186 @@ export class Lit {
     const chain = "baseSepolia";
 
     const _litActionCode = async () => {
-      const answers = await Lit.Actions.decryptAndCombine({
-        accessControlConditions,
-        chain: "baseSepolia",
-        ciphertext,
-        dataToEncryptHash,
-        authSig,
-        sessionSigs,
-      });
+      try {
+        const answers = await Lit.Actions.decryptAndCombine({
+          accessControlConditions,
+          chain: "baseSepolia",
+          ciphertext,
+          dataToEncryptHash,
+          authSig,
+          sessionSigs,
+        });
 
-      // Handle image-based hunts
-      if (huntType === "IMAGE") {
-        function cosineSimilarity(embedding1, embedding2) {
-          if (!Array.isArray(embedding1) || !Array.isArray(embedding2)) {
-            console.log("Invalid embeddings - not arrays");
-            return 0;
+        // Handle image-based hunts
+        if (huntType === "IMAGE") {
+          function cosineSimilarity(embedding1, embedding2) {
+            if (!Array.isArray(embedding1) || !Array.isArray(embedding2)) {
+              console.log("Invalid embeddings - not arrays");
+              return 0;
+            }
+
+            if (embedding1.length !== embedding2.length) {
+              console.log(`Embedding dimensions don't match: ${embedding1.length} vs ${embedding2.length}`);
+              return 0;
+            }
+
+            // Calculate dot product
+            let dotProduct = 0;
+            for (let i = 0; i < embedding1.length; i++) {
+              dotProduct += embedding1[i] * embedding2[i];
+            }
+
+            // Calculate norms
+            let norm1 = 0;
+            let norm2 = 0;
+            for (let i = 0; i < embedding1.length; i++) {
+              norm1 += embedding1[i] * embedding1[i];
+              norm2 += embedding2[i] * embedding2[i];
+            }
+            norm1 = Math.sqrt(norm1);
+            norm2 = Math.sqrt(norm2);
+
+            if (norm1 === 0 || norm2 === 0) {
+              return 0.0;
+            }
+
+            // Calculate cosine similarity
+            const similarity = dotProduct / (norm1 * norm2);
+            return similarity;
           }
 
-          if (embedding1.length !== embedding2.length) {
-            console.log(`Embedding dimensions don't match: ${embedding1.length} vs ${embedding2.length}`);
-            return 0;
-          }
+          const isImageSimilar = await Lit.Actions.runOnce(
+            { waitForResponse: true, name: "Image similarity check" },
+            async () => {
+              try {
+                console.log("answers: ", answers);
+                const answerData = JSON.parse(answers).find(
+                  (answer) => answer.id === clueId
+                );
+                console.log("answerData: ", answerData);
 
-          // Calculate dot product
-          let dotProduct = 0;
-          for (let i = 0; i < embedding1.length; i++) {
-            dotProduct += embedding1[i] * embedding2[i];
-          }
+                if (!answerData) {
+                  console.log("No answer found for clueId:", clueId);
+                  return false;
+                }
 
-          // Calculate norms
-          let norm1 = 0;
-          let norm2 = 0;
-          for (let i = 0; i < embedding1.length; i++) {
-            norm1 += embedding1[i] * embedding1[i];
-            norm2 += embedding2[i] * embedding2[i];
-          }
-          norm1 = Math.sqrt(norm1);
-          norm2 = Math.sqrt(norm2);
+                if (!answerData.embedding || !Array.isArray(answerData.embedding)) {
+                  console.log("No embedding found in answer data");
+                  return false;
+                }
 
-          if (norm1 === 0 || norm2 === 0) {
-            return 0.0;
-          }
+                if (!userEmbedding || !Array.isArray(userEmbedding)) {
+                  console.log("No user embedding provided");
+                  return false;
+                }
 
-          // Calculate cosine similarity
-          const similarity = dotProduct / (norm1 * norm2);
-          return similarity;
+                const similarity = cosineSimilarity(
+                  answerData.embedding,
+                  userEmbedding
+                );
+
+                console.log("cosine similarity: ", similarity);
+                console.log("threshold: ", SIMILARITY_THRESHOLD);
+                return similarity >= SIMILARITY_THRESHOLD;
+              } catch (e) {
+                console.log("Error in image similarity check:", e);
+                return false;
+              }
+            }
+          );
+
+          Lit.Actions.setResponse({ response: isImageSimilar });
+          return;
         }
 
-        const isImageSimilar = await Lit.Actions.runOnce(
-          { waitForResponse: true, name: "Image similarity check" },
+        // Handle geolocation-based hunts (existing logic)
+        const asin = Math.asin;
+        const cos = Math.cos;
+        const sin = Math.sin;
+        const sqrt = Math.sqrt;
+        const PI = Math.PI;
+
+        // equatorial mean radius of Earth (in meters)
+        const R = 6378137;
+
+        function squared(x) {
+          return x * x;
+        }
+        function toRad(x) {
+          return (x * PI) / 180.0;
+        }
+        function hav(x) {
+          return squared(sin(x / 2));
+        }
+
+        // hav(theta) = hav(bLat - aLat) + cos(aLat) * cos(bLat) * hav(bLon - aLon)
+        function haversineDistance(a, b) {
+          console.log("haversineDistance: ", a, b);
+          const aLat = toRad(Array.isArray(a) ? a[1] : a.latitude ?? a.lat);
+          const bLat = toRad(Array.isArray(b) ? b[1] : b.latitude ?? b.lat);
+          const aLng = toRad(
+            Array.isArray(a) ? a[0] : a.longitude ?? a.lng ?? a.lon
+          );
+          const bLng = toRad(
+            Array.isArray(b) ? b[0] : b.longitude ?? b.lng ?? b.lon
+          );
+
+          const ht = hav(bLat - aLat) + cos(aLat) * cos(bLat) * hav(bLng - aLng);
+          return 2 * R * asin(sqrt(ht));
+        }
+
+        const isLocationInProximity = await Lit.Actions.runOnce(
+          { waitForResponse: true, name: "ETH block number" },
           async () => {
             try {
               console.log("answers: ", answers);
-              const answerData = JSON.parse(answers).find(
+              const currentLocation = JSON.parse(answers).find(
                 (answer) => answer.id === clueId
               );
-              console.log("answerData: ", answerData);
+              console.log("currentLocation: ", currentLocation);
+              console.log("compare with: ", cLat, cLong);
 
-            if (!answerData) {
-              console.log("No answer found for clueId:", clueId);
-              return false;
-            }
-
-              if (!answerData.embedding || !Array.isArray(answerData.embedding)) {
-                console.log("No embedding found in answer data");
+              if (!currentLocation) {
+                console.log("No location found for clueId:", clueId);
                 return false;
               }
 
-            if (!userEmbedding || !Array.isArray(userEmbedding)) {
-              console.log("No user embedding provided");
-              return false;
-            }
+              if (cLat === undefined || cLong === undefined) {
+                console.log("Missing location coordinates: cLat or cLong is undefined");
+                return false;
+              }
 
-              const similarity = cosineSimilarity(
-                answerData.embedding,
-                userEmbedding
+              const distance = haversineDistance(
+                { lat: currentLocation.lat, lng: currentLocation.long },
+                { lat: cLat, lng: cLong }
               );
 
-              console.log("cosine similarity: ", similarity);
-              console.log("threshold: ", SIMILARITY_THRESHOLD);
-              return similarity >= SIMILARITY_THRESHOLD;
+              console.log("distance: ", distance);
+              console.log("MAX_DISTANCE_IN_METERS: ", MAX_DISTANCE_IN_METERS);
+              return distance <= MAX_DISTANCE_IN_METERS;
             } catch (e) {
-              console.log("Error in image similarity check:", e);
+              console.log("Error in location proximity check:", e);
               return false;
             }
           }
         );
 
-        Lit.Actions.setResponse({ response: isImageSimilar });
-        return;
+        Lit.Actions.setResponse({ response: isLocationInProximity });
+      } catch (error) {
+        console.log("Error in Lit Action:", error);
+        Lit.Actions.setResponse({ response: false });
       }
-
-      // Handle geolocation-based hunts (existing logic)
-      const asin = Math.asin;
-      const cos = Math.cos;
-      const sin = Math.sin;
-      const sqrt = Math.sqrt;
-      const PI = Math.PI;
-
-      // equatorial mean radius of Earth (in meters)
-      const R = 6378137;
-
-      function squared(x) {
-        return x * x;
-      }
-      function toRad(x) {
-        return (x * PI) / 180.0;
-      }
-      function hav(x) {
-        return squared(sin(x / 2));
-      }
-
-      // hav(theta) = hav(bLat - aLat) + cos(aLat) * cos(bLat) * hav(bLon - aLon)
-      function haversineDistance(a, b) {
-        console.log("haversineDistance: ", a, b);
-        const aLat = toRad(Array.isArray(a) ? a[1] : a.latitude ?? a.lat);
-        const bLat = toRad(Array.isArray(b) ? b[1] : b.latitude ?? b.lat);
-        const aLng = toRad(
-          Array.isArray(a) ? a[0] : a.longitude ?? a.lng ?? a.lon
-        );
-        const bLng = toRad(
-          Array.isArray(b) ? b[0] : b.longitude ?? b.lng ?? b.lon
-        );
-
-        const ht = hav(bLat - aLat) + cos(aLat) * cos(bLat) * hav(bLng - aLng);
-        return 2 * R * asin(sqrt(ht));
-      }
-
-      const isLocationInProximity = await Lit.Actions.runOnce(
-        { waitForResponse: true, name: "ETH block number" },
-        async () => {
-          console.log("answers: ", answers);
-          const currentLocation = JSON.parse(answers).find(
-            (answer) => answer.id === clueId
-          );
-          console.log("currentLocation: ", currentLocation);
-          console.log("compare with: ", cLat, cLong);
-
-          if (!currentLocation) {
-            console.log("No location found for clueId:", clueId);
-            return false;
-          }
-
-          const distance = haversineDistance(
-            { lat: currentLocation.lat, lng: currentLocation.long },
-            { lat: cLat, lng: cLong }
-          );
-
-          console.log("distance: ", distance);
-          return distance <= MAX_DISTANCE_IN_METERS;
-        }
-      );
-
-      Lit.Actions.setResponse({ response: isLocationInProximity });
     };
 
     const code = `(${_litActionCode.toString()})();`;
-
-    const accessControlConditions = [
-      {
-        contractAddress: "0x50Fe11213FA2B800C5592659690A38F388060cE4",
-        standardContractType: "ERC721",
-        chain,
-        method: "balanceOf",
-        parameters: [userAddress],
-        returnValueTest: {
-          comparator: ">",
-          value: "0",
-        },
-      },
-    ];
 
     console.log("Verification params:", { cLat, cLong, clueId, huntType });
 
     const sessionSigs = await this.getSessionSigsServer();
     // Decrypt the private key inside a lit action
+    // Use this.accessControlConditions to ensure they match what was used during initialization
     const jsParams = {
-      accessControlConditions: accessControlConditions,
+      accessControlConditions: this.accessControlConditions,
       ciphertext,
       dataToEncryptHash,
       sessionSigs,
@@ -534,14 +537,26 @@ export class Lit {
       jsParams.cLong = cLong;
     }
 
-    const res = await this.litNodeClient.executeJs({
-      sessionSigs,
-      code: code,
-      jsParams,
-    });
-    console.log("result from action execution:", res);
+    console.log("\n=== JS PARAMS === \n");
+    console.log("jsParams:", JSON.stringify(jsParams, null, 2));
 
-    return res;
+    try {
+      const res = await this.litNodeClient.executeJs({
+        sessionSigs,
+        code: code,
+        jsParams,
+      });
+      console.log("\n=== RESULT FROM ACTION EXECUTION === \n");
+      console.log("res:", res);
+
+      return res;
+    } catch (error) {
+      console.error("\n=== ERROR IN LIT ACTION EXECUTION === \n");
+      console.error("Error:", error);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+      throw error;
+    }
   }
 }
 
@@ -586,6 +601,7 @@ export const decryptRunServerMode = async (
   userEmbedding = null
 ) => {
   const chain = "baseSepolia";
+  console.log("\n=== DECRYPT RUN SERVER MODE DEBUG === \n");
   console.log("userAddress: ", userAddress);
   console.log("clueId: ", clueId);
   console.log("huntType: ", huntType);
@@ -782,61 +798,69 @@ app.post("/encrypt", async (req, res) => {
   res.send({ clues_blobId: clues_blobId, answers_blobId: answers_blobId });
 });
 app.post("/decrypt-ans", async (req, res) => {
-  const bodyData = req.body;
-  const curLat = bodyData.cLat;
-  const curLong = bodyData.cLong;
-  const clueId = bodyData.clueId;
-  const huntType = bodyData.huntType || HUNT_TYPE.GEO_LOCATION; // Default to GEO_LOCATION for backward compatibility
-  const userEmbedding = bodyData.userEmbedding || null;
+  try {
+    const bodyData = req.body;
+    const curLat = bodyData.cLat;
+    const curLong = bodyData.cLong;
+    const clueId = bodyData.clueId;
+    const huntType = bodyData.huntType || HUNT_TYPE.GEO_LOCATION; // Default to GEO_LOCATION for backward compatibility
+    const userEmbedding = bodyData.userEmbedding || null;
 
-  console.log("=== DECRYPT-ANS ENDPOINT DEBUG ===");
-  console.log("Request body:", JSON.stringify(bodyData, null, 2));
-  console.log("answers_blobId:", bodyData.answers_blobId);
-  console.log("huntType:", huntType);
+    console.log("=== DECRYPT-ANS ENDPOINT DEBUG ===");
+    console.log("Request body:", JSON.stringify(bodyData, null, 2));
 
-  // Validate required fields based on hunt type
-  if (huntType === HUNT_TYPE.GEO_LOCATION) {
-    if (curLat === undefined || curLong === undefined) {
-      return res.status(400).json({
-        error: "Missing required fields for geolocation hunt: cLat and cLong",
-      });
+    // Validate required fields based on hunt type
+    if (huntType === HUNT_TYPE.GEO_LOCATION) {
+      if (curLat === undefined || curLong === undefined) {
+        return res.status(400).json({
+          error: "Missing required fields for geolocation hunt: cLat and cLong",
+        });
+      }
+    } else if (huntType === HUNT_TYPE.IMAGE) {
+      if (!userEmbedding || !Array.isArray(userEmbedding)) {
+        return res.status(400).json({
+          error: "Missing required field for image hunt: userEmbedding (array)",
+        });
+      }
     }
-  } else if (huntType === HUNT_TYPE.IMAGE) {
-    if (!userEmbedding || !Array.isArray(userEmbedding)) {
-      return res.status(400).json({
-        error: "Missing required field for image hunt: userEmbedding (array)",
-      });
-    }
+
+    const answersData = await readObject(bodyData.answers_blobId);
+    const parsedAnswersData = typeof answersData === 'string' ? JSON.parse(answersData) : answersData;
+    
+    const {
+      ciphertext: answers_ciphertext,
+      dataToEncryptHash: answers_dataToEncryptHash,
+    } = parsedAnswersData;
+
+    console.log("\n=== DATA READ FROM ANSWERS_BLOB_ID === \n");
+    console.log("answers_ciphertext:", answers_ciphertext);
+    console.log("answers_dataToEncryptHash:", answers_dataToEncryptHash);
+    console.log("userAddress: ", bodyData.userAddress);
+
+    const { response } = await decryptRunServerMode(
+      answers_dataToEncryptHash,
+      answers_ciphertext,
+      bodyData.userAddress,
+      curLat,
+      curLong,
+      clueId,
+      huntType,
+      userEmbedding
+    );
+
+    console.log("\n=== FINAL RESPONSE === \n");
+    console.log("response:", response);
+    res.send({ isClose: response });
+  } catch (error) {
+    console.error("\n=== ERROR IN DECRYPT-ANS ENDPOINT === \n");
+    console.error("Error:", error);
+    console.error("Error message:", error.message);
+    console.error("Error stack:", error.stack);
+    res.status(500).json({
+      error: "Failed to decrypt and verify answer",
+      message: error.message
+    });
   }
-
-  const answersData = await readObject(bodyData.answers_blobId);
-  const parsedAnswersData = typeof answersData === 'string' ? JSON.parse(answersData) : answersData;
-  
-  const {
-    ciphertext: answers_ciphertext,
-    dataToEncryptHash: answers_dataToEncryptHash,
-  } = parsedAnswersData;
-
-  console.log("Data read from answers_blobId:");
-  console.log("answers_ciphertext:", answers_ciphertext);
-  console.log("answers_dataToEncryptHash:", answers_dataToEncryptHash);
-
-  console.log("userAddress: ", bodyData.userAddress);
-  console.log("answers_dataToEncryptHash: ", answers_dataToEncryptHash);
-
-  const { response } = await decryptRunServerMode(
-    answers_dataToEncryptHash,
-    answers_ciphertext,
-    bodyData.userAddress,
-    curLat,
-    curLong,
-    clueId,
-    huntType,
-    userEmbedding
-  );
-
-  console.log("Final response:", response);
-  res.send({ isClose: response });
 });
 
 app.post("/decrypt-clues", async (req, res) => {

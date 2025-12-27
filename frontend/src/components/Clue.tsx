@@ -811,7 +811,7 @@ export function Clue() {
           <CardFooter className="border-t pt-6 flex flex-col">
             <div className="flex mb-4 text-sm justify-between text-foreground/70">
               {huntType === HUNT_TYPE.GEO_LOCATION ? (
-                <div className="flex items-center ">
+                <div className="flex mr-8 ">
                   <BsGeoAlt className="mr-1" />
                   {location ? "Location detected" : "Detecting location..."}
                 </div>
