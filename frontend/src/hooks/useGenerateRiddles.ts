@@ -27,7 +27,7 @@ export function useGenerateRiddles(huntId: any) {
       );
 
       // Call backend endpoint to generate riddles
-      const response = await fetch(`${BACKEND_URL}/generate-riddles`, {
+      const response = await fetch(`${BACKEND_URL}/clues/riddles`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

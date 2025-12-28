@@ -60,7 +60,7 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId, teamIdentifier }) => {
           : null;
 
         if (huddleRoomConfig === null) {
-          const response = await fetch(`${BACKEND_URL}/startHuddle`, {
+          const response = await fetch(`${BACKEND_URL}/huddles`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -103,12 +103,9 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId, teamIdentifier }) => {
 
   const handleStreamStop = async () => {
     try {
-      const response = await fetch(`${BACKEND_URL}/livestreams/stop`, {
-        method: "POST",
+      const response = await fetch(`${BACKEND_URL}/huddles/livestreams/${roomId || ""}`, {
+        method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          roomId: roomId || "",
-        }),
       });
 
       if (!response.ok) {
@@ -135,7 +132,7 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId, teamIdentifier }) => {
 
     try {
       // Start streaming
-      const response = await fetch(`${BACKEND_URL}/livestreams/start`, {
+      const response = await fetch(`${BACKEND_URL}/huddles/livestreams`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

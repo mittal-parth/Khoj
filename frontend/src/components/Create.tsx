@@ -189,7 +189,7 @@ export function Create() {
       const formData = new FormData();
       formData.append('image', currentClue.imageFile);
 
-      const response = await fetch(`${BACKEND_URL}/generate-embedding`, {
+      const response = await fetch(`${BACKEND_URL}/images/embeddings`, {
         method: 'POST',
         body: formData,
       });
@@ -374,7 +374,7 @@ export function Create() {
       const formData = new FormData();
       formData.append('image', selectedImage);
 
-      const response = await fetch(`${BACKEND_URL}/upload-image`, {
+      const response = await fetch(`${BACKEND_URL}/images`, {
         method: 'POST',
         body: formData,
       });
@@ -419,7 +419,7 @@ export function Create() {
       };
 
       // Upload metadata to IPFS via backend
-      const response = await fetch(`${BACKEND_URL}/upload-metadata`, {
+      const response = await fetch(`${BACKEND_URL}/images/metadata`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -472,7 +472,7 @@ export function Create() {
             long,
           }));
 
-      const response = await fetch(`${BACKEND_URL}/encrypt`, {
+      const response = await fetch(`${BACKEND_URL}/clues/encrypt`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

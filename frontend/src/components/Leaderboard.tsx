@@ -55,7 +55,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
     setError(null);
 
     try {
-      const response = await fetch(`${BACKEND_URL}/leaderboard/${huntId}?chainId=${chainId}&contractAddress=${contractAddress}`);
+      const response = await fetch(`${BACKEND_URL}/hunts/${huntId}/leaderboard?chainId=${chainId}&contractAddress=${contractAddress}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch leaderboard: ${response.status}`);
