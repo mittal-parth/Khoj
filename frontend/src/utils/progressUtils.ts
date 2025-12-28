@@ -24,7 +24,7 @@ export async function fetchProgress(
 ): Promise<ProgressData | null> {
   try {
 
-    const url = new URL(`${BACKEND_URL}/progress/${huntId}/${teamIdentifier}`);
+    const url = new URL(`${BACKEND_URL}/hunts/${huntId}/teams/${teamIdentifier}/progress`);
     url.searchParams.set('chainId', chainId.toString());
     url.searchParams.set('contractAddress', contractAddress);
     if (totalClues) {

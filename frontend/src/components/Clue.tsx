@@ -130,7 +130,7 @@ export function Clue() {
         setIsLoadingRetries(true);
       }
       const response = await fetch(
-        `${BACKEND_URL}/retry-attempts/${huntId}/${clueId}/${teamIdentifier}?chainId=${chainId}&contractAddress=${contractAddress}`
+        `${BACKEND_URL}/hunts/${huntId}/clues/${clueId}/teams/${teamIdentifier}/attempts?chainId=${chainId}&contractAddress=${contractAddress}`
       );
       
       if (!response.ok) {
@@ -242,7 +242,7 @@ export function Clue() {
 
       console.log("Creating retry attestation:", attestationData);
 
-      const response = await fetch(`${BACKEND_URL}/attest-attempt`, {
+      const response = await fetch(`${BACKEND_URL}/attestations/attempts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -291,7 +291,7 @@ export function Clue() {
 
       console.log("Creating clue solve attestation:", attestationData);
 
-      const response = await fetch(`${BACKEND_URL}/attest-clue`, {
+      const response = await fetch(`${BACKEND_URL}/attestations/clues`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -477,7 +477,7 @@ export function Clue() {
         const embeddingFormData = new FormData();
         embeddingFormData.append('image', capturedImage!);
         
-        const embeddingResponse = await fetch(`${BACKEND_URL}/generate-embedding`, {
+        const embeddingResponse = await fetch(`${BACKEND_URL}/images/embeddings`, {
           method: "POST",
           body: embeddingFormData,
         });
@@ -491,7 +491,7 @@ export function Clue() {
         
         // Step 2: Call decrypt-ans with embedding
         console.log("Image hunt - Step 2: Verifying answer...");
-        const response = await fetch(`${BACKEND_URL}/decrypt-ans`, {
+        const response = await fetch(`${BACKEND_URL}/clues/verify`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -504,7 +504,7 @@ export function Clue() {
         
         data = await response.json();
       } else {
-        // For geolocation hunts: use /decrypt-ans endpoint
+        // For geolocation hunts: use /clues/verify endpoint
         const headersList = {
           Accept: "*/*",
           "Content-Type": "application/json",
@@ -524,7 +524,7 @@ export function Clue() {
 
         const bodyContent = JSON.stringify(requestBody);
 
-        const response = await fetch(`${BACKEND_URL}/decrypt-ans`, {
+        const response = await fetch(`${BACKEND_URL}/clues/verify`, {
           method: "POST",
           body: bodyContent,
           headers: headersList,
@@ -548,7 +548,7 @@ export function Clue() {
           // For first clue, use hunt start timestamp from retry-attempts with clueIndex: 0
           try {
             const huntStartResponse = await fetch(
-              `${BACKEND_URL}/retry-attempts/${huntId}/0/${teamIdentifier}?chainId=${chainId}&contractAddress=${contractAddress}`
+              `${BACKEND_URL}/hunts/${huntId}/clues/0/teams/${teamIdentifier}/attempts?chainId=${chainId}&contractAddress=${contractAddress}`
             );
             if (huntStartResponse.ok) {
               const huntStartData = await huntStartResponse.json();
@@ -565,7 +565,7 @@ export function Clue() {
           try {
 
             const progressResponse = await fetch(
-              `${BACKEND_URL}/progress/${huntId}/${teamIdentifier}?totalClues=${totalClues}&chainId=${chainId}&contractAddress=${contractAddress}`
+              `${BACKEND_URL}/hunts/${huntId}/teams/${teamIdentifier}/progress?totalClues=${totalClues}&chainId=${chainId}&contractAddress=${contractAddress}`
             );
             if (progressResponse.ok) {
               const progressData = await progressResponse.json();

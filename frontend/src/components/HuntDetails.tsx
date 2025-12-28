@@ -234,7 +234,7 @@ export function HuntDetails() {
 
       // Check if hunt start attestation already exists using retry-attempts endpoint with clueIndex: 0
       const response = await fetch(
-        `${BACKEND_URL}/retry-attempts/${huntId}/0/${teamIdentifier}?chainId=${chainId}&contractAddress=${contractAddress}`
+        `${BACKEND_URL}/hunts/${huntId}/clues/0/teams/${teamIdentifier}/attempts?chainId=${chainId}&contractAddress=${contractAddress}`
       );
       
       if (!response.ok) {
@@ -264,7 +264,7 @@ export function HuntDetails() {
       };
       
       console.log("Creating hunt start attestation with payload:", requestPayload);
-      const createResponse = await fetch(`${BACKEND_URL}/attest-attempt`, {
+      const createResponse = await fetch(`${BACKEND_URL}/attestations/attempts`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -383,7 +383,7 @@ export function HuntDetails() {
         answers_blobId: huntData.answers_blobId,
       });
 
-      const response = await fetch(`${BACKEND_URL}/decrypt-clues`, {
+      const response = await fetch(`${BACKEND_URL}/clues/decrypt`, {
         method: "POST",
         body: bodyContent,
         headers: headersList,

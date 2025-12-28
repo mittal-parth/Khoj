@@ -100,7 +100,7 @@ console.log(`Started TTL cleanup for team rooms. Cleanup interval: ${CLEANUP_INT
 // ENDPOINTS
 // ============================================================================
 
-app.post("/encrypt", async (req, res) => {
+app.post("/clues/encrypt", async (req, res) => {
   try {
     const bodyData = req.body;
 
@@ -212,7 +212,7 @@ app.post("/encrypt", async (req, res) => {
   }
 });
 
-app.post("/decrypt-ans", async (req, res) => {
+app.post("/clues/verify", async (req, res) => {
   try {
     const bodyData = req.body;
     const huntType = bodyData.huntType || "GEO_LOCATION";
@@ -283,7 +283,7 @@ app.post("/decrypt-ans", async (req, res) => {
   }
 });
 
-app.post("/decrypt-clues", async (req, res) => {
+app.post("/clues/decrypt", async (req, res) => {
   try {
     const bodyData = req.body;
     const clues_blobId = bodyData.clues_blobId;
@@ -313,7 +313,7 @@ app.post("/decrypt-clues", async (req, res) => {
   }
 });
 
-app.post("/upload-image", upload.single('image'), async (req, res) => {
+app.post("/images", upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No image file provided" });
@@ -338,7 +338,7 @@ app.post("/upload-image", upload.single('image'), async (req, res) => {
   }
 });
 
-app.post("/upload-metadata", async (req, res) => {
+app.post("/images/metadata", async (req, res) => {
   try {
     const { metadata } = req.body;
     
@@ -363,7 +363,7 @@ app.post("/upload-metadata", async (req, res) => {
   }
 });
 
-app.post("/generate-embedding", upload.single('image'), async (req, res) => {
+app.post("/images/embeddings", upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No image file provided" });
@@ -389,7 +389,7 @@ app.post("/generate-embedding", upload.single('image'), async (req, res) => {
 });
 
 
-app.post("/startHuddle", async (req, res) => {
+app.post("/huddles", async (req, res) => {
   try {
     const { huntId, teamId } = req.body;
     
@@ -441,7 +441,7 @@ app.post("/startHuddle", async (req, res) => {
   }
 });
 
-app.post("/livestreams/start", async (req, res) => {
+app.post("/huddles/livestreams", async (req, res) => {
   const bodyData = req.body;
   console.log("BackendbodyData: ", bodyData);
   await startStreaming(
@@ -453,15 +453,15 @@ app.post("/livestreams/start", async (req, res) => {
   res.send({ message: "Streaming started" });
 });
 
-app.post("/livestreams/stop", async (req, res) => {
-  const bodyData = req.body;
-  console.log("Backend bodyData: ", bodyData);
-  await stopStreaming(bodyData.roomId);
+app.delete("/huddles/livestreams/:roomId", async (req, res) => {
+  const roomId = req.params.roomId;
+  console.log("Backend roomId: ", roomId);
+  await stopStreaming(roomId);
   res.send({ message: "Streaming stopped" });
 });
 
 // Generate riddles endpoint
-app.post("/generate-riddles", async (req, res) => {
+app.post("/clues/riddles", async (req, res) => {
   try {
     const { locations, theme } = req.body;
 
@@ -568,7 +568,7 @@ app.post("/generate-riddles", async (req, res) => {
 });
 
 // Attest clue attempt endpoint (for retry tracking and hunt start with clueIndex: 0)
-app.post("/attest-attempt", async (req, res) => {
+app.post("/attestations/attempts", async (req, res) => {
   try {
     const { teamIdentifier, huntId, clueIndex, solverAddress, attemptCount, chainId, contractAddress } = req.body;
 
@@ -614,7 +614,7 @@ app.post("/attest-attempt", async (req, res) => {
 });
 
 // Attest clue solve endpoint
-app.post("/attest-clue", async (req, res) => {
+app.post("/attestations/clues", async (req, res) => {
   try {
     const { teamIdentifier, huntId, clueIndex, teamLeaderAddress, solverAddress, timeTaken, attemptCount, chainId, contractAddress } = req.body;
 
@@ -664,7 +664,7 @@ app.post("/attest-clue", async (req, res) => {
 });
 
 // Progress check endpoint
-app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
+app.get("/hunts/:huntId/teams/:teamIdentifier/progress", async (req, res) => {
   try {
     const huntId = parseInt(req.params.huntId);
     const teamIdentifier = req.params.teamIdentifier;
@@ -773,7 +773,7 @@ app.get("/progress/:huntId/:teamIdentifier", async (req, res) => {
 });
 
 // Get retry attempts for a specific clue and team (also used for hunt start with clueIndex: 0)
-app.get("/retry-attempts/:huntId/:clueIndex/:teamIdentifier", async (req, res) => {
+app.get("/hunts/:huntId/clues/:clueIndex/teams/:teamIdentifier/attempts", async (req, res) => {
   try {
     const huntId = parseInt(req.params.huntId);
     const clueIndex = parseInt(req.params.clueIndex);
@@ -854,7 +854,7 @@ app.get("/retry-attempts/:huntId/:clueIndex/:teamIdentifier", async (req, res) =
 });
 
 // Leaderboard endpoint
-app.get("/leaderboard/:huntId", async (req, res) => {
+app.get("/hunts/:huntId/leaderboard", async (req, res) => {
   try {
     const huntId = parseInt(req.params.huntId);
     const chainId = req.query.chainId;

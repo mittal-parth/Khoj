@@ -20,7 +20,7 @@ export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: big
   }
 
   try {
-    const url = new URL(`${BACKEND_URL}/leaderboard/${huntId}`);
+    const url = new URL(`${BACKEND_URL}/hunts/${huntId}/leaderboard`);
     url.searchParams.set('chainId', chainId.toString());
     url.searchParams.set('contractAddress', contractAddress);
     const response = await fetch(url.toString());
