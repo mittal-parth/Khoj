@@ -962,17 +962,17 @@ export function Clue() {
 
         {/* Camera Modal */}
         <Dialog open={isCameraOpen} onOpenChange={(open) => !open && closeCamera()}>
-          <DialogContent className="max-w-4xl w-full">
+          <DialogContent className="max-w-md w-full p-4">
             <DialogHeader>
               <DialogTitle>Take a Picture</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+              <div className="relative aspect-[3/4] bg-black rounded-lg overflow-hidden mx-auto max-w-full">
                 <video
                   ref={videoRef}
                   autoPlay
                   playsInline
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-contain"
                 />
                 <canvas ref={canvasRef} className="hidden" />
               </div>
