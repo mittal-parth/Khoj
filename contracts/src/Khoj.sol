@@ -6,6 +6,13 @@ import "./KhojNFT.sol";
 contract Khoj {
     KhojNFT public nftContract;
 
+    /* Enums */
+    enum HuntType {
+        GEO_LOCATION,
+        IMAGE,
+        COMBINED
+    }
+
     /* Structs */
     struct Team {
         address owner;
@@ -37,6 +44,7 @@ contract Khoj {
         uint256 teamCount;
         // NFT metadata URI for this hunt
         string nftMetadataURI;
+        HuntType huntType;
     }
 
     /* Structs for view-only data */
@@ -53,6 +61,7 @@ contract Khoj {
         string theme;
         string nftMetadataURI;
         address[] participants;
+        HuntType huntType;
     }
 
     struct TeamInfo {
@@ -111,7 +120,8 @@ contract Khoj {
         bool _teamsEnabled,
         uint256 _maxTeamSize,
         string memory _theme, // overall theme of the event that will influence the clues
-        string memory _nftMetadataURI // IPFS URI for NFT metadata
+        string memory _nftMetadataURI, // IPFS URI for NFT metadata
+        HuntType _huntType
     ) public returns (uint256) {
         require(bytes(_name).length > 0, "Name cannot be empty");
         require(bytes(_description).length > 0, "Description cannot be empty");
@@ -135,6 +145,7 @@ contract Khoj {
         newHunt.maxTeamSize = _maxTeamSize;
         newHunt.theme = _theme;
         newHunt.nftMetadataURI = _nftMetadataURI;
+        newHunt.huntType = _huntType;
         newHunt.creator = msg.sender;
 
         uint256 huntId = hunts.length - 1;
@@ -307,7 +318,8 @@ contract Khoj {
             maxTeamSize: hunt.maxTeamSize,
             theme: hunt.theme,
             nftMetadataURI: hunt.nftMetadataURI,
-            participants: hunt.participantsList
+            participants: hunt.participantsList,
+            huntType: hunt.huntType
         });
     }
 
@@ -343,7 +355,8 @@ contract Khoj {
                 maxTeamSize: hunt.maxTeamSize,
                 theme: hunt.theme,
                 nftMetadataURI: hunt.nftMetadataURI,
-                participants: hunt.participantsList
+                participants: hunt.participantsList,
+                huntType: hunt.huntType
             });
         }
 

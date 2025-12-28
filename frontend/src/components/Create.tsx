@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { huntABI } from "../assets/hunt_abi";
 import { toast } from "sonner";
@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { TransactionButton } from "./TransactionButton";
 import { useNetworkState } from "../lib/utils";
-import { Clue, ClueData, AnswerData, IPFSResponse } from "../types";
+import { Clue, ClueData, AnswerData, IPFSResponse, HuntType, HUNT_TYPE, huntTypeToEnum } from "../types";
 import { isValidHexAddress, isZeroAddress } from "../utils/validationUtils";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
@@ -42,12 +42,16 @@ export function Create() {
     answer: "",
     lat: 0,
     long: 0,
+    embedding: undefined,
+    imageFile: undefined,
+    imagePreview: undefined,
   });
   const [isUploading, setIsUploading] = useState(false);
   const [uploadedCIDs, setUploadedCIDs] = useState<IPFSResponse | null>(null);
   const [cluesCID, setCluesCID] = useState("");
   const [answersCID, setAnswersCID] = useState("");
   const [healthCheckStatus, setHealthCheckStatus] = useState<string | null>(null);
+  const [isGeneratingEmbedding, setIsGeneratingEmbedding] = useState(false);
   
   // Mode toggle: false = Enter Clues mode, true = Direct CID mode
   const [useDirectCID, setUseDirectCID] = useState(false);
@@ -63,6 +67,10 @@ export function Create() {
   const [teamsEnabled, setTeamsEnabled] = useState(false);
   const [maxTeamSize, setMaxTeamSize] = useState("1");
   const [theme, setTheme] = useState("");
+  const [huntType, setHuntType] = useState<HuntType>(HUNT_TYPE.GEO_LOCATION);
+
+  // Ref for file input to reset it after adding a clue
+  const clueImageInputRef = useRef<HTMLInputElement>(null);
 
   // Use the reactive network state hook
   const { currentNetwork, contractAddress, chainId } = useNetworkState();
@@ -86,24 +94,121 @@ export function Create() {
   }
 
   const handleAddClue = () => {
-    if (
-      currentClue.lat !== undefined &&
-      currentClue.long !== undefined &&
-      currentClue.description &&
-      currentClue.answer &&
-      currentClue.id
-    ) {
-      setClues((prev) => [...prev, currentClue as Clue]);
-      setCurrentClue({
-        id: (currentClue.id || 0) + 1,
-        description: "",
-        answer: "",
-        lat: 0,
-        long: 0,
-      });
-      toast.success("Clue added successfully!");
+    if (huntType === HUNT_TYPE.IMAGE) {
+      // For image hunts: require embedding
+      if (
+        currentClue.embedding &&
+        Array.isArray(currentClue.embedding) &&
+        currentClue.embedding.length > 0 &&
+        currentClue.description &&
+        currentClue.answer &&
+        currentClue.id
+      ) {
+        setClues((prev) => [...prev, currentClue as Clue]);
+        setCurrentClue({
+          id: (currentClue.id || 0) + 1,
+          description: "",
+          answer: "",
+          embedding: undefined,
+          imageFile: undefined,
+          imagePreview: undefined,
+        });
+        // Reset file input so user can select the same file again if needed
+        if (clueImageInputRef.current) {
+          clueImageInputRef.current.value = "";
+        }
+        toast.success("Clue added successfully!");
+      } else {
+        if (!currentClue.embedding) {
+          toast.error("Please generate the embedding first by clicking 'Generate Embedding'");
+        } else {
+          toast.error("Please fill in all clue details (description and answer)");
+        }
+      }
     } else {
-      toast.error("Please fill in all clue details");
+      // For geolocation hunts: require lat/long
+      if (
+        currentClue.lat !== undefined &&
+        currentClue.long !== undefined &&
+        currentClue.description &&
+        currentClue.answer &&
+        currentClue.id
+      ) {
+        setClues((prev) => [...prev, currentClue as Clue]);
+        setCurrentClue({
+          id: (currentClue.id || 0) + 1,
+          description: "",
+          answer: "",
+          lat: 0,
+          long: 0,
+        });
+        toast.success("Clue added successfully!");
+      } else {
+        toast.error("Please fill in all clue details");
+      }
+    }
+  };
+
+  const handleClueImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error("Please select a valid image file");
+      return;
+    }
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image size must be less than 10MB");
+      return;
+    }
+
+    // Create preview and store file (but don't generate embedding yet)
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setCurrentClue((prev) => ({
+        ...prev,
+        imageFile: file,
+        imagePreview: event.target?.result as string,
+        embedding: undefined, // Clear any previous embedding
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const generateEmbedding = async () => {
+    if (!currentClue.imageFile) {
+      toast.error("Please select an image first");
+      return;
+    }
+
+    setIsGeneratingEmbedding(true);
+    try {
+      const formData = new FormData();
+      formData.append('image', currentClue.imageFile);
+
+      const response = await fetch(`${BACKEND_URL}/generate-embedding`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate embedding');
+      }
+
+      const data = await response.json();
+      setCurrentClue((prev) => ({
+        ...prev,
+        embedding: data.embedding,
+      }));
+      toast.success("Image embedding generated! You can now add this clue.");
+    } catch (error) {
+      console.error("Error generating embedding:", error);
+      toast.error("Failed to generate embedding");
+    } finally {
+      setIsGeneratingEmbedding(false);
     }
   };
 
@@ -138,6 +243,9 @@ export function Create() {
       return null;
     }
 
+    // Convert huntType to enum value: 0 = GEO_LOCATION, 1 = IMAGE
+    const huntTypeEnum = huntTypeToEnum(huntType);
+
     const args = [
       huntName,
       description,
@@ -149,6 +257,7 @@ export function Create() {
       BigInt(parseInt(maxTeamSize)), // maxTeamSize
       theme, // theme
       `ipfs://${nftMetadataCID}`, // nftMetadataURI
+      huntTypeEnum, // huntType (0 = GEO_LOCATION, 1 = IMAGE)
     ];
 
     console.log("Transaction args:", args);
@@ -349,14 +458,19 @@ export function Create() {
         description,
       }));
 
-      const answersData: AnswerData[] = clues.map(
-        ({ id, answer, lat, long }) => ({
-          id,
-          answer,
-          lat,
-          long,
-        })
-      );
+      // Prepare answers based on hunt type
+      const answersData: AnswerData[] = huntType === HUNT_TYPE.IMAGE
+        ? clues.map(({ id, answer, embedding }) => ({
+            id,
+            answer,
+            embedding,
+          }))
+        : clues.map(({ id, answer, lat, long }) => ({
+            id,
+            answer,
+            lat,
+            long,
+          }));
 
       const response = await fetch(`${BACKEND_URL}/encrypt`, {
         method: "POST",
@@ -367,6 +481,7 @@ export function Create() {
           clues: cluesData,
           answers: answersData,
           userAddress: address,
+          huntType: huntType,
         }),
       });
 
@@ -415,7 +530,11 @@ export function Create() {
       answer: "",
       lat: 0,
       long: 0,
+      embedding: undefined,
+      imageFile: undefined,
+      imagePreview: undefined,
     });
+    setHuntType(HUNT_TYPE.GEO_LOCATION); // Defaults to GEO_LOCATION
     setCluesCID("");
     setAnswersCID("");
     setUploadedCIDs(null);
@@ -426,6 +545,7 @@ export function Create() {
     setTeamsEnabled(false);
     setMaxTeamSize("1");
     setTheme("");
+    setIsGeneratingEmbedding(false);
   };
 
   const transactionArgs = getTransactionArgs();
@@ -537,6 +657,73 @@ export function Create() {
               onChange={(e) => setTheme(e.target.value)}
               placeholder="Adventure, tech, or a mix of themes. It can be a word or a phrase and will influence the clues"
             />
+          </div>
+
+          <div>
+            <Label>Hunt Type</Label>
+            <div className="flex gap-4 mt-2">
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="huntType"
+                  value={HUNT_TYPE.GEO_LOCATION}
+                  checked={huntType === HUNT_TYPE.GEO_LOCATION}
+                  onChange={(e) => {
+                    setHuntType(e.target.value as HuntType);
+                    // Reset clues when switching types
+                    setClues([]);
+                    setCurrentClue({
+                      id: 1,
+                      description: "",
+                      answer: "",
+                      lat: 0,
+                      long: 0,
+                      embedding: undefined,
+                      imageFile: undefined,
+                      imagePreview: undefined,
+                    });
+                    // Reset file input
+                    if (clueImageInputRef.current) {
+                      clueImageInputRef.current.value = "";
+                    }
+                  }}
+                  className="rounded-sm"
+                />
+                <span>Geolocation</span>
+              </label>
+              <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="huntType"
+                  value={HUNT_TYPE.IMAGE}
+                  checked={huntType === HUNT_TYPE.IMAGE}
+                  onChange={(e) => {
+                    setHuntType(e.target.value as HuntType);
+                    // Reset clues when switching types
+                    setClues([]);
+                    setCurrentClue({
+                      id: 1,
+                      description: "",
+                      answer: "",
+                      lat: 0,
+                      long: 0,
+                      embedding: undefined,
+                      imageFile: undefined,
+                      imagePreview: undefined,
+                    });
+                    // Reset file input
+                    if (clueImageInputRef.current) {
+                      clueImageInputRef.current.value = "";
+                    }
+                  }}
+                  className="rounded-sm"
+                />
+                <span>Image</span>
+              </label>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">
+              Choose whether clues are verified by location or image matching
+            </p>
           </div>
 
           <div className="border-t pt-6">
@@ -752,47 +939,96 @@ export function Create() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="latitude">Latitude</Label>
-                    <Input
-                      id="latitude"
-                      type="number"
-                      step="0.000001"
-                      value={currentClue.lat}
-                      onChange={(e) =>
-                        setCurrentClue((prev) => ({
-                          ...prev,
-                          lat: parseFloat(e.target.value),
-                        }))
-                      }
-                      placeholder="Enter latitude"
-                    />
+                {huntType === HUNT_TYPE.GEO_LOCATION ? (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="latitude">Latitude</Label>
+                      <Input
+                        id="latitude"
+                        type="number"
+                        step="0.000001"
+                        value={currentClue.lat || 0}
+                        onChange={(e) =>
+                          setCurrentClue((prev) => ({
+                            ...prev,
+                            lat: parseFloat(e.target.value),
+                          }))
+                        }
+                        placeholder="Enter latitude"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="longitude">Longitude</Label>
+                      <Input
+                        id="longitude"
+                        type="number"
+                        step="0.000001"
+                        value={currentClue.long || 0}
+                        onChange={(e) =>
+                          setCurrentClue((prev) => ({
+                            ...prev,
+                            long: parseFloat(e.target.value),
+                          }))
+                        }
+                        placeholder="Enter longitude"
+                      />
+                    </div>
                   </div>
+                ) : (
                   <div>
-                    <Label htmlFor="longitude">Longitude</Label>
+                    <Label htmlFor="clueImage">Answer Image</Label>
                     <Input
-                      id="longitude"
-                      type="number"
-                      step="0.000001"
-                      value={currentClue.long}
-                      onChange={(e) =>
-                        setCurrentClue((prev) => ({
-                          ...prev,
-                          long: parseFloat(e.target.value),
-                        }))
-                      }
-                      placeholder="Enter longitude"
+                      ref={clueImageInputRef}
+                      id="clueImage"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleClueImageSelect}
+                      className="mt-1"
                     />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Upload the answer image for this clue (Max 10MB)
+                    </p>
+                    {currentClue.imagePreview && (
+                      <div className="mt-4 space-y-3">
+                        <p className="text-sm font-medium">Preview:</p>
+                        <img
+                          src={currentClue.imagePreview}
+                          alt="Clue answer preview"
+                          className="w-48 h-48 object-cover rounded-md border"
+                        />
+                        {!currentClue.embedding ? (
+                          <Button
+                            onClick={generateEmbedding}
+                            disabled={isGeneratingEmbedding}
+                            variant="outline"
+                            className="w-full bg-blue-50"
+                          >
+                            {isGeneratingEmbedding ? "Generating Embedding..." : "Generate Embedding"}
+                          </Button>
+                        ) : (
+                          <div className="p-2 bg-green-50 rounded-md">
+                            <p className="text-xs text-green-600 font-medium">
+                              ✅ Embedding generated ({currentClue.embedding.length} dimensions)
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              You can now add this clue to the hunt
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
 
                 <Button
                   onClick={handleAddClue}
                   className="w-full"
                   variant="outline"
+                  disabled={huntType === HUNT_TYPE.IMAGE && !currentClue.embedding}
                 >
-                  Add Clue
+                  {huntType === HUNT_TYPE.IMAGE && !currentClue.embedding
+                    ? "Generate Embedding First"
+                    : "Add Clue"}
                 </Button>
               </div>
 
