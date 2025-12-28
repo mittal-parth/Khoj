@@ -15,6 +15,7 @@ import { client } from "../lib/client";
 import { Hunt, Team } from "../types";
 import { fetchTeamCombinedScore } from "../utils/leaderboardUtils";
 import { isValidHexAddress, hasRequiredHuntParams } from "../utils/validationUtils";
+import { getTeamIdentifier } from "../utils/progressUtils";
 
 export function HuntEnd() {
   const { huntId } = useParams();
@@ -56,13 +57,18 @@ export function HuntEnd() {
   // Fetch team score from leaderboard
   useEffect(() => {
     const loadTeamScore = async () => {
-      if (!hasRequiredHuntParams({ huntId, chainId, contractAddress }) || !teamData) {
+      if (!hasRequiredHuntParams({ huntId, chainId, contractAddress }) || !userWallet) {
         setIsLoadingScore(false);
+        console.log("Team score loading failed because of missing params");
         return;
       }
 
       try {
-        const score = await fetchTeamCombinedScore(huntId!, teamData?.teamId || userWallet as `0x${string}`, chainId!, contractAddress!);
+        console.log("Fetching team score");
+        // Use getTeamIdentifier to handle both teams and solo participants
+        // For teams: uses teamData.teamId, for solo: uses userWallet
+        const teamIdentifier = getTeamIdentifier(teamData, userWallet);
+        const score = await fetchTeamCombinedScore(huntId!, teamIdentifier, chainId!, contractAddress!);
         setTeamScore(score);
         // Trigger confetti only once when score is successfully loaded
         if (!hasShownConfetti) {
@@ -77,7 +83,7 @@ export function HuntEnd() {
     };
 
     loadTeamScore();
-  }, [huntId, teamData, chainId, contractAddress]);
+  }, [huntId, teamData, chainId, contractAddress, userWallet]);
 
   // Use dynamic score or show loading state
   const trustScore = teamScore !== null ? teamScore.toString() : "...";

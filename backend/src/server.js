@@ -18,7 +18,7 @@ import {
 } from "./services/lit-protocol.js";
 import { attestClueSolved, attestClueAttempt, queryAttestationsForHunt, queryRetryAttemptsForClue } from "./services/sign-protocol.js";
 import { calculateLeaderboardForHunt } from "./services/leaderboard.js";
-import { generateImageEmbedding, EMBEDDING_DIMENSION } from "./services/vertex-ai.js";
+import { generateImageEmbedding } from "./services/vertex-ai.js";
 
 // Import utilities
 import { withRetry } from "./utils/retry-utils.js";
@@ -119,7 +119,9 @@ app.post("/encrypt", async (req, res) => {
 
     const clues = bodyData.clues;
     const answers = bodyData.answers;
+    const huntType = bodyData.huntType || "GEO_LOCATION";
 
+    console.log("Hunt type:", huntType);
     console.log("Raw clues received:", JSON.stringify(clues, null, 2));
     console.log("Raw answers received:", JSON.stringify(answers, null, 2));
 
@@ -132,18 +134,33 @@ app.post("/encrypt", async (req, res) => {
       }
     }
 
-    // Validate answers
+    // Validate answers based on hunt type
     for (const answer of answers) {
-      if (
-        !answer.id ||
-        !answer.answer ||
-        typeof answer.lat !== "number" ||
-        typeof answer.long !== "number"
-      ) {
-        console.log("Invalid answer:", answer);
-        return res.status(400).json({
-          error: "Each answer must have id, answer, lat, and long fields",
-        });
+      if (huntType === "IMAGE") {
+        // Image hunt: require id, answer, and embedding array
+        if (
+          !answer.id ||
+          !answer.answer ||
+          !Array.isArray(answer.embedding)
+        ) {
+          console.log("Invalid image answer:", answer);
+          return res.status(400).json({
+            error: "Each answer must have id, answer, and embedding (array) fields for image hunts",
+          });
+        }
+      } else {
+        // Geolocation hunt: require id, answer, lat, and long
+        if (
+          !answer.id ||
+          !answer.answer ||
+          typeof answer.lat !== "number" ||
+          typeof answer.long !== "number"
+        ) {
+          console.log("Invalid geolocation answer:", answer);
+          return res.status(400).json({
+            error: "Each answer must have id, answer, lat, and long fields for geolocation hunts",
+          });
+        }
       }
     }
 
@@ -152,12 +169,11 @@ app.post("/encrypt", async (req, res) => {
       id,
       description,
     }));
-    const answersParsed = answers.map(({ id, answer, lat, long }) => ({
-      id,
-      answer,
-      lat,
-      long,
-    }));
+    
+    // Parse answers based on hunt type
+    const answersParsed = huntType === "IMAGE"
+      ? answers.map(({ id, answer, embedding }) => ({ id, answer, embedding }))
+      : answers.map(({ id, answer, lat, long }) => ({ id, answer, lat, long }));
 
     console.log("cluesParsed: ", JSON.stringify(cluesParsed, null, 2));
     console.log("answersParsed: ", JSON.stringify(answersParsed, null, 2));
@@ -199,14 +215,14 @@ app.post("/encrypt", async (req, res) => {
 app.post("/decrypt-ans", async (req, res) => {
   try {
     const bodyData = req.body;
-    const curLat = bodyData.cLat;
-    const curLong = bodyData.cLong;
+    const huntType = bodyData.huntType || "GEO_LOCATION";
     const clueId = bodyData.clueId;
 
     console.log("=== DECRYPT-ANS ENDPOINT DEBUG ===");
     console.log("Request body:", JSON.stringify(bodyData, null, 2));
+    console.log("Hunt type:", huntType);
 
-
+    // Get encrypted answers from IPFS
     const answersData = await readObject(bodyData.answers_blobId);
     const parsedAnswersData = typeof answersData === 'string' ? JSON.parse(answersData) : answersData;
     
@@ -219,13 +235,42 @@ app.post("/decrypt-ans", async (req, res) => {
     console.log("answers_ciphertext:", answers_ciphertext);
     console.log("answers_dataToEncryptHash:", answers_dataToEncryptHash);
 
-    const { response } = await decryptRunServerMode(
-      answers_dataToEncryptHash,
-      answers_ciphertext,
-      curLat,
-      curLong,
-      clueId
-    );
+    let response;
+    if (huntType === "IMAGE") {
+      // Image verification: requires embedding array
+      const userEmbedding = bodyData.embedding;
+      if (!userEmbedding || !Array.isArray(userEmbedding)) {
+        return res.status(400).json({ 
+          error: "embedding array is required for image hunts" 
+        });
+      }
+      console.log("Image hunt - using embedding verification");
+      const result = await decryptRunServerMode(
+        answers_dataToEncryptHash,
+        answers_ciphertext,
+        null,
+        null,
+        clueId,
+        huntType,
+        userEmbedding
+      );
+      response = result.response;
+    } else {
+      // Geolocation verification: requires lat/long
+      const curLat = bodyData.cLat;
+      const curLong = bodyData.cLong;
+      console.log("Geolocation hunt - using location verification");
+      const result = await decryptRunServerMode(
+        answers_dataToEncryptHash,
+        answers_ciphertext,
+        curLat,
+        curLong,
+        clueId,
+        huntType,
+        null
+      );
+      response = result.response;
+    }
 
     console.log("Final response:", response);
     res.send({ isClose: response });
@@ -318,6 +363,30 @@ app.post("/upload-metadata", async (req, res) => {
   }
 });
 
+app.post("/generate-embedding", upload.single('image'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image file provided" });
+    }
+
+    const { buffer } = req.file;
+    console.log("Calling vertex-ai to generate embedding for image");
+    // Generate embedding using Vertex AI
+    const embedding = await generateImageEmbedding(buffer);
+    
+    res.json({
+      success: true,
+      embedding,
+      dimension: embedding.length
+    });
+  } catch (error) {
+    console.error("Error generating embedding:", error);
+    res.status(500).json({
+      error: "Failed to generate embedding",
+      message: error.message
+    });
+  }
+});
 
 
 app.post("/startHuddle", async (req, res) => {

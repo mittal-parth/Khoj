@@ -5,7 +5,7 @@ dotenv.config();
 
 const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT_ID;
 const LOCATION = process.env.GOOGLE_CLOUD_LOCATION || "us-central1";
-const EMBEDDING_DIMENSION = 256;
+const EMBEDDING_DIMENSION = 512;
 const SIMILARITY_THRESHOLD = parseFloat(process.env.IMAGE_SIMILARITY_THRESHOLD) || 0.7;
 
 // Imports the Google Cloud Prediction service client
@@ -83,11 +83,6 @@ export async function generateImageEmbedding(imageBuffer, dimension = EMBEDDING_
     
     if (!predictions || predictions.length === 0) {
       throw new Error("No predictions returned from Vertex AI");
-    }
-
-    console.log('\tPredictions:');
-    for (const prediction of predictions) {
-      console.log(`\t\tPrediction: ${JSON.stringify(prediction)}`);
     }
 
     const prediction = predictions[0];

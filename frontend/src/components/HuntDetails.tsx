@@ -775,7 +775,7 @@ export function HuntDetails() {
                       <div>
                         <p className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">Participants</p>
                         <p className="text-sm text-foreground">
-                          {Number(huntData.participantCount)} registered
+                          {Number(huntData.participantCount)} Registered
                         </p>
                       </div>
                     </div>
@@ -792,7 +792,7 @@ export function HuntDetails() {
                       <div>
                         <p className="text-sm text-foreground/60 font-semibold uppercase tracking-wide">Clue Verification</p>
                         <p className="text-sm text-foreground">
-                          {huntTypeDisplay === HUNT_TYPE.IMAGE ? 'Image Matching' : 'Geolocation'}
+                          {huntTypeDisplay === HUNT_TYPE.IMAGE ? 'Image Based' : 'Location Based'}
                         </p>
                       </div>
                     </div>

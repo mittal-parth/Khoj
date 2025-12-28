@@ -471,19 +471,37 @@ export function Clue() {
       let data;
       
       if (huntType === HUNT_TYPE.IMAGE) {
-        // For image hunts: use /compare-images endpoint
-        const formData = new FormData();
-        formData.append('image', capturedImage!);
-        formData.append('answers_blobId', huntData.answers_blobId);
-        formData.append('userAddress', userWallet || "0x0000");
-        formData.append('clueId', clueId || "0");
-        formData.append('huntID', huntId || "0");
-
-        const response = await fetch(`${BACKEND_URL}/compare-images`, {
+        // For image hunts: two-step process
+        // Step 1: Generate embedding for captured image
+        console.log("Image hunt - Step 1: Generating embedding...");
+        const embeddingFormData = new FormData();
+        embeddingFormData.append('image', capturedImage!);
+        
+        const embeddingResponse = await fetch(`${BACKEND_URL}/generate-embedding`, {
           method: "POST",
-          body: formData,
+          body: embeddingFormData,
         });
-
+        
+        if (!embeddingResponse.ok) {
+          throw new Error("Failed to generate embedding for captured image");
+        }
+        
+        const embeddingData = await embeddingResponse.json();
+        console.log("Embedding generated");
+        
+        // Step 2: Call decrypt-ans with embedding
+        console.log("Image hunt - Step 2: Verifying answer...");
+        const response = await fetch(`${BACKEND_URL}/decrypt-ans`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            answers_blobId: huntData.answers_blobId,
+            embedding: embeddingData.embedding,
+            clueId: Number(clueId),
+            huntType: HUNT_TYPE.IMAGE,
+          }),
+        });
+        
         data = await response.json();
       } else {
         // For geolocation hunts: use /decrypt-ans endpoint
@@ -873,7 +891,7 @@ export function Clue() {
                           variant={getButtonVariant()}
                           size="lg"
                           className={cn(
-                            "w-full transition-colors duration-300",
+                            "w-full transition-colors duration-300 whitespace-normal break-words",
                             getButtonStyles()
                           )}
                           disabled={

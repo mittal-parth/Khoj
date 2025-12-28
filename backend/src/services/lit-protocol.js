@@ -39,6 +39,7 @@ import {
   generateAuthSig,
 } from "@lit-protocol/auth-helpers";
 import { LitNetwork } from "@lit-protocol/constants";
+import { SIMILARITY_THRESHOLD } from "./vertex-ai.js";
 
 // Configuration
 const MAX_DISTANCE_IN_METERS = parseFloat(process.env.MAX_DISTANCE_IN_METERS) || 60;
@@ -150,7 +151,26 @@ export class Lit {
   }
 
   async encrypt(message) {
-    console.log("encrypting message: ", message, typeof message);
+    // Log message summary without embeddings to avoid flooding logs
+    try {
+      const parsed = JSON.parse(message);
+      if (Array.isArray(parsed) && parsed.some(item => item.embedding)) {
+        const summary = parsed.map(item => ({
+          id: item.id,
+          answer: item.answer,
+          description: item.description,
+          hasEmbedding: !!item.embedding,
+          embeddingLength: item.embedding?.length,
+          lat: item.lat,
+          long: item.long
+        }));
+        console.log("encrypting message (summary):", JSON.stringify(summary), typeof message);
+      } else {
+        console.log("encrypting message:", message, typeof message);
+      }
+    } catch {
+      console.log("encrypting message:", message, typeof message);
+    }
     const sessionSigs = await this.getSessionSigsServer();
     console.log(sessionSigs);
     const { ciphertext, dataToEncryptHash } = await encryptString(
@@ -355,6 +375,132 @@ export class Lit {
 
     return res;
   }
+
+  async decryptLitActionVerifyImage(
+    ciphertext,
+    dataToEncryptHash,
+    accessControlAddress,
+    userEmbedding,
+    clueId,
+    similarityThreshold
+  ) {
+    const chain = "baseSepolia";
+
+    const _litActionCode = async () => {
+      const answers = await Lit.Actions.decryptAndCombine({
+        accessControlConditions,
+        chain: "baseSepolia",
+        ciphertext,
+        dataToEncryptHash,
+        authSig,
+        sessionSigs,
+      });
+
+      // Cosine similarity calculation
+      function cosineSimilarity(a, b) {
+        if (!a || !b || a.length !== b.length) {
+          console.log("Invalid embeddings for cosine similarity");
+          return 0;
+        }
+        let dotProduct = 0;
+        let normA = 0;
+        let normB = 0;
+        for (let i = 0; i < a.length; i++) {
+          dotProduct += a[i] * b[i];
+          normA += a[i] * a[i];
+          normB += b[i] * b[i];
+        }
+        if (normA === 0 || normB === 0) {
+          return 0;
+        }
+        return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+      }
+
+      const isImageMatch = await Lit.Actions.runOnce(
+        { waitForResponse: true, name: "image verification" },
+        async () => {
+          const answersArray = JSON.parse(answers);
+          // Log answer summary without embeddings to avoid flooding logs
+          const answersSummary = answersArray.map(a => ({
+            id: a.id,
+            answer: a.answer,
+            hasEmbedding: !!a.embedding,
+            embeddingLength: a.embedding?.length
+          }));
+          console.log("answers summary:", JSON.stringify(answersSummary));
+          
+          const answerData = answersArray.find((answer) => answer.id === clueId);
+          console.log("Found answer for clueId", clueId, ":", answerData ? { id: answerData.id, answer: answerData.answer, hasEmbedding: !!answerData.embedding } : null);
+
+          if (!answerData || !answerData.embedding) {
+            console.log("No embedding found for clueId:", clueId);
+            return false;
+          }
+
+          console.log("User embedding length:", userEmbedding.length);
+          console.log("Stored embedding length:", answerData.embedding.length);
+
+          const similarity = cosineSimilarity(userEmbedding, answerData.embedding);
+          console.log("Cosine similarity:", similarity, "Threshold:", SIMILARITY_THRESHOLD);
+          return similarity >= SIMILARITY_THRESHOLD;
+        }
+      );
+
+      Lit.Actions.setResponse({ response: isImageMatch });
+    };
+
+    const code = `(${_litActionCode.toString()})();`;
+
+    const accessControlConditions = [
+      {
+        contractAddress: "0x50Fe11213FA2B800C5592659690A38F388060cE4",
+        standardContractType: "ERC721",
+        chain,
+        method: "balanceOf",
+        parameters: [accessControlAddress],
+        returnValueTest: {
+          comparator: ">",
+          value: "0",
+        },
+      },
+    ];
+
+    console.log("Image verification - clueId:", clueId, "threshold:", similarityThreshold);
+
+    const sessionSigs = await this.getSessionSigsServer();
+    const res = await this.litNodeClient.executeJs({
+      sessionSigs,
+      code: code,
+      jsParams: {
+        accessControlConditions: accessControlConditions,
+        ciphertext,
+        dataToEncryptHash,
+        sessionSigs,
+        authSig,
+        clueId: clueId,
+        userEmbedding: userEmbedding,
+        SIMILARITY_THRESHOLD: similarityThreshold,
+      },
+    });
+    // Log result summary without full logs to avoid flooding with embedding data
+    console.log("result from image verification action execution:", {
+      success: res.success,
+      response: res.response,
+      signedData: res.signedData,
+      decryptedData: res.decryptedData,
+      claimData: res.claimData,
+      logs: res.logs ? `[${res.logs.length} chars - check for similarity in logs]` : undefined
+    });
+    // Extract and log just the similarity line from logs if present
+    if (res.logs) {
+      const similarityMatch = res.logs.match(/Cosine similarity:\s*([\d.]+)/);
+      if (similarityMatch) {
+        console.log("Extracted cosine similarity:", similarityMatch[1]);
+      }
+    }
+
+    return res;
+  }
 }
 
 /**
@@ -397,9 +543,11 @@ export const encryptRunServerMode = async (message) => {
  * Uses server's wallet address for access control to match encryption conditions
  * @param {string} dataToEncryptHash - Hash of the encrypted data
  * @param {string} ciphertext - The encrypted ciphertext
- * @param {number} [cLat] - Current latitude for location verification
- * @param {number} [cLong] - Current longitude for location verification
- * @param {string|number} [clueId] - Clue ID for location verification
+ * @param {number} [cLat] - Current latitude for location verification (geolocation hunts)
+ * @param {number} [cLong] - Current longitude for location verification (geolocation hunts)
+ * @param {string|number} [clueId] - Clue ID for verification
+ * @param {string} [huntType="GEO_LOCATION"] - Hunt type: "GEO_LOCATION" or "IMAGE"
+ * @param {number[]} [userEmbedding=null] - User's image embedding for image verification
  * @returns {Promise<Object>} Decryption result
  */
 export const decryptRunServerMode = async (
@@ -407,13 +555,20 @@ export const decryptRunServerMode = async (
   ciphertext,
   cLat,
   cLong,
-  clueId
+  clueId,
+  huntType = "GEO_LOCATION",
+  userEmbedding = null
 ) => {
   const chain = "baseSepolia";
   console.log("\n=== Lit Protocol: DECRYPT RUN SERVER MODE DEBUG ===\n");
-  console.log("cLat: ", cLat);
-  console.log("cLong: ", cLong);
+  console.log("huntType: ", huntType);
   console.log("clueId: ", clueId);
+  if (huntType === "IMAGE") {
+    console.log("userEmbedding length: ", userEmbedding?.length);
+  } else {
+    console.log("cLat: ", cLat);
+    console.log("cLong: ", cLong);
+  }
 
   // IMPORTANT: Use serverWalletAddress for access control conditions
   // This must match the address used during encryption
@@ -437,14 +592,29 @@ export const decryptRunServerMode = async (
   let data;
 
   if (clueId) {
-    data = await myLit.decryptLitActionVerify(
-      ciphertext,
-      dataToEncryptHash,
-      serverWalletAddress,
-      cLat,
-      cLong,
-      clueId
-    );
+    if (huntType === "IMAGE" && userEmbedding) {
+      // Image verification using cosine similarity
+      console.log("Using image verification with cosine similarity");
+      data = await myLit.decryptLitActionVerifyImage(
+        ciphertext,
+        dataToEncryptHash,
+        serverWalletAddress,
+        userEmbedding,
+        clueId,
+        SIMILARITY_THRESHOLD
+      );
+    } else {
+      // Geolocation verification using haversine distance
+      console.log("Using geolocation verification with haversine distance");
+      data = await myLit.decryptLitActionVerify(
+        ciphertext,
+        dataToEncryptHash,
+        serverWalletAddress,
+        cLat,
+        cLong,
+        clueId
+      );
+    }
   } else {
     console.log("decrypting clues");
     data = await myLit.decryptLitActionClues(
