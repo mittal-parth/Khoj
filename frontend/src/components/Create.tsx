@@ -75,12 +75,6 @@ export function Create() {
   // Use the reactive network state hook
   const { currentNetwork, contractAddress, chainId } = useNetworkState();
 
-  // Log network info only when component mounts or network changes
-  useEffect(() => {
-    console.log("Create: Current Network: ", currentNetwork);
-    console.log("Create: Chain ID: ", chainId);
-    console.log("Create: Contract Address: ", contractAddress);
-  }, [currentNetwork, chainId, contractAddress]);
 
   if (!isValidHexAddress(contractAddress)) {
     toast.error("Invalid contract address format");
@@ -260,9 +254,6 @@ export function Create() {
       huntTypeEnum, // huntType (0 = GEO_LOCATION, 1 = IMAGE)
     ];
 
-    console.log("Transaction args:", args);
-    console.log("Start timestamp:", startTimestamp, "End timestamp:", endTimestamp, "Current time:", Math.floor(Date.now() / 1000));
-    
     return args;
   };
 
@@ -306,16 +297,6 @@ export function Create() {
 
   const handleTransactionError = (error: any) => {
     console.error("Error creating hunt:", error);
-    console.error("Full error object:", JSON.stringify(error, null, 2));
-    
-    // Try to extract more detailed error information
-    if (error?.cause?.data) {
-      console.error("Error data:", error.cause.data);
-    }
-    if (error?.reason) {
-      console.error("Error reason:", error.reason);
-    }
-    
     toast.error(error.message || error.reason || "Failed to create hunt");
   };
 
@@ -323,8 +304,7 @@ export function Create() {
     try {
       const response = await fetch(`${BACKEND_URL}/health`);
       if (response.ok) {
-        const data = await response.json();
-        console.log("Backend health check response:", BACKEND_URL, data);
+        await response.json();
         setHealthCheckStatus("✅ Backend is healthy");
         toast.success("Backend is working!");
       } else {

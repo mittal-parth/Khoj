@@ -32,20 +32,16 @@ export async function extractTeamIdFromTransactionLogs(
   contractAddress: string,
   chain: any
 ): Promise<string> {
-  console.log("🔍 Extracting teamId from transaction logs...");
-  
   // Get the RPC client to manually fetch the transaction receipt
   const rpcClient = getRpcClient({ client, chain });
   
   // Wait for the transaction receipt using RPC call with retry logic
   const receipt = await withRetry(
     async () => {
-      console.log(`🔍 Fetching transaction receipt for: ${transactionHash}`);
       const result = await rpcClient({
         method: "eth_getTransactionReceipt",
         params: [transactionHash as `0x${string}`],
       });
-      
       
       if (!result) {
         throw new Error("temporarily unavailable: Transaction receipt not available yet - transaction may not be mined");
@@ -56,14 +52,8 @@ export async function extractTeamIdFromTransactionLogs(
     {
       maxRetries: 5, // Increase retries for transaction mining
       initialDelay: 2000, // Start with 2 seconds delay
-      onRetry: (attempt, error) => {
-        console.log(`⏳ Attempt ${attempt}: Transaction not mined yet, retrying in 2 seconds...`);
-        console.log("Retry reason:", error.message);
-      }
     }
   );
-  
-  console.log("📋 Transaction receipt received:", receipt);
   
   // Extract teamId from the TeamCreated event logs
   // The TeamCreated event has signature: TeamCreated(uint256 indexed teamId, address indexed owner, uint256 maxMembers)
@@ -81,7 +71,6 @@ export async function extractTeamIdFromTransactionLogs(
           // The teamId is the first indexed parameter (topics[1])
           const teamIdHex = log.topics[1];
           if (!teamIdHex) {
-            console.log("No teamId topic found in log");
             continue;
           }
           
@@ -90,11 +79,9 @@ export async function extractTeamIdFromTransactionLogs(
           // Basic validation - teamId should be a positive number
           if (extractedTeamId && extractedTeamId !== "0") {
             teamId = extractedTeamId;
-            console.log("✅ Extracted teamId from event logs:", teamId);
             break;
           }
-        } catch (error) {
-          console.log("Failed to parse teamId from log:", error);
+        } catch {
           continue;
         }
       }
