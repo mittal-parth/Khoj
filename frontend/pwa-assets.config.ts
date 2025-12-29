@@ -13,15 +13,11 @@ export default defineConfig({
         },
         maskable: {
             sizes: [512],
-            padding: 0.05  // 5% padding instead of default 20%
+            padding: 0  // No padding
         },
         apple: {
             sizes: [180],
-            padding: 0.05,  // 5% padding for iOS icons
-            resizeOptions: {
-                fit: 'contain',  // Preserve aspect ratio
-                background: { r: 0, g: 0, b: 0, alpha: 0 }  // Transparent background
-            }
+            padding: 0  // No padding for iOS icons
         }
     },
     images: ['public/khoj-logo.jpg'],
