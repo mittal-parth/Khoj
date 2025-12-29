@@ -8,5 +8,5 @@ export default defineConfig({
         preset: '2023',
     },
     preset,
-    images: ['public/khoj-logo.jpg'],
+    images: ['public/khoj-logo-no-bg.png'],
 })
