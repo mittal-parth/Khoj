@@ -16,7 +16,6 @@ export const generateInviteHash = (
   chainId: number,
   contractAddress: string
 ): string => {
-  console.log("🔐 generateInviteHash called:");
   // Convert to BigInt for consistency
   const teamIdBigInt = BigInt(teamId);
   const expiryBigInt = BigInt(expiry);
@@ -36,7 +35,6 @@ export const generateInviteHash = (
 
   // Hash the encoded data
   const hash = keccak256(encodedData);
-  console.log("🔑 Generated hash:", hash);
   
   return hash;
 };
@@ -53,11 +51,6 @@ export const encodeInviteToBase58 = (
   expiry: number,
   signature: string
 ): string => {
-  console.log("📦 encodeInviteToBase58 called with:");
-  console.log("- teamId:", teamId);
-  console.log("- expiry:", expiry);
-  console.log("- signature:", signature);
-  
   // Create a JSON object with the invite data
   const inviteData = JSON.stringify({
     teamId,
@@ -65,14 +58,10 @@ export const encodeInviteToBase58 = (
     signature,
   });
   
-  console.log("Invite data JSON:", inviteData);
-  
   // Convert to bytes and then to Base58
   const bytes = new TextEncoder().encode(inviteData);
-  console.log("Encoded bytes length:", bytes.length);
   
   const base58Encoded = bs58.encode(bytes);
-  console.log("Base58 encoded result:", base58Encoded);
   
   return base58Encoded;
 };
@@ -114,18 +103,14 @@ export const signMessageWithEIP191 = async (
   hash: string,
   account: any
 ): Promise<string> => {
-  console.log("🔐 signMessageWithEIP191 called with hash:", hash);
-  
   // The contract expects the signature of the EIP-191 prefixed hash
   // The wallet's signMessage will automatically add the EIP-191 prefix
   // So we just need to give it the raw hash
-  console.log("📝 Raw hash to sign (32 bytes):", hash);
   
   // Sign the raw 32-byte hash (as hex); wallet will add the EIP-191 prefix automatically
   const signature = await account.signMessage({
     message: { raw: hash as `0x${string}` },
   });
   
-  console.log("✅ Signature generated:", signature);
   return signature;
 };

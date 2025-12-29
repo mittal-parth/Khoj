@@ -160,13 +160,7 @@ export function Hunts() {
   //get the token getTokenId
   // chainId is now provided by useNetworkState hook
 
-  console.log("Hunts: chainId", chainId);
-  console.log("Hunts: contractAddress", rawContractAddress);
-  console.log("NFT Contract Address:", nftContractAddress);
-
-
-  const handleRegisterSuccess = (data: any, originalHuntIndex: number) => {
-    console.log("Register success: ", data);
+  const handleRegisterSuccess = (_data: any, originalHuntIndex: number) => {
     toast.success("Successfully registered for hunt!");
 
     // Update registration status for this specific hunt using the original index
@@ -183,35 +177,12 @@ export function Hunts() {
     // and fetches fresh data from the contract, so no need to manually update it here
   };
 
-  // Add more detailed logging
-  console.log("Contract Debug:", {
-    contractAddress,
-    chainId,
-    currentNetwork,
-    huntsError,
-    hunts,
-  });
-
   if (huntsError) {
     console.error("Error fetching hunts:", huntsError);
     toast.error("Failed to fetch hunts. Please check your connection.");
   }
 
-  console.log("Debug Info:", {
-    currentNetwork,
-    contractAddress,
-    chainId,
-    address,
-    hunts,
-    huntsError,
-  });
-
-  console.log("Hunts: hunts", hunts);
-
   const today = Math.floor(Date.now() / 1000);
-
-  console.log("today", today);
-  console.log("reg", huntRegistrations);
 
   // Show loading state while hunts are being fetched
   if (huntsLoading) {

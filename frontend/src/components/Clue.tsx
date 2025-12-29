@@ -519,9 +519,6 @@ export function Clue() {
           huntType: HUNT_TYPE.GEO_LOCATION,
         };
 
-        console.log("Request body object:", requestBody);
-        console.log("Request body object keys:", Object.keys(requestBody));
-
         const bodyContent = JSON.stringify(requestBody);
 
         const response = await fetch(`${BACKEND_URL}/clues/verify`, {
