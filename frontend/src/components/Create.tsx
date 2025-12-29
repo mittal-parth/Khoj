@@ -900,11 +900,11 @@ export function Create() {
                   {clues.length > 0 && (
                     <Button
                       onClick={uploadToIPFS}
-                      disabled={isUploading}
+                      disabled={isUploading || (cluesCID !== "" && answersCID !== "")}
                       variant="outline"
                       className="bg-green-50"
                     >
-                      {isUploading ? "Uploading..." : "Upload Clues to IPFS"}
+                      {isUploading ? "Uploading..." : (cluesCID && answersCID) ? "Already Uploaded" : "Upload Clues to IPFS"}
                     </Button>
                   )}
                 </div>
