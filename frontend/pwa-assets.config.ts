@@ -20,5 +20,5 @@ export default defineConfig({
             padding: 0  // No padding for iOS icons
         }
     },
-    images: ['public/khoj-logo.jpg'],
+    images: ['public/khoj-logo-crop.png'],
 })
