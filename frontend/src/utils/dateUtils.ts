@@ -9,9 +9,9 @@ export function formatDateRange(startTime: bigint, endTime: bigint): string {
 
   // If same day, show time range
   if (startDate.toDateString() === endDate.toDateString()) {
-    return `${startDate.toLocaleDateString([], { month: "short", day: "numeric" })} • ${startDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${endDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+    return `${startDate.toLocaleDateString([], { month: 'short', day: 'numeric' })} • ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
   }
 
   // Different days, show date range with times
-  return `${startDate.toLocaleDateString([], { month: "short", day: "numeric" })} ${startDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} - ${endDate.toLocaleDateString([], { month: "short", day: "numeric" })} ${endDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+  return `${startDate.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 }
