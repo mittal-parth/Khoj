@@ -961,7 +961,7 @@ export function HuntDetails() {
               ) : hasStartedHunt ? (
                 // Show message when user has already started the hunt
                 <div className="space-y-4">
-                  <Alert variant="warning" className="border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <Alert variant="default" className="border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)]">
                     <BsExclamationTriangle className="h-4 w-4" />
                     <AlertTitle className="font-bold">Hunt Already Started</AlertTitle>
                     <AlertDescription className="font-medium">
@@ -969,7 +969,7 @@ export function HuntDetails() {
                     </AlertDescription>
                   </Alert>
                   <p className="text-sm text-foreground/60 text-center font-medium">
-                    Click "Start Hunt" below to continue where you left off.
+                    Click 'Resume Hunt' below to continue.
                   </p>
                 </div>
               ) : isCheckingHuntStart ? (
