@@ -31,6 +31,12 @@ import {
   isClueSolved
 } from "../utils/progressUtils";
 import { isValidHexAddress, hasRequiredClueAndTeamParams, hasRequiredClueParams, hasRequiredTeamParams, isDefined } from "../utils/validationUtils";
+import { 
+  getButtonVariant, 
+  getButtonStyles, 
+  getButtonText,
+  VerificationState 
+} from "../utils/clueButtonUtils";
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 const MAX_ATTEMPTS = parseInt(import.meta.env.VITE_MAX_CLUE_ATTEMPTS || "6", 10);
@@ -46,9 +52,7 @@ export function Clue() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attempts, setAttempts] = useState(MAX_ATTEMPTS);
-  const [verificationState, setVerificationState] = useState<
-    "idle" | "verifying" | "success" | "error"
-  >("idle");
+  const [verificationState, setVerificationState] = useState<VerificationState>("idle");
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -689,60 +693,6 @@ export function Clue() {
     };
   }, [stream]);
 
-  const getButtonVariant = () => {
-    if (huntType === HUNT_TYPE.GEO_LOCATION && !location) return "neutral";
-    if (huntType === HUNT_TYPE.IMAGE && !capturedImage) return "neutral";
-    switch (verificationState) {
-      case "verifying":
-        return "neutral";
-      case "success":
-        return "default";
-      case "error":
-        return "default";
-      default:
-        return "default";
-    }
-  };
-
-  const getButtonStyles = () => {
-    // For geolocation hunts, check location
-    if (huntType === HUNT_TYPE.GEO_LOCATION && !location) {
-      return "opacity-50 cursor-not-allowed";
-    }
-    // For image hunts, button is only shown when image is captured, so no need to check
-    switch (verificationState) {
-      case "verifying":
-        return "opacity-75";
-      case "success":
-        return "bg-green-500 hover:bg-green-600 text-white";
-      case "error":
-        return "bg-red-500 hover:bg-red-600 text-white";
-      default:
-        return "";
-    }
-  };
-
-  const getButtonText = () => {
-    // For geolocation hunts, check location first
-    if (huntType === HUNT_TYPE.GEO_LOCATION && !location) {
-      return "Waiting for location...";
-    }
-    // For image hunts, this function is only called when image is captured
-    // (since the verify button is hidden when no image is captured)
-    switch (verificationState) {
-      case "verifying":
-        return huntType === HUNT_TYPE.IMAGE ? "Verifying image..." : "Verifying location...";
-      case "success":
-        return "Correct Answer!";
-      case "error":
-        return huntType === HUNT_TYPE.IMAGE 
-          ? `Wrong image - ${attempts} attempts remaining`
-          : `Wrong location - ${attempts} attempts remaining`;
-      default:
-        return huntType === HUNT_TYPE.IMAGE ? "Verify Image" : "Verify Location";
-    }
-  };
-
   if (attempts === 0) {
     return (
       <div className="min-h-screen bg-background pt-20 px-4">
@@ -847,17 +797,17 @@ export function Clue() {
               <div className=" space-y-2 w-full">
                 {!capturedImage ? (
                   // Show only Capture Image button when no image is captured
-                  <Button
-                    type="button"
-                    variant={getButtonVariant()}
-                    size="lg"
-                    onClick={openCamera}
-                    className={cn(
-                      "w-full transition-colors duration-300",
-                      getButtonStyles()
-                    )}
-                    disabled={verificationState === "verifying" || verificationState === "success"}
-                  >
+<Button
+                                    type="button"
+                                    variant={getButtonVariant(huntType, location, capturedImage, verificationState)}
+                                    size="lg"
+                                    onClick={openCamera}
+                                    className={cn(
+                                      "w-full transition-colors duration-300",
+                                      getButtonStyles(huntType, location, verificationState)
+                                    )}
+                                    disabled={verificationState === "verifying" || verificationState === "success"}
+                                  >
                     Take a picture
                   </Button>
                 ) : (
@@ -885,33 +835,33 @@ export function Clue() {
                           Retry
                         </Button>
                       </div>
-                      <form onSubmit={handleVerify} className="flex-1">
-                        <Button
-                          type="submit"
-                          variant={getButtonVariant()}
-                          size="lg"
-                          className={cn(
-                            "w-full transition-colors duration-300 whitespace-normal break-words",
-                            getButtonStyles()
-                          )}
-                          disabled={
-                            verificationState === "verifying" ||
-                            verificationState === "success" ||
-                            isRedirecting
-                          }
-                        >
-                          {verificationState === "success" && (
-                            <BsCheckCircle className="mr-2" />
-                          )}
-                          {verificationState === "error" && (
-                            <BsXCircle className="mr-2" />
-                          )}
-                          {isSubmitting && (
-                            <BsArrowRepeat className="mr-2 animate-spin" />
-                          )}
-                          {getButtonText()}
-                        </Button>
-                      </form>
+<form onSubmit={handleVerify} className="flex-1">
+                                        <Button
+                                          type="submit"
+                                          variant={getButtonVariant(huntType, location, capturedImage, verificationState)}
+                                          size="lg"
+                                          className={cn(
+                                            "w-full transition-colors duration-300 whitespace-normal break-words",
+                                            getButtonStyles(huntType, location, verificationState)
+                                          )}
+                                          disabled={
+                                            verificationState === "verifying" ||
+                                            verificationState === "success" ||
+                                            isRedirecting
+                                          }
+                                        >
+                                          {verificationState === "success" && (
+                                            <BsCheckCircle className="mr-2" />
+                                          )}
+                                          {verificationState === "error" && (
+                                            <BsXCircle className="mr-2" />
+                                          )}
+                                          {isSubmitting && (
+                                            <BsArrowRepeat className="mr-2 animate-spin" />
+                                          )}
+                                          {getButtonText(huntType, location, verificationState, attempts)}
+                                        </Button>
+                                      </form>
                     </div>
                   </>
                 )}
@@ -921,11 +871,11 @@ export function Clue() {
               <form onSubmit={handleVerify} className="w-full">
                 <Button
                   type="submit"
-                  variant={getButtonVariant()}
+                  variant={getButtonVariant(huntType, location, capturedImage, verificationState)}
                   size="lg"
                   className={cn(
                     "w-full transition-colors duration-300",
-                    getButtonStyles()
+                    getButtonStyles(huntType, location, verificationState)
                   )}
                   disabled={
                     !location ||
@@ -943,7 +893,7 @@ export function Clue() {
                   {isSubmitting && (
                     <BsArrowRepeat className="mr-2 animate-spin" />
                   )}
-                  {getButtonText()}
+                  {getButtonText(huntType, location, verificationState, attempts)}
                 </Button>
               </form>
             )}
