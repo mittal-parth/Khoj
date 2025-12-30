@@ -35,7 +35,8 @@ import { BsBarChartFill } from "react-icons/bs";
 import { Leaderboard } from "./Leaderboard";
 import { 
   checkProgressAndNavigate, 
-  getTeamIdentifier 
+  getTeamIdentifier,
+  checkHuntStarted
 } from "../utils/progressUtils";
 import { AddressDisplay } from "./AddressDisplay";
 import { isValidHexAddress, hasRequiredTeamParams, isDefined } from "../utils/validationUtils";
@@ -91,6 +92,10 @@ export function HuntDetails() {
   // Hunt start attestation state (to prevent duplicates)
   const huntStartCreationInProgress = useRef(false);
   const huntStartCreatedForTeam = useRef<string | null>(null);
+
+  // State to track if the user has already started the hunt (for disabling team management)
+  const [hasStartedHunt, setHasStartedHunt] = useState(false);
+  const [isCheckingHuntStart, setIsCheckingHuntStart] = useState(false);
 
   // Use the reactive network state hook
   const { currentNetwork, contractAddress, chainId, currentChain } = useNetworkState();
@@ -537,6 +542,36 @@ export function HuntDetails() {
     console.log("Team Error:", teamError?.message);
   }, [teamData, account, userWallet, teamError]);
 
+  // Check if the user has already started the hunt (to disable team management)
+  useEffect(() => {
+    const checkIfHuntStarted = async () => {
+      // Only check if we have all required data
+      if (!huntId || !teamIdentifier || !chainId || !contractAddress) {
+        return;
+      }
+
+      setIsCheckingHuntStart(true);
+      try {
+        const started = await checkHuntStarted(
+          parseInt(huntId),
+          teamIdentifier,
+          chainId,
+          contractAddress
+        );
+        setHasStartedHunt(started);
+        if (started) {
+          console.log("Hunt has already been started by this user/team");
+        }
+      } catch (error) {
+        console.error("Error checking if hunt started:", error);
+      } finally {
+        setIsCheckingHuntStart(false);
+      }
+    };
+
+    checkIfHuntStarted();
+  }, [huntId, teamIdentifier, chainId, contractAddress]);
+
   // Show loading state while hunt data is being fetched
   if (huntLoading) {
     return (
@@ -920,6 +955,25 @@ export function HuntDetails() {
                     )}
                   </div>
                 </>
+              ) : hasStartedHunt ? (
+                // Show message when user has already started the hunt
+                <div className="space-y-4">
+                  <Alert variant="warning" className="border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <BsExclamationTriangle className="h-4 w-4" />
+                    <AlertTitle className="font-bold">Hunt Already Started</AlertTitle>
+                    <AlertDescription className="font-medium">
+                      You have already started this hunt. Team creation and joining is no longer available once a hunt has been started.
+                    </AlertDescription>
+                  </Alert>
+                  <p className="text-sm text-foreground/60 text-center font-medium">
+                    Click "Start Hunt" below to continue where you left off.
+                  </p>
+                </div>
+              ) : isCheckingHuntStart ? (
+                // Show loading state while checking if hunt has started
+                <div className="flex items-center justify-center py-4">
+                  <Loader text="Checking hunt status..." showAnimation={true} />
+                </div>
               ) : (
                 // Show create/join options when user is not in a team
                 <Tabs defaultValue="create" onValueChange={(value) => setActiveTab(value as "create" | "join")}>

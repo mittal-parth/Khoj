@@ -288,6 +288,41 @@ export function getTeamIdentifier(teamData: any, userWallet: string): string {
 }
 
 /**
+ * Check if a hunt has been started by querying for hunt start attestation
+ * A hunt is considered started if there's an attestation with clueIndex: 0
+ */
+export async function checkHuntStarted(
+  huntId: number,
+  teamIdentifier: string,
+  chainId: string | number,
+  contractAddress: string
+): Promise<boolean> {
+  try {
+    const url = new URL(
+      `${BACKEND_URL}/hunts/${huntId}/clues/0/teams/${teamIdentifier}/attempts`
+    );
+    url.searchParams.set("chainId", chainId.toString());
+    url.searchParams.set("contractAddress", contractAddress);
+
+    const response = await fetch(url.toString());
+
+    if (!response.ok) {
+      console.error(`Failed to check hunt start: ${response.status}`);
+      return false;
+    }
+
+    const data = await response.json();
+
+    // If attemptCount > 0, it means the hunt has been started
+    // (attestation with clueIndex: 0 exists)
+    return data.attemptCount > 0;
+  } catch (error) {
+    console.error("Error checking hunt start:", error);
+    return false;
+  }
+}
+
+/**
  * Check progress and navigate to appropriate location when starting a hunt
  * This is used when a user clicks "Start Hunt" to determine where to go
  */
