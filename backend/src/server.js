@@ -22,27 +22,16 @@ import { generateImageEmbedding } from "./services/vertex-ai.js";
 
 // Import utilities
 import { withRetry } from "./utils/retry-utils.js";
+import { createCorsOptionsFromEnv } from "./utils/cors.js";
 
 // Configuration
 const GEMINI_MODEL = "gemini-2.5-flash";
-
-const corsOptions = {
-  origin: "*", // Temporarily allow all origins for debugging
-  optionsSuccessStatus: 200,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
-  preflightContinue: false,
-};
 
 dotenv.config();
 
 const app = express();
 
-// Debug CORS and requests
-app.use((req, res, next) => {
-  next();
-});
+const corsOptions = createCorsOptionsFromEnv();
 
 // Add explicit preflight handler
 app.options('*', cors(corsOptions));

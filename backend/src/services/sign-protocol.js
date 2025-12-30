@@ -17,33 +17,41 @@ const __dirname = dirname(__filename);
 // Load .env file from the backend directory
 dotenv.config({ path: resolve(__dirname, "../../.env") });
 
-// Validate required environment variables (trim to handle whitespace)
-const privateKey = process.env.SIGN_WALLET_PRIVATE_KEY?.trim();
-const apiKey = process.env.SIGN_API_KEY?.trim();
+let client;
 
-if (!privateKey) {
-  throw new Error(
-    'SIGN_WALLET_PRIVATE_KEY is not set in environment variables. ' +
-    'Please create a .env file in the backend directory with SIGN_WALLET_PRIVATE_KEY and SIGN_API_KEY. ' +
-    'You can generate a wallet using: node scripts/create-wallet.js'
-  );
+function getSignProtocolClient() {
+  if (client) return client;
+
+  // Validate required environment variables (trim to handle whitespace)
+  const privateKey = process.env.SIGN_WALLET_PRIVATE_KEY?.trim();
+  const apiKey = process.env.SIGN_API_KEY?.trim();
+
+  if (!privateKey) {
+    throw new Error(
+      'SIGN_WALLET_PRIVATE_KEY is not set in environment variables. ' +
+        'Please create a .env file in the backend directory with SIGN_WALLET_PRIVATE_KEY and SIGN_API_KEY. ' +
+        'You can generate a wallet using: node scripts/create-wallet.js'
+    );
+  }
+
+  if (!apiKey) {
+    throw new Error(
+      'SIGN_API_KEY is not set in environment variables. ' +
+        'Please create a .env file in the backend directory with SIGN_API_KEY. ' +
+        'Get your API key from: https://developer.sign.global/'
+    );
+  }
+
+  // Initialize Sign Protocol client in hybrid mode
+  client = new SignProtocolClient(SpMode.OffChain, {
+    signType: OffChainSignType.EvmEip712,
+    account: privateKeyToAccount(privateKey),
+    chain: EvmChains.optimismSepolia,
+    apiKey: apiKey,
+  });
+
+  return client;
 }
-
-if (!apiKey) {
-  throw new Error(
-    'SIGN_API_KEY is not set in environment variables. ' +
-    'Please create a .env file in the backend directory with SIGN_API_KEY. ' +
-    'Get your API key from: https://developer.sign.global/'
-  );
-}
-
-// Initialize Sign Protocol client in hybrid mode
-const client = new SignProtocolClient(SpMode.OffChain, {
-  signType: OffChainSignType.EvmEip712,
-  account: privateKeyToAccount(privateKey),
-  chain: EvmChains.optimismSepolia,
-  apiKey: apiKey,
-});
 
 // Initialize Index Service for querying attestations
 const indexService = new IndexService('mainnet');
@@ -87,6 +95,7 @@ let retrySchemaId = process.env.SIGN_RETRY_SCHEMA_ID;
  */
 export async function createClueSchema() {
   try {
+    const client = getSignProtocolClient();
     console.log("Creating Sign Protocol schema for clue solving...");
     const schemaInfo = await client.createSchema(CLUE_SCHEMA);
     console.log("Schema created successfully:", schemaInfo);
@@ -108,6 +117,7 @@ export async function createClueSchema() {
  */
 export async function createClueRetrySchema() {
   try {
+    const client = getSignProtocolClient();
     console.log("Creating Sign Protocol schema for clue retries...");
     const schemaInfo = await client.createSchema(CLUE_RETRY_SCHEMA);
     console.log("Retry schema created successfully:", schemaInfo);
@@ -145,6 +155,7 @@ export async function attestClueAttempt(
   contractAddress
 ) {
   try {
+    const client = getSignProtocolClient();
     if (!retrySchemaId) {
       throw new Error("Retry Schema ID not found. Please create retry schema first.");
     }
@@ -216,6 +227,7 @@ export async function attestClueSolved(
   contractAddress
 ) {
   try {
+    const client = getSignProtocolClient();
     if (!schemaId) {
       throw new Error("Schema ID not found. Please create schema first.");
     }
