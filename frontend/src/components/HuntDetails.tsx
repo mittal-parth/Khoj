@@ -1117,7 +1117,9 @@ export function HuntDetails() {
             ? `Retrying... (${retryCount}/${MAX_RETRIES})`
             : (isStartingHunt || isGeneratingRiddles) 
               ? `${loadingMessage}...` 
-              : "Start Hunt"
+              : hasStartedHunt 
+                ? "Resume Hunt" 
+                : "Start Hunt"
           }
         </Button>
 
