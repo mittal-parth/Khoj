@@ -33,6 +33,16 @@ const app = express();
 
 const corsOptions = createCorsOptionsFromEnv();
 
+// Enforce browser-originated calls only (except health checks).
+// This prevents accidental reliance on server-to-server access and keeps the allowlist meaningful.
+app.use((req, res, next) => {
+  if (req.path === "/health") return next();
+  if (!req.headers.origin) {
+    return res.status(403).json({ error: "Origin header is required" });
+  }
+  return next();
+});
+
 // Add explicit preflight handler
 app.options('*', cors(corsOptions));
 

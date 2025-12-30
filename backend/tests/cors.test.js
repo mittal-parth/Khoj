@@ -1,10 +1,10 @@
 import { isOriginAllowed } from "../src/utils/cors.js";
 
 describe("CORS allowlist origin matching", () => {
-  test("allows server-to-server requests without Origin", () => {
-    expect(isOriginAllowed(undefined, ["https://example.com"])).toBe(true);
-    expect(isOriginAllowed(null, ["https://example.com"])).toBe(true);
-    expect(isOriginAllowed("", ["https://example.com"])).toBe(true);
+  test("treats requests without Origin as not CORS-allowlisted", () => {
+    expect(isOriginAllowed(undefined, ["https://example.com"])).toBe(false);
+    expect(isOriginAllowed(null, ["https://example.com"])).toBe(false);
+    expect(isOriginAllowed("", ["https://example.com"])).toBe(false);
   });
 
   test("denies all browser origins when allowlist is empty", () => {

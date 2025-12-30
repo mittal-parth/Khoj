@@ -9,22 +9,16 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const requiredEnvVars = [
-  'SIGN_SCHEMA_ID',
-  'SIGN_WALLET_PRIVATE_KEY',
-  'SIGN_API_KEY',
-  'SIGN_WALLET_PUBLIC_ADDRESS',
-];
-
-const hasRequiredEnv = requiredEnvVars.every(
-  (key) => typeof process.env[key] === 'string' && process.env[key].trim().length > 0
-);
-
-(hasRequiredEnv ? describe : describe.skip)('Sign Protocol Integration', () => {
+describe('Sign Protocol Integration', () => {
   let createdAttestations = [];
   let attestationData = [];
 
   beforeAll(() => {
+    // Check if schema ID exists
+    if (!process.env.SIGN_SCHEMA_ID) {
+      throw new Error('SIGN_SCHEMA_ID should be set in environment variables. Run "node create-schema.js" first.');
+    }
+
     attestationData = [
         {
             teamIdentifier: "1",

@@ -1,15 +1,16 @@
 /**
  * CORS allowlist utilities.
  *
- * We intentionally validate browser-originated requests via the `Origin` header.
- * Server-to-server calls typically do not send `Origin`, so we allow those by default.
+ * We validate browser-originated requests via the `Origin` header.
  *
  * Configuration:
  * - CORS_ALLOWED_ORIGINS: comma-separated list of allowed origins and wildcard patterns.
  *
  * Supported entries:
  * - Exact origins: "https://example.com", "http://localhost:5173"
- * - Wildcard subdomains: "https://*.khoj-alpha.netlify.app"
+ * - Wildcards:
+ *   - Dot-subdomain: "https://*.example.com"
+ *   - Suffix (Netlify deploy previews): "https://*khoj-alpha.netlify.app"
  *
  * Notes:
  * - Browsers do NOT include URL paths in the Origin header. However, we defensively
@@ -64,8 +65,7 @@ function parseWildcardPattern(pattern) {
  * @param {string[]} allowedPatterns
  */
 export function isOriginAllowed(origin, allowedPatterns) {
-  // Non-browser requests often omit Origin; CORS is not applicable there.
-  if (!origin) return true;
+  if (!origin) return false;
 
   if (!Array.isArray(allowedPatterns) || allowedPatterns.length === 0) {
     return false;
@@ -131,6 +131,10 @@ export function createCorsOptionsFromEnv(env = process.env) {
 
   return {
     origin(origin, callback) {
+      // If Origin is missing, do not set any CORS headers.
+      // (We separately enforce Origin presence at the app layer.)
+      if (!origin) return callback(null, false);
+
       if (isOriginAllowed(origin, allowedOrigins)) {
         return callback(null, true);
       }
