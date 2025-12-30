@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 import { useActiveAccount, useReadContract } from "thirdweb/react";
 import { getContract } from "thirdweb";
 import { huntABI } from "../assets/hunt_abi.ts";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 import { TransactionButton } from "./TransactionButton";
 import { Button } from "./ui/button.tsx";

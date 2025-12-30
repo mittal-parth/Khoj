@@ -17,7 +17,7 @@ import { HuddleRoom } from "./HuddleRoom";
 import { useReadContract, useActiveAccount, useSendTransaction } from "thirdweb/react";
 import { getContract, prepareContractCall, readContract } from "thirdweb";
 import { useNetworkState } from "../lib/utils";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { client } from "../lib/client";
 import QRCode from "react-qr-code";
 import QrScanner from "qr-scanner";
@@ -590,7 +590,7 @@ export function HuntDetails() {
           
           try {
             console.log("⏳ Extracting teamId from transaction logs...");
-            const waitToastId = toast.loading("Getting transaction receipt and doing the magic...");
+            toast.loading("Getting transaction receipt and doing the magic...");
             
             // Extract teamId from transaction logs
             const teamId = await extractTeamIdFromTransactionLogs(
@@ -600,7 +600,8 @@ export function HuntDetails() {
             );
 
             // Success! We have the teamId from the logs
-            toast.success("Generating invite...", { id: waitToastId });
+            toast.dismiss(); // Dismiss the loading toast
+            toast.success("Generating invite...");
             await generateInviteAfterTeamCreation(teamId);
             // Refetch again after invite generation
             refetchTeamData();
@@ -611,7 +612,7 @@ export function HuntDetails() {
             
             // Fallback to the original method if parsing logs fails
             try {
-              const waitToastId = toast.loading("Its taking longer than expected...");
+              toast.loading("Its taking longer than expected...");
               
               const getTeamIdOperation = async (): Promise<string> => {
                 console.log("🔍 Getting teamId from getParticipantTeamId...");
@@ -636,11 +637,13 @@ export function HuntDetails() {
                 onRetry: (attempt, error) => {
                   console.log(`❌ No teamId found yet, retrying... (attempt ${attempt}/${MAX_RETRIES})`);
                   console.error("Retry due to error:", error.message);
-                  toast.loading(`Still waiting for confirmation... (attempt ${attempt + 1}/${MAX_RETRIES})`, { id: waitToastId });
+                  toast.dismiss(); // Dismiss previous loading toast
+                  toast.loading(`Still waiting for confirmation... (attempt ${attempt + 1}/${MAX_RETRIES})`);
                 }
               });
 
-              toast.success("Confirmed on-chain. Generating invite...", { id: waitToastId });
+              toast.dismiss(); // Dismiss the loading toast
+              toast.success("Confirmed on-chain. Generating invite...");
               await generateInviteAfterTeamCreation(teamId);
               refetchTeamData();
               
@@ -945,7 +948,7 @@ export function HuntDetails() {
                       ) : (
                         <div className="w-full max-w-md">
                           {showInviteWarning && (
-                            <Alert variant="warning" className="mb-4 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)]">
+                            <Alert variant="default" className="mb-4 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)]">
                               <BsExclamationTriangle className="h-4 w-4" />
                               <AlertTitle className="font-bold">Important!</AlertTitle>
                               <AlertDescription className="font-medium">

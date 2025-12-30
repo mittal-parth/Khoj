@@ -20,7 +20,7 @@ import { useReadContract, useActiveAccount } from 'thirdweb/react';
 import { getContract } from 'thirdweb';
 import { huntABI } from '../assets/hunt_abi';
 import { useNetworkState } from '../lib/utils';
-import { toast } from 'sonner';
+import { toast } from '@/components/ui/toast';
 import { client } from '../lib/client';
 import { Hunt, Team, HUNT_TYPE, enumToHuntType, HuntType } from '../types';
 import {
