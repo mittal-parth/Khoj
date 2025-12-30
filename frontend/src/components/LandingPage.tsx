@@ -58,12 +58,6 @@ export const LandingPage = () => {
 
   const problems = [
     {
-      title: "Decline in Real-World Exploration",
-      description: "In a digital era, people often miss out on physical-world experiences.",
-      icon: <Footprints className="w-8 h-8 mb-2" />,
-      color: "bg-chart-1"
-    },
-    {
       title: "Lack of Engagement in Web3 Adoption",
       description: "Web3 adoption faces barriers due to its technical complexity and lack of relatable, engaging entry points for non-technical users.",
       icon: <Users className="w-8 h-8 mb-2" />,
@@ -74,6 +68,12 @@ export const LandingPage = () => {
       description: "Brands and blockchain communities struggle to engage users meaningfully and are always on the lookout for new and interactive ways to interact with their users.",
       icon: <Megaphone className="w-8 h-8 mb-2" />,
       color: "bg-chart-3"
+    },
+    {
+      title: "Decline in Real-World Exploration",
+      description: "In a digital era, people often miss out on physical-world experiences.",
+      icon: <Footprints className="w-8 h-8 mb-2" />,
+      color: "bg-chart-1"
     }
   ];
 
@@ -311,6 +311,40 @@ export const LandingPage = () => {
         </div>
       </section>
 
+            {/* How It Works Section */}
+            <section id="how-it-works" className="py-20 px-4 bg-white border-b-4 border-border">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl md:text-5xl font-heading mb-4">How It Works</h2>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">Get started with Khoj in four simple steps.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {steps.map((step, index) => (
+              <motion.div
+                key={index}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className="h-full hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all duration-300">
+                  <CardHeader>
+                    <div className="w-12 h-12 bg-main rounded-base border-2 border-border flex items-center justify-center mb-4 shadow-shadow">
+                      {step.icon}
+                    </div>
+                    <CardTitle className="text-xl">{step.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-gray-600">{step.description}</p>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Problems Section */}
       <section id="problems" className="py-20 px-4 bg-yellow/5 border-b-4 border-border">
         <div className="max-w-6xl mx-auto">
@@ -337,40 +371,6 @@ export const LandingPage = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-gray-700">{problem.description}</p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section id="how-it-works" className="py-20 px-4 bg-white border-b-4 border-border">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-heading mb-4">How It Works</h2>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">Get started with Khoj in four simple steps.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {steps.map((step, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="h-full hover:translate-x-1 hover:translate-y-1 hover:shadow-none transition-all duration-300">
-                  <CardHeader>
-                    <div className="w-12 h-12 bg-main rounded-base border-2 border-border flex items-center justify-center mb-4 shadow-shadow">
-                      {step.icon}
-                    </div>
-                    <CardTitle className="text-xl">{step.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-600">{step.description}</p>
                   </CardContent>
                 </Card>
               </motion.div>

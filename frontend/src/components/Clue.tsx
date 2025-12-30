@@ -1,10 +1,10 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { Button } from "./ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "./ui/card";
-import { useState, useEffect, useRef } from "react";
-import ReactMarkdown from "react-markdown";
-import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "./ui/dialog";
+import { useParams, useNavigate } from 'react-router-dom';
+import { Button } from './ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card';
+import { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import { cn } from '@/lib/utils';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import {
   BsArrowLeft,
   BsGeoAlt,
@@ -13,27 +13,39 @@ import {
   BsArrowRepeat,
   BsBarChartFill,
   BsArrowClockwise,
-} from "react-icons/bs";
-import { HuddleRoom } from "./HuddleRoom";
-import { Leaderboard } from "./Leaderboard";
-import { useReadContract, useActiveAccount } from "thirdweb/react";
-import { getContract } from "thirdweb";
-import { huntABI } from "../assets/hunt_abi";
-import { useNetworkState } from "../lib/utils";
-import { toast } from "sonner";
-import { client } from "../lib/client";
-import { Hunt, Team, HUNT_TYPE, enumToHuntType, HuntType } from "../types";
-import { 
-  syncProgressAndNavigate, 
+} from 'react-icons/bs';
+import { HuddleRoom } from './HuddleRoom';
+import { Leaderboard } from './Leaderboard';
+import { useReadContract, useActiveAccount } from 'thirdweb/react';
+import { getContract } from 'thirdweb';
+import { huntABI } from '../assets/hunt_abi';
+import { useNetworkState } from '../lib/utils';
+import { toast } from 'sonner';
+import { client } from '../lib/client';
+import { Hunt, Team, HUNT_TYPE, enumToHuntType, HuntType } from '../types';
+import {
+  syncProgressAndNavigate,
   getTeamIdentifier,
   validateClueAccess,
   fetchProgress,
-  isClueSolved
-} from "../utils/progressUtils";
-import { isValidHexAddress, hasRequiredClueAndTeamParams, hasRequiredClueParams, hasRequiredTeamParams, isDefined } from "../utils/validationUtils";
+  isClueSolved,
+} from '../utils/progressUtils';
+import {
+  isValidHexAddress,
+  hasRequiredClueAndTeamParams,
+  hasRequiredClueParams,
+  hasRequiredTeamParams,
+  isDefined,
+} from '../utils/validationUtils';
+import {
+  getButtonVariant,
+  getButtonStyles,
+  getButtonText,
+  VerificationState,
+} from '../utils/clueButtonUtils';
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
-const MAX_ATTEMPTS = parseInt(import.meta.env.VITE_MAX_CLUE_ATTEMPTS || "6", 10);
+const MAX_ATTEMPTS = parseInt(import.meta.env.VITE_MAX_CLUE_ATTEMPTS || '6', 10);
 
 export function Clue() {
   const { huntId, clueId } = useParams();
@@ -46,9 +58,7 @@ export function Clue() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attempts, setAttempts] = useState(MAX_ATTEMPTS);
-  const [verificationState, setVerificationState] = useState<
-    "idle" | "verifying" | "success" | "error"
-  >("idle");
+  const [verificationState, setVerificationState] = useState<VerificationState>('idle');
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -62,7 +72,7 @@ export function Clue() {
   // Helper function to reset verification states
   const resetVerificationStates = () => {
     setIsSubmitting(false);
-    setVerificationState("idle");
+    setVerificationState('idle');
     setIsRedirecting(false);
   };
 
@@ -80,14 +90,15 @@ export function Clue() {
   // Get hunt details from contract - now returns HuntInfo struct directly
   const { data: huntData } = useReadContract({
     contract,
-    method: "getHunt",
+    method: 'getHunt',
     params: [BigInt(huntId || 0)],
   }) as { data: Hunt | undefined };
 
   // Determine hunt type from contract enum: 0 = GEO_LOCATION, 1 = IMAGE
-  const huntType: HuntType = huntData?.huntType !== undefined 
-    ? enumToHuntType(Number(huntData.huntType))
-    : HUNT_TYPE.GEO_LOCATION; // Default to GEO_LOCATION for backward compatibility
+  const huntType: HuntType =
+    huntData?.huntType !== undefined
+      ? enumToHuntType(Number(huntData.huntType))
+      : HUNT_TYPE.GEO_LOCATION; // Default to GEO_LOCATION for backward compatibility
 
   const account = useActiveAccount();
   const userWallet = account?.address;
@@ -95,7 +106,7 @@ export function Clue() {
   // Fetch team data for attestation
   const { data: teamData } = useReadContract({
     contract,
-    method: "getTeam",
+    method: 'getTeam',
     params: [BigInt(huntId || 0), userWallet as `0x${string}`],
     queryOptions: { enabled: !!userWallet },
   }) as { data: Team | undefined };
@@ -105,12 +116,10 @@ export function Clue() {
   const [isLoadingRetries, setIsLoadingRetries] = useState(true);
 
   // Get team identifier for progress checking
-  const teamIdentifier = getTeamIdentifier(teamData, userWallet || "");
+  const teamIdentifier = getTeamIdentifier(teamData, userWallet || '');
 
-  const currentClue = parseInt(clueId || "0");
-  const currentClueData = JSON.parse(
-    localStorage.getItem(`hunt_riddles_${huntId}`) || "[]"
-  );
+  const currentClue = parseInt(clueId || '0');
+  const currentClueData = JSON.parse(localStorage.getItem(`hunt_riddles_${huntId}`) || '[]');
 
   // Get total clues from localStorage
   const totalClues = currentClueData?.length || 0;
@@ -118,7 +127,9 @@ export function Clue() {
   // Reusable function to fetch retry attempts from backend
   // Returns the fetched data or null if fetch failed
   const fetchRetryAttempts = async (showLoading = true) => {
-    if (!hasRequiredClueAndTeamParams({ huntId, clueId, chainId, contractAddress, teamIdentifier })) {
+    if (
+      !hasRequiredClueAndTeamParams({ huntId, clueId, chainId, contractAddress, teamIdentifier })
+    ) {
       if (showLoading) {
         setIsLoadingRetries(false);
       }
@@ -132,9 +143,9 @@ export function Clue() {
       const response = await fetch(
         `${BACKEND_URL}/hunts/${huntId}/clues/${clueId}/teams/${teamIdentifier}/attempts?chainId=${chainId}&contractAddress=${contractAddress}`
       );
-      
+
       if (!response.ok) {
-        console.error("Failed to fetch retry attempts:", response.status);
+        console.error('Failed to fetch retry attempts:', response.status);
         if (showLoading) {
           setIsLoadingRetries(false);
         }
@@ -142,8 +153,8 @@ export function Clue() {
       }
 
       const data = await response.json();
-      console.log("Retry attempts data:", data);
-      
+      console.log('Retry attempts data:', data);
+
       if (data.attemptCount > 0) {
         setAttemptCount(data.attemptCount);
         // Calculate remaining attempts
@@ -154,10 +165,10 @@ export function Clue() {
         setAttemptCount(0);
         setAttempts(MAX_ATTEMPTS);
       }
-      
+
       return data;
     } catch (error) {
-      console.error("Error fetching retry attempts:", error);
+      console.error('Error fetching retry attempts:', error);
       return null;
     } finally {
       if (showLoading) {
@@ -179,13 +190,13 @@ export function Clue() {
       clearTimeout(errorResetTimeoutRef.current);
       errorResetTimeoutRef.current = null;
     }
-    
-    setVerificationState("idle");
+
+    setVerificationState('idle');
     setCapturedImage(null);
     setImagePreview(null);
 
     // Only request location for geolocation hunts
-    if (huntType === HUNT_TYPE.GEO_LOCATION && "geolocation" in navigator) {
+    if (huntType === HUNT_TYPE.GEO_LOCATION && 'geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
           const { latitude, longitude } = coords;
@@ -193,13 +204,13 @@ export function Clue() {
           setLocation({ latitude, longitude });
         },
         (error) => {
-          console.error("Geolocation error:", error);
+          console.error('Geolocation error:', error);
         }
       );
     }
 
     // Clue access validation is now handled by RouteGuard at the router level
-    
+
     // Cleanup function to clear timeout on unmount
     return () => {
       if (errorResetTimeoutRef.current) {
@@ -210,15 +221,17 @@ export function Clue() {
   }, [clueId, huntId, navigate, teamIdentifier]);
 
   if (!isValidHexAddress(contractAddress)) {
-    toast.error("Invalid contract address format");
+    toast.error('Invalid contract address format');
     return null;
   }
 
-
   // Create retry attempt attestation
   const createRetryAttestation = async (currentAttemptCount: number) => {
-    if (!isDefined(userWallet) || !hasRequiredClueAndTeamParams({ huntId, clueId, chainId, contractAddress, teamIdentifier })) {
-      console.log("Missing required data for retry attestation:", {
+    if (
+      !isDefined(userWallet) ||
+      !hasRequiredClueAndTeamParams({ huntId, clueId, chainId, contractAddress, teamIdentifier })
+    ) {
+      console.log('Missing required data for retry attestation:', {
         userWallet: !!userWallet,
         huntId: !!huntId,
         clueId: !!clueId,
@@ -240,12 +253,12 @@ export function Clue() {
         contractAddress: contractAddress,
       };
 
-      console.log("Creating retry attestation:", attestationData);
+      console.log('Creating retry attestation:', attestationData);
 
       const response = await fetch(`${BACKEND_URL}/attestations/attempts`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(attestationData),
       });
@@ -255,18 +268,21 @@ export function Clue() {
       }
 
       const result = await response.json();
-      console.log("Retry attestation created successfully:", result);
+      console.log('Retry attestation created successfully:', result);
       return result;
     } catch (error) {
-      console.error("Failed to create retry attestation:", error);
+      console.error('Failed to create retry attestation:', error);
       return null;
     }
   };
 
   // Create clue solve attestation
   const createAttestation = async (timeTaken: number, totalAttempts: number) => {
-    if (!isDefined(userWallet) || !hasRequiredClueParams({ huntId, clueId, chainId, contractAddress })) {
-      console.log("Missing required data for attestation:", {
+    if (
+      !isDefined(userWallet) ||
+      !hasRequiredClueParams({ huntId, clueId, chainId, contractAddress })
+    ) {
+      console.log('Missing required data for attestation:', {
         userWallet: !!userWallet,
         huntId: !!huntId,
         clueId: !!clueId,
@@ -289,12 +305,12 @@ export function Clue() {
         contractAddress: contractAddress,
       };
 
-      console.log("Creating clue solve attestation:", attestationData);
+      console.log('Creating clue solve attestation:', attestationData);
 
       const response = await fetch(`${BACKEND_URL}/attestations/clues`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify(attestationData),
       });
@@ -304,25 +320,25 @@ export function Clue() {
       }
 
       const result = await response.json();
-      console.log("Attestation created successfully:", result);
-      toast.success("Clue solve recorded!");
+      console.log('Attestation created successfully:', result);
+      toast.success('Clue solve recorded!');
     } catch (error) {
-      console.error("Failed to create attestation:", error);
-      toast.error("Failed to record clue solve");
+      console.error('Failed to create attestation:', error);
+      toast.error('Failed to record clue solve');
     }
   };
 
   // Sync progress with team
   const handleSyncProgress = async () => {
     if (!hasRequiredTeamParams({ huntId, chainId, contractAddress, teamIdentifier })) {
-      toast.error("Missing required parameters for sync operation");
+      toast.error('Missing required parameters for sync operation');
       return;
     }
 
     setIsSyncing(true);
     setIsRedirecting(true);
     try {
-      const currentClueIndex = parseInt(clueId || "0");
+      const currentClueIndex = parseInt(clueId || '0');
       await syncProgressAndNavigate(
         parseInt(huntId!),
         teamIdentifier!,
@@ -332,15 +348,15 @@ export function Clue() {
         contractAddress!,
         totalClues
       );
-      
+
       // Sync retry attempts after syncing progress
       await fetchRetryAttempts(false);
-      
+
       // If no navigation occurred, ensure redirecting state is cleared
       setIsRedirecting(false);
     } catch (error) {
-      console.error("Error syncing progress:", error);
-      toast.error("Failed to sync progress");
+      console.error('Error syncing progress:', error);
+      toast.error('Failed to sync progress');
       setIsRedirecting(false);
     } finally {
       setIsSyncing(false);
@@ -348,50 +364,57 @@ export function Clue() {
   };
 
   const handleVerify = async (e: React.FormEvent) => {
-    console.log("handleVerify called");
+    console.log('handleVerify called');
     e.preventDefault();
-    
+
     // Clear any existing error reset timeout when starting a new verification
     if (errorResetTimeoutRef.current) {
       clearTimeout(errorResetTimeoutRef.current);
       errorResetTimeoutRef.current = null;
     }
-    
+
     // Validate based on hunt type
     if (huntType === HUNT_TYPE.GEO_LOCATION && !location) {
-      console.log("location is null");
-      toast.error("Please wait for location to be detected");
+      console.log('location is null');
+      toast.error('Please wait for location to be detected');
       return;
     } else if (huntType === HUNT_TYPE.IMAGE && !capturedImage) {
-      console.log("capturedImage is null");
-      toast.error("Please capture an image first");
+      console.log('capturedImage is null');
+      toast.error('Please capture an image first');
       return;
     }
     if (!huntData) {
-      console.log("huntData is null");
+      console.log('huntData is null');
       return;
     }
 
     // Set loading state immediately when button is clicked
     setIsSubmitting(true);
-    setVerificationState("verifying");
+    setVerificationState('verifying');
 
     // Re-validate clue access before verification to handle real-time changes
     if (huntId && teamIdentifier && chainId && contractAddress) {
-      console.log("Re-validating clue access before verification...", { huntId, teamIdentifier, clueId, totalClues, chainId, contractAddress });
+      console.log('Re-validating clue access before verification...', {
+        huntId,
+        teamIdentifier,
+        clueId,
+        totalClues,
+        chainId,
+        contractAddress,
+      });
       setIsRedirecting(true);
       const canProceed = await validateClueAccess(
         parseInt(huntId),
         teamIdentifier,
-        parseInt(clueId || "0"),
+        parseInt(clueId || '0'),
         navigate,
         chainId,
         contractAddress,
         totalClues
       );
-      console.log("Clue access re-validation result:", canProceed);
+      console.log('Clue access re-validation result:', canProceed);
       if (!canProceed) {
-        console.log("Clue access denied during verification, returning early");
+        console.log('Clue access denied during verification, returning early');
         // Reset states before returning
         resetVerificationStates();
         return; // User was redirected, don't proceed with verification
@@ -403,22 +426,22 @@ export function Clue() {
     try {
       if (huntId && teamIdentifier && chainId && contractAddress) {
         const progressData = await fetchProgress(
-          parseInt(huntId || "0"),
+          parseInt(huntId || '0'),
           teamIdentifier,
           chainId,
           contractAddress,
           totalClues
         );
-        
+
         if (progressData) {
-          const clueIndex = parseInt(clueId || "0");
-          
+          const clueIndex = parseInt(clueId || '0');
+
           if (isClueSolved(progressData, clueIndex)) {
-            console.log("Clue already solved by team, skipping verification");
-            toast.info("This clue has already been solved by your team!");
-            setVerificationState("success");
+            console.log('Clue already solved by team, skipping verification');
+            toast.info('This clue has already been solved by your team!');
+            setVerificationState('success');
             setShowSuccessMessage(true);
-            
+
             // Navigate to next clue since it's solved
             setTimeout(async () => {
               const nextClueId = currentClue + 1;
@@ -433,13 +456,13 @@ export function Clue() {
         }
       }
     } catch (error) {
-      console.error("Error checking if clue is already solved:", error);
+      console.error('Error checking if clue is already solved:', error);
       // Continue with normal flow if check fails
     }
 
     // First, update retry count by fetching from backend
     const retryData = await fetchRetryAttempts(false);
-    
+
     // Calculate remaining attempts from fetched data
     let remainingAttempts = MAX_ATTEMPTS;
     let currentAttemptCount = 0;
@@ -447,19 +470,19 @@ export function Clue() {
       currentAttemptCount = retryData.attemptCount;
       remainingAttempts = MAX_ATTEMPTS - retryData.attemptCount;
     }
-    
+
     // Check if user still has attempts remaining
     if (remainingAttempts <= 0) {
-      toast.error("No attempts remaining for this clue");
+      toast.error('No attempts remaining for this clue');
       resetVerificationStates();
       return;
     }
 
-    console.log("huntData: ", huntData);
-    console.log("=== DEBUGGING REQUEST ===");
-    console.log("Current location state:", location);
-    console.log("clueId param:", clueId);
-    console.log("Number(clueId):", Number(clueId));
+    console.log('huntData: ', huntData);
+    console.log('=== DEBUGGING REQUEST ===');
+    console.log('Current location state:', location);
+    console.log('clueId param:', clueId);
+    console.log('Number(clueId):', Number(clueId));
 
     // Calculate current attempt number (starts at 1) using the updated count
     const currentAttemptNumber = currentAttemptCount + 1;
@@ -469,31 +492,31 @@ export function Clue() {
 
     try {
       let data;
-      
+
       if (huntType === HUNT_TYPE.IMAGE) {
         // For image hunts: two-step process
         // Step 1: Generate embedding for captured image
-        console.log("Image hunt - Step 1: Generating embedding...");
+        console.log('Image hunt - Step 1: Generating embedding...');
         const embeddingFormData = new FormData();
         embeddingFormData.append('image', capturedImage!);
-        
+
         const embeddingResponse = await fetch(`${BACKEND_URL}/images/embeddings`, {
-          method: "POST",
+          method: 'POST',
           body: embeddingFormData,
         });
-        
+
         if (!embeddingResponse.ok) {
-          throw new Error("Failed to generate embedding for captured image");
+          throw new Error('Failed to generate embedding for captured image');
         }
-        
+
         const embeddingData = await embeddingResponse.json();
-        console.log("Embedding generated");
-        
+        console.log('Embedding generated');
+
         // Step 2: Call decrypt-ans with embedding
-        console.log("Image hunt - Step 2: Verifying answer...");
+        console.log('Image hunt - Step 2: Verifying answer...');
         const response = await fetch(`${BACKEND_URL}/clues/verify`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             answers_blobId: huntData.answers_blobId,
             embedding: embeddingData.embedding,
@@ -501,17 +524,17 @@ export function Clue() {
             huntType: HUNT_TYPE.IMAGE,
           }),
         });
-        
+
         data = await response.json();
       } else {
         // For geolocation hunts: use /clues/verify endpoint
         const headersList = {
-          Accept: "*/*",
-          "Content-Type": "application/json",
+          Accept: '*/*',
+          'Content-Type': 'application/json',
         };
 
         const requestBody = {
-          userAddress: userWallet || "0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397",
+          userAddress: userWallet || '0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397',
           answers_blobId: huntData.answers_blobId,
           cLat: location!.latitude,
           cLong: location!.longitude,
@@ -519,29 +542,29 @@ export function Clue() {
           huntType: HUNT_TYPE.GEO_LOCATION,
         };
 
-        console.log("Request body object:", requestBody);
-        console.log("Request body object keys:", Object.keys(requestBody));
+        console.log('Request body object:', requestBody);
+        console.log('Request body object keys:', Object.keys(requestBody));
 
         const bodyContent = JSON.stringify(requestBody);
 
         const response = await fetch(`${BACKEND_URL}/clues/verify`, {
-          method: "POST",
+          method: 'POST',
           body: bodyContent,
           headers: headersList,
         });
 
         data = await response.json();
       }
-      console.log("=== BACKEND RESPONSE ===");
-      console.log("data.isClose:", data.isClose);
+      console.log('=== BACKEND RESPONSE ===');
+      console.log('data.isClose:', data.isClose);
 
       const isCorrect = data.isClose;
 
-      if (isCorrect == "true") {
+      if (isCorrect == 'true') {
         // Calculate time taken in seconds
         const currentTimestamp = Math.floor(Date.now() / 1000);
         let startTimestamp = currentTimestamp; // Default fallback
-        
+
         // Determine the correct start timestamp based on clue number
         // For both first attempts and retries, we measure from when the clue became available
         if (currentClue === 1) {
@@ -554,16 +577,15 @@ export function Clue() {
               const huntStartData = await huntStartResponse.json();
               if (huntStartData.firstAttemptTimestamp) {
                 startTimestamp = huntStartData.firstAttemptTimestamp;
-                console.log("Using hunt start timestamp:", startTimestamp);
+                console.log('Using hunt start timestamp:', startTimestamp);
               }
             }
           } catch (error) {
-            console.error("Error fetching hunt start timestamp:", error);
+            console.error('Error fetching hunt start timestamp:', error);
           }
         } else {
           // For other clues, use previous clue solve timestamp from progress endpoint
           try {
-
             const progressResponse = await fetch(
               `${BACKEND_URL}/hunts/${huntId}/teams/${teamIdentifier}/progress?totalClues=${totalClues}&chainId=${chainId}&contractAddress=${contractAddress}`
             );
@@ -572,24 +594,29 @@ export function Clue() {
               const prevClueIndex = currentClue - 1;
               if (progressData.solvedClues && progressData.solvedClues[prevClueIndex]) {
                 startTimestamp = progressData.solvedClues[prevClueIndex].solveTimestamp;
-                console.log("Using previous clue solve timestamp:", startTimestamp);
+                console.log('Using previous clue solve timestamp:', startTimestamp);
               }
             }
           } catch (error) {
-            console.error("Error fetching previous clue solve timestamp:", error);
+            console.error('Error fetching previous clue solve timestamp:', error);
           }
         }
-        
+
         const timeTaken = currentTimestamp - startTimestamp;
-        console.log("Clue solved! Time taken:", timeTaken, "seconds, Attempts:", currentAttemptNumber);
-        
+        console.log(
+          'Clue solved! Time taken:',
+          timeTaken,
+          'seconds, Attempts:',
+          currentAttemptNumber
+        );
+
         // Create attestation when clue is solved with timeTaken and total attempts
         await createAttestation(timeTaken, currentAttemptNumber);
 
-        setVerificationState("success");
+        setVerificationState('success');
         setShowSuccessMessage(true);
 
-        console.log("Success"), showSuccessMessage;
+        (console.log('Success'), showSuccessMessage);
 
         // Wait 0.5 seconds before navigating
         setTimeout(async () => {
@@ -602,21 +629,21 @@ export function Clue() {
           }
         }, 500);
       } else {
-        setVerificationState("error");
+        setVerificationState('error');
         setAttempts((prev) => prev - 1);
-        setAttemptCount(prev => prev + 1); // Increment attempt count for next attempt
+        setAttemptCount((prev) => prev + 1); // Increment attempt count for next attempt
         // Reset verification state to idle after a brief delay so user can retry
         errorResetTimeoutRef.current = setTimeout(() => {
-          setVerificationState("idle");
+          setVerificationState('idle');
           errorResetTimeoutRef.current = null;
         }, 2000); // Show error for 2 seconds, then reset to allow retry
       }
     } catch (error) {
-      console.error("Verification failed:", error);
-      setVerificationState("error");
+      console.error('Verification failed:', error);
+      setVerificationState('error');
       // Reset verification state to idle after a brief delay so user can retry
       errorResetTimeoutRef.current = setTimeout(() => {
-        setVerificationState("idle");
+        setVerificationState('idle');
         errorResetTimeoutRef.current = null;
       }, 2000); // Show error for 2 seconds, then reset to allow retry
     } finally {
@@ -628,11 +655,11 @@ export function Clue() {
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: 'environment' }, // Use rear camera on mobile
-        audio: false
+        audio: false,
       });
       setStream(mediaStream);
       setIsCameraOpen(true);
-      
+
       // Wait for video element to be available
       setTimeout(() => {
         if (videoRef.current) {
@@ -640,14 +667,14 @@ export function Clue() {
         }
       }, 100);
     } catch (error) {
-      console.error("Error accessing camera:", error);
-      toast.error("Unable to access camera. Please grant camera permissions.");
+      console.error('Error accessing camera:', error);
+      toast.error('Unable to access camera. Please grant camera permissions.');
     }
   };
 
   const closeCamera = () => {
     if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
       setStream(null);
     }
     setIsCameraOpen(false);
@@ -657,25 +684,29 @@ export function Clue() {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      
+
       // Set canvas dimensions to match video
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      
+
       // Draw video frame to canvas
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
+
         // Convert canvas to blob and create file
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
-            setCapturedImage(file);
-            setImagePreview(canvas.toDataURL('image/jpeg'));
-            closeCamera();
-          }
-        }, 'image/jpeg', 0.95);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const file = new File([blob], `capture-${Date.now()}.jpg`, { type: 'image/jpeg' });
+              setCapturedImage(file);
+              setImagePreview(canvas.toDataURL('image/jpeg'));
+              closeCamera();
+            }
+          },
+          'image/jpeg',
+          0.95
+        );
       }
     }
   };
@@ -684,64 +715,10 @@ export function Clue() {
   useEffect(() => {
     return () => {
       if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       }
     };
   }, [stream]);
-
-  const getButtonVariant = () => {
-    if (huntType === HUNT_TYPE.GEO_LOCATION && !location) return "neutral";
-    if (huntType === HUNT_TYPE.IMAGE && !capturedImage) return "neutral";
-    switch (verificationState) {
-      case "verifying":
-        return "neutral";
-      case "success":
-        return "default";
-      case "error":
-        return "default";
-      default:
-        return "default";
-    }
-  };
-
-  const getButtonStyles = () => {
-    // For geolocation hunts, check location
-    if (huntType === HUNT_TYPE.GEO_LOCATION && !location) {
-      return "opacity-50 cursor-not-allowed";
-    }
-    // For image hunts, button is only shown when image is captured, so no need to check
-    switch (verificationState) {
-      case "verifying":
-        return "opacity-75";
-      case "success":
-        return "bg-green-500 hover:bg-green-600 text-white";
-      case "error":
-        return "bg-red-500 hover:bg-red-600 text-white";
-      default:
-        return "";
-    }
-  };
-
-  const getButtonText = () => {
-    // For geolocation hunts, check location first
-    if (huntType === HUNT_TYPE.GEO_LOCATION && !location) {
-      return "Waiting for location...";
-    }
-    // For image hunts, this function is only called when image is captured
-    // (since the verify button is hidden when no image is captured)
-    switch (verificationState) {
-      case "verifying":
-        return huntType === HUNT_TYPE.IMAGE ? "Verifying image..." : "Verifying location...";
-      case "success":
-        return "Correct Answer!";
-      case "error":
-        return huntType === HUNT_TYPE.IMAGE 
-          ? `Wrong image - ${attempts} attempts remaining`
-          : `Wrong location - ${attempts} attempts remaining`;
-      default:
-        return huntType === HUNT_TYPE.IMAGE ? "Verify Image" : "Verify Location";
-    }
-  };
 
   if (attempts === 0) {
     return (
@@ -752,15 +729,12 @@ export function Clue() {
               <div className="mb-6">
                 <BsXCircle className="w-16 h-16 text-red-500 mx-auto" />
               </div>
-              <CardTitle className="text-3xl mb-4">
-                No More Attempts
-              </CardTitle>
+              <CardTitle className="text-3xl mb-4">No More Attempts</CardTitle>
               <p className="text-foreground/70 mb-8">
-                You've used all your attempts for this clue. Try another hunt or
-                come back later.
+                You've used all your attempts for this clue. Try another hunt or come back later.
               </p>
               <Button
-                onClick={() => navigate("/hunts")}
+                onClick={() => navigate('/hunts')}
                 variant="default"
                 size="lg"
                 className="px-8"
@@ -831,15 +805,17 @@ export function Clue() {
               {huntType === HUNT_TYPE.GEO_LOCATION ? (
                 <div className="flex mr-8 ">
                   <BsGeoAlt className="mr-1" />
-                  {location ? "Location detected" : "Detecting location..."}
+                  {location ? 'Location detected' : 'Detecting location...'}
                 </div>
               ) : (
                 <div className="mr-8">
-                  {capturedImage ? "Image captured" : "Take a picture to verify"}
+                  {capturedImage ? 'Image captured' : 'Take a picture to verify'}
                 </div>
               )}
               <div>
-                {isLoadingRetries ? "Loading attempts..." : `Attempts remaining: ${attempts}/${MAX_ATTEMPTS}`}
+                {isLoadingRetries
+                  ? 'Loading attempts...'
+                  : `Attempts remaining: ${attempts}/${MAX_ATTEMPTS}`}
               </div>
             </div>
 
@@ -849,14 +825,14 @@ export function Clue() {
                   // Show only Capture Image button when no image is captured
                   <Button
                     type="button"
-                    variant={getButtonVariant()}
+                    variant={getButtonVariant(huntType, location, capturedImage, verificationState)}
                     size="lg"
                     onClick={openCamera}
                     className={cn(
-                      "w-full transition-colors duration-300",
-                      getButtonStyles()
+                      'w-full transition-colors duration-300',
+                      getButtonStyles(huntType, location, verificationState)
                     )}
-                    disabled={verificationState === "verifying" || verificationState === "success"}
+                    disabled={verificationState === 'verifying' || verificationState === 'success'}
                   >
                     Take a picture
                   </Button>
@@ -880,7 +856,9 @@ export function Clue() {
                           size="lg"
                           onClick={openCamera}
                           className="w-full"
-                          disabled={verificationState === "verifying" || verificationState === "success"}
+                          disabled={
+                            verificationState === 'verifying' || verificationState === 'success'
+                          }
                         >
                           Retry
                         </Button>
@@ -888,28 +866,27 @@ export function Clue() {
                       <form onSubmit={handleVerify} className="flex-1">
                         <Button
                           type="submit"
-                          variant={getButtonVariant()}
+                          variant={getButtonVariant(
+                            huntType,
+                            location,
+                            capturedImage,
+                            verificationState
+                          )}
                           size="lg"
                           className={cn(
-                            "w-full transition-colors duration-300 whitespace-normal break-words",
-                            getButtonStyles()
+                            'w-full transition-colors duration-300 whitespace-normal break-words',
+                            getButtonStyles(huntType, location, verificationState)
                           )}
                           disabled={
-                            verificationState === "verifying" ||
-                            verificationState === "success" ||
+                            verificationState === 'verifying' ||
+                            verificationState === 'success' ||
                             isRedirecting
                           }
                         >
-                          {verificationState === "success" && (
-                            <BsCheckCircle className="mr-2" />
-                          )}
-                          {verificationState === "error" && (
-                            <BsXCircle className="mr-2" />
-                          )}
-                          {isSubmitting && (
-                            <BsArrowRepeat className="mr-2 animate-spin" />
-                          )}
-                          {getButtonText()}
+                          {verificationState === 'success' && <BsCheckCircle className="mr-2" />}
+                          {verificationState === 'error' && <BsXCircle className="mr-2" />}
+                          {isSubmitting && <BsArrowRepeat className="mr-2 animate-spin" />}
+                          {getButtonText(huntType, location, verificationState, attempts)}
                         </Button>
                       </form>
                     </div>
@@ -921,29 +898,23 @@ export function Clue() {
               <form onSubmit={handleVerify} className="w-full">
                 <Button
                   type="submit"
-                  variant={getButtonVariant()}
+                  variant={getButtonVariant(huntType, location, capturedImage, verificationState)}
                   size="lg"
                   className={cn(
-                    "w-full transition-colors duration-300",
-                    getButtonStyles()
+                    'w-full transition-colors duration-300',
+                    getButtonStyles(huntType, location, verificationState)
                   )}
                   disabled={
                     !location ||
-                    verificationState === "verifying" ||
-                    verificationState === "success" ||
+                    verificationState === 'verifying' ||
+                    verificationState === 'success' ||
                     isRedirecting
                   }
                 >
-                  {verificationState === "success" && (
-                    <BsCheckCircle className="mr-2" />
-                  )}
-                  {verificationState === "error" && (
-                    <BsXCircle className="mr-2" />
-                  )}
-                  {isSubmitting && (
-                    <BsArrowRepeat className="mr-2 animate-spin" />
-                  )}
-                  {getButtonText()}
+                  {verificationState === 'success' && <BsCheckCircle className="mr-2" />}
+                  {verificationState === 'error' && <BsXCircle className="mr-2" />}
+                  {isSubmitting && <BsArrowRepeat className="mr-2 animate-spin" />}
+                  {getButtonText(huntType, location, verificationState, attempts)}
                 </Button>
               </form>
             )}
@@ -951,13 +922,13 @@ export function Clue() {
         </Card>
 
         {huntId && <HuddleRoom huntId={huntId} teamIdentifier={teamIdentifier} />}
-        
+
         {/* Leaderboard Modal */}
-        <Leaderboard 
-          huntId={huntId} 
+        <Leaderboard
+          huntId={huntId}
           huntName={huntData?.name}
-          isOpen={isLeaderboardOpen} 
-          onClose={() => setIsLeaderboardOpen(false)} 
+          isOpen={isLeaderboardOpen}
+          onClose={() => setIsLeaderboardOpen(false)}
         />
 
         {/* Camera Modal */}
@@ -977,20 +948,10 @@ export function Clue() {
                 <canvas ref={canvasRef} className="hidden" />
               </div>
               <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={closeCamera}
-                  className="flex-1"
-                >
+                <Button type="button" variant="outline" onClick={closeCamera} className="flex-1">
                   Cancel
                 </Button>
-                <Button
-                  type="button"
-                  variant="default"
-                  onClick={captureImage}
-                  className="flex-1"
-                >
+                <Button type="button" variant="default" onClick={captureImage} className="flex-1">
                   Capture
                 </Button>
               </div>

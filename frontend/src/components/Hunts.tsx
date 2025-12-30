@@ -17,26 +17,13 @@ import { useState, useEffect, useMemo } from "react";
 import { useNetworkState } from "../lib/utils";
 import { client } from "../lib/client";
 import { Hunt } from "../types";
+import { formatDateRange } from "../utils/dateUtils";
 
 
 
 // Type guard to ensure address is a valid hex string
 function isValidHexAddress(address: string): address is `0x${string}` {
   return /^0x[0-9a-fA-F]{40}$/.test(address);
-}
-
-// Helper function to format date range
-function formatDateRange(startTime: bigint, endTime: bigint): string {
-  const startDate = new Date(Number(startTime) * 1000);
-  const endDate = new Date(Number(endTime) * 1000);
-  
-  // If same day, show time range
-  if (startDate.toDateString() === endDate.toDateString()) {
-    return `${startDate.toLocaleDateString([], { month: 'short', day: 'numeric' })} • ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-  }
-  
-  // Different days, show date range with times
-  return `${startDate.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${endDate.toLocaleDateString([], { month: 'short', day: 'numeric' })} ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
 }
 
 export function Hunts() {
