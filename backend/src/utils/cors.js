@@ -10,7 +10,7 @@
  * - Exact origins: "https://example.com", "http://localhost:5173"
  * - Wildcards:
  *   - Dot-subdomain: "https://*.example.com"
- *   - Suffix (Netlify deploy previews): "https://*khoj-alpha.netlify.app"
+ *   - Suffix (Netlify deploy previews): "https://*example.netlify.app"
  *
  * Notes:
  * - Browsers do NOT include URL paths in the Origin header. However, we defensively
@@ -109,7 +109,7 @@ export function isOriginAllowed(origin, allowedPatterns) {
         if (requestHostname.endsWith(`.${wildcard.baseHost}`)) return true;
       } else {
         // Match any hostname suffix (supports Netlify deploy-preview style like
-        // "deploy-preview-219--khoj-alpha.netlify.app").
+        // "deploy-preview-219--example.netlify.app").
         if (requestHostname.endsWith(wildcard.baseHost)) return true;
       }
     }

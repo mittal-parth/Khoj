@@ -5,7 +5,7 @@
 #        or from backend directory: ./scripts/test-cors.sh
 #
 # Note: Make sure CORS_ALLOWED_ORIGINS is configured in your .env file
-# Example: CORS_ALLOWED_ORIGINS=https://playkhoj.com,https://*khoj-alpha.netlify.app,http://localhost:5173
+# Example: CORS_ALLOWED_ORIGINS=https://mydomain.com,https://*example.netlify.app,http://localhost:5173
 
 API_URL="${1:-http://localhost:8000}"
 ALLOWED_ORIGIN="${2:-http://localhost:5173}"
