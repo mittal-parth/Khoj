@@ -22,7 +22,7 @@ import { generateImageEmbedding } from "./services/vertex-ai.js";
 
 // Import utilities
 import { withRetry } from "./utils/retry-utils.js";
-import { createCorsOptionsFromEnv } from "./utils/cors.js";
+import { createCorsOptionsFromEnv, isOriginAllowed, getAllowedCorsOriginsFromEnv } from "./utils/cors.js";
 
 // Configuration
 const GEMINI_MODEL = "gemini-2.5-flash";
@@ -32,19 +32,28 @@ dotenv.config();
 const app = express();
 
 const corsOptions = createCorsOptionsFromEnv();
+const allowedOrigins = getAllowedCorsOriginsFromEnv();
 
-// Enforce browser-originated calls only (except health checks).
-// This prevents accidental reliance on server-to-server access and keeps the allowlist meaningful.
+// Enforce strict origin allowlist - block all requests from unauthorized origins.
+// This prevents both browser and server-to-server requests from unauthorized sources.
 app.use((req, res, next) => {
   if (req.path === "/health") return next();
+  
+  // Require Origin header
   if (!req.headers.origin) {
     return res.status(403).json({ error: "Origin header is required" });
   }
+  
+  // Explicitly block disallowed origins with 403
+  if (!isOriginAllowed(req.headers.origin, allowedOrigins)) {
+    return res.status(403).json({ 
+      error: "Origin not allowed",
+      origin: req.headers.origin 
+    });
+  }
+  
   return next();
 });
-
-// Add explicit preflight handler
-app.options('*', cors(corsOptions));
 
 app.use(cors(corsOptions)); // Single CORS configuration
 app.use(express.json());

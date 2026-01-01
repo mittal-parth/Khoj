@@ -113,10 +113,6 @@ export function isOriginAllowed(origin, allowedPatterns) {
         if (requestHostname.endsWith(wildcard.baseHost)) return true;
       }
     }
-
-    // Allow explicit host:port entries if someone configures them without scheme
-    // (not recommended, but makes local config easier).
-    if (pattern === requestHost) return true;
   }
 
   return false;
@@ -139,12 +135,10 @@ export function createCorsOptionsFromEnv(env = process.env) {
         return callback(null, true);
       }
 
-      return callback(
-        new Error(
-          `CORS blocked: origin not allowed (${origin || "no-origin"})`
-        ),
-        false
-      );
+      // Don't throw error - just reject by omitting CORS headers.
+      // Returning false here prevents CORS headers from being set, which causes the browser
+      // to block the request. This follows CORS best practices - we don't return 403/500 for CORS failures.
+      return callback(null, false);
     },
     optionsSuccessStatus: 200,
     credentials: true,
