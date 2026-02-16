@@ -134,10 +134,10 @@ export function PWAInstallModal({ forceShow = false }: PWAInstallModalProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Download className="w-5 h-5 text-main" />
-            Install Khoj for Better Experience
+            Install Khoj
           </DialogTitle>
           <DialogDescription>
-            Get the best treasure hunting experience by installing Khoj as an app on {osName}.
+            Get the best treasure hunting experience by installing Khoj as an app on {osName}!
           </DialogDescription>
         </DialogHeader>
 
@@ -161,7 +161,7 @@ export function PWAInstallModal({ forceShow = false }: PWAInstallModalProps) {
           </ol>
 
           <div className="text-sm text-muted-foreground bg-secondary-background p-3 rounded-base border border-border mt-4">
-            <strong>Why install?</strong> Get faster loading, offline access, and a native app-like experience while hunting treasures!
+            <strong>Why install?</strong> Khoj works best when installed as a PWA, with a native app-like experience.
           </div>
         </div>
 
