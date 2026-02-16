@@ -29,7 +29,7 @@ import {
   DrawerTrigger,
   DrawerClose,
 } from "@/components/ui/drawer"
-import { markNavigatingFromLanding } from './PWAInstallModal'
+import { markNavigatingFromLanding } from '@/utils/pwaUtils'
 
 export const LandingPage = () => {
   const navigate = useNavigate();
