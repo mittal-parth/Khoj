@@ -18,6 +18,7 @@ import { useNetworkState } from "../lib/utils";
 import { client } from "../lib/client";
 import { Hunt } from "../types";
 import { formatDateRange } from "../utils/dateUtils";
+import { PWAInstallModal } from "./PWAInstallModal";
 
 
 
@@ -277,6 +278,7 @@ export function Hunts() {
 
   return (
     <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-[90px]">
+      <PWAInstallModal />
       <h1 className="text-3xl font-bold mt-12 mb-6 mx-2 text-green drop-shadow-xl">
         Hunts
       </h1>

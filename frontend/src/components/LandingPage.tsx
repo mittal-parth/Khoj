@@ -29,6 +29,7 @@ import {
   DrawerTrigger,
   DrawerClose,
 } from "@/components/ui/drawer"
+import { markNavigatingFromLanding } from './PWAInstallModal'
 
 export const LandingPage = () => {
   const navigate = useNavigate();
@@ -247,7 +248,7 @@ export const LandingPage = () => {
           </motion.p>
 
           <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-            <Button size="lg" onClick={() => navigate('/hunts')} className="text-xl px-8 py-6">
+            <Button size="lg" onClick={() => { markNavigatingFromLanding(); navigate('/hunts'); }} className="text-xl px-8 py-6">
               Start Exploring <ArrowRight className="ml-2 w-6 h-6" />
             </Button>
             <Button size="lg" variant="outline" className="text-xl px-8 py-6 bg-white" onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}>
@@ -428,7 +429,7 @@ export const LandingPage = () => {
           </div>
 
           <div className="flex gap-4">
-             <Button variant="reverse" size="sm" onClick={() => navigate('/hunts')}>
+             <Button variant="reverse" size="sm" onClick={() => { markNavigatingFromLanding(); navigate('/hunts'); }}>
                Launch App
              </Button>
           </div>
