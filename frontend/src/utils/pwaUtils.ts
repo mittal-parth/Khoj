@@ -10,9 +10,12 @@ export function markNavigatingFromLanding(): void {
 // Check if user came from landing page
 export function cameFromLanding(): boolean {
   const value = sessionStorage.getItem(CAME_FROM_LANDING_KEY);
-  // Clear the flag after checking
-  sessionStorage.removeItem(CAME_FROM_LANDING_KEY);
   return value === 'true';
+}
+
+// Clear the landing flag (call after deciding to show modal)
+export function clearLandingFlag(): void {
+  sessionStorage.removeItem(CAME_FROM_LANDING_KEY);
 }
 
 // Check if modal has already been shown this session

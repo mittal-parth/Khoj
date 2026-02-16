@@ -12,6 +12,7 @@ import { Download, Smartphone, Monitor, Apple } from 'lucide-react';
 import {
   isPWAInstalled,
   cameFromLanding,
+  clearLandingFlag,
   hasModalBeenShown,
   markModalAsShown,
   detectOS,
@@ -119,6 +120,7 @@ export function PWAInstallModal({ forceShow = false }: PWAInstallModalProps) {
       const timer = setTimeout(() => {
         setIsOpen(true);
         markModalAsShown();
+        clearLandingFlag();
       }, 500);
       return () => clearTimeout(timer);
     }
