@@ -558,9 +558,9 @@ export function Clue() {
       console.log('=== BACKEND RESPONSE ===');
       console.log('data.isClose:', data.isClose);
 
-      const isCorrect = data.isClose;
+      const isCorrect = data.isClose === true || data.isClose === 'true';
 
-      if (isCorrect == 'true') {
+      if (isCorrect) {
         // Calculate time taken in seconds
         const currentTimestamp = Math.floor(Date.now() / 1000);
         let startTimestamp = currentTimestamp; // Default fallback
