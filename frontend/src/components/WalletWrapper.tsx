@@ -1,6 +1,8 @@
 import { ConnectButton, lightTheme } from "thirdweb/react";
+import { inAppWallet, createWallet } from "thirdweb/wallets";
 import { client } from "../lib/client";
 import { ENABLED_CHAINS_ARRAY } from "../lib/utils";
+import { baseSepolia } from "../lib/chains";
 import { WalletWrapperParams } from "../types";
 
 const customTheme = lightTheme({
@@ -18,13 +20,58 @@ const customTheme = lightTheme({
   },
 });
 
+/**
+ * Wallet configuration with Smart Account for gas sponsorship
+ * 
+ * The inAppWallet with smartAccount configuration enables:
+ * - Social login (Google, Apple, etc.)
+ * - Email/phone authentication
+ * - Gas-free transactions via paymaster on supported chains
+ * 
+ * Supported chains for gas sponsorship:
+ * - Base Sepolia (chain ID: 84532)
+ * - Moonbase Alpha (chain ID: 1287)
+ */
+const wallets = [
+  inAppWallet({
+    auth: {
+      options: [
+        "google",
+        "apple",
+        "email",
+        "phone",
+        "passkey",
+      ],
+    },
+    smartAccount: {
+      chain: baseSepolia,
+      sponsorGas: true,
+    },
+  }),
+  createWallet("io.metamask"),
+  createWallet("com.coinbase.wallet"),
+  createWallet("me.rainbow"),
+  createWallet("io.rabby"),
+];
+
+/**
+ * Account abstraction configuration for gas sponsorship
+ * This enables sponsored transactions on supported chains
+ */
+const accountAbstraction = {
+  chain: baseSepolia,
+  sponsorGas: true,
+};
+
 export default function WalletWrapper({
   text,
 }: WalletWrapperParams) {
   return (
     <ConnectButton
       client={client}
+      wallets={wallets}
       chains={ENABLED_CHAINS_ARRAY}
+      accountAbstraction={accountAbstraction}
       theme={customTheme}
       connectButton={{
         label: text || "Get Started",
