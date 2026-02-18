@@ -55,7 +55,7 @@ export function Navbar() {
               Profile
             </Link>
             <Link
-              to="/hunt/create"
+              to="/hunts/create"
               className="text-black hover:text-green font-medium transition-colors"
             >
               Create Hunt

@@ -34,7 +34,7 @@ function AppContent() {
         <Route path="/hunt/:huntId/end" element={<HuntEnd />} />
         <Route path="/hunt/:huntId" element={<HuntDetails />} />
         <Route path="/profile" element={<Rewards />} />
-        <Route path="/hunt/create" element={<Create />} />
+        <Route path="/hunts/create" element={<Create />} />
       </Routes>
       <div className="md:hidden">
         {!isLanding && <Footer />}

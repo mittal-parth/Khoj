@@ -116,6 +116,7 @@ export function verifyLocation(
     { lat: userLat, lng: userLong }
   );
 
+  console.log("Distance:", distance, "Max distance:", maxDistanceMeters);
   return distance <= maxDistanceMeters;
 }
 

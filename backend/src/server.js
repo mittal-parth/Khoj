@@ -26,11 +26,12 @@ import { generateImageEmbedding } from "./services/vertex-ai.js";
 import { withRetry } from "./utils/retry-utils.js";
 import { createCorsOptionsFromEnv, isOriginAllowed, getAllowedCorsOriginsFromEnv } from "./utils/cors.js";
 
+// Load environment variables
+dotenv.config();
+
 // Configuration
 const GEMINI_MODEL = "gemini-2.5-flash";
 const ENCRYPTION_PROVIDER = process.env.ENCRYPTION_PROVIDER || "aes";
-
-dotenv.config();
 
 const app = express();
 
@@ -193,6 +194,7 @@ app.post("/clues/encrypt", async (req, res) => {
     let answersPayload;
 
     if (ENCRYPTION_PROVIDER === "aes") {
+      console.log("Using AES encryption");
       // New AES-based encryption path
       const { ciphertext: clues_ciphertext } = encryptData(cluesParsed);
       const { ciphertext: answers_ciphertext } = encryptData(answersParsed);
@@ -201,6 +203,7 @@ app.post("/clues/encrypt", async (req, res) => {
       answersPayload = JSON.stringify({ ciphertext: answers_ciphertext });
     } else {
       // Fallback to existing Lit Protocol flow
+      console.log("Using Lit Protocol encryption");
       const { encryptRunServerMode } = await import(
         "./services/lit-protocol.js"
       );
