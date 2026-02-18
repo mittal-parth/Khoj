@@ -12,10 +12,12 @@ import {
   startStreaming,
   stopStreaming,
 } from "./services/huddle.js";
-import { 
-  encryptRunServerMode, 
-  decryptRunServerMode
-} from "./services/lit-protocol.js";
+import {
+  encryptData,
+  decryptClues,
+  verifyLocation,
+  verifyImage,
+} from "./services/verification.js";
 import { attestClueSolved, attestClueAttempt, queryAttestationsForHunt, queryRetryAttemptsForClue } from "./services/sign-protocol.js";
 import { calculateLeaderboardForHunt } from "./services/leaderboard.js";
 import { generateImageEmbedding } from "./services/vertex-ai.js";
@@ -26,6 +28,7 @@ import { createCorsOptionsFromEnv, isOriginAllowed, getAllowedCorsOriginsFromEnv
 
 // Configuration
 const GEMINI_MODEL = "gemini-2.5-flash";
+const ENCRYPTION_PROVIDER = process.env.ENCRYPTION_PROVIDER || "aes";
 
 dotenv.config();
 
@@ -186,28 +189,44 @@ app.post("/clues/encrypt", async (req, res) => {
     console.log("cluesParsed: ", JSON.stringify(cluesParsed, null, 2));
     console.log("answersParsed: ", JSON.stringify(answersParsed, null, 2));
 
-    const {
-      ciphertext: clues_ciphertext,
-      dataToEncryptHash: clues_dataToEncryptHash,
-    } = await encryptRunServerMode(JSON.stringify(cluesParsed));
-    const {
-      ciphertext: answers_ciphertext,
-      dataToEncryptHash: answers_dataToEncryptHash,
-    } = await encryptRunServerMode(JSON.stringify(answersParsed));
+    let cluesPayload;
+    let answersPayload;
+
+    if (ENCRYPTION_PROVIDER === "aes") {
+      // New AES-based encryption path
+      const { ciphertext: clues_ciphertext } = encryptData(cluesParsed);
+      const { ciphertext: answers_ciphertext } = encryptData(answersParsed);
+
+      cluesPayload = JSON.stringify({ ciphertext: clues_ciphertext });
+      answersPayload = JSON.stringify({ ciphertext: answers_ciphertext });
+    } else {
+      // Fallback to existing Lit Protocol flow
+      const { encryptRunServerMode } = await import(
+        "./services/lit-protocol.js"
+      );
+
+      const {
+        ciphertext: clues_ciphertext,
+        dataToEncryptHash: clues_dataToEncryptHash,
+      } = await encryptRunServerMode(JSON.stringify(cluesParsed));
+      const {
+        ciphertext: answers_ciphertext,
+        dataToEncryptHash: answers_dataToEncryptHash,
+      } = await encryptRunServerMode(JSON.stringify(answersParsed));
+
+      cluesPayload = JSON.stringify({
+        ciphertext: clues_ciphertext,
+        dataToEncryptHash: clues_dataToEncryptHash,
+      });
+      answersPayload = JSON.stringify({
+        ciphertext: answers_ciphertext,
+        dataToEncryptHash: answers_dataToEncryptHash,
+      });
+    }
 
     const [clues_blobId, answers_blobId] = await Promise.all([
-      storeString(
-        JSON.stringify({
-          ciphertext: clues_ciphertext,
-          dataToEncryptHash: clues_dataToEncryptHash,
-        })
-      ),
-      storeString(
-        JSON.stringify({
-          ciphertext: answers_ciphertext,
-          dataToEncryptHash: answers_dataToEncryptHash,
-        })
-      ),
+      storeString(cluesPayload),
+      storeString(answersPayload),
     ]);
 
     res.send({ clues_blobId: clues_blobId, answers_blobId: answers_blobId });
@@ -233,55 +252,104 @@ app.post("/clues/verify", async (req, res) => {
     // Get encrypted answers from IPFS
     const answersData = await readObject(bodyData.answers_blobId);
     const parsedAnswersData = typeof answersData === 'string' ? JSON.parse(answersData) : answersData;
-    
-    const {
-      ciphertext: answers_ciphertext,
-      dataToEncryptHash: answers_dataToEncryptHash,
-    } = parsedAnswersData;
+
+    // Infer from payload shape: Lit uses dataToEncryptHash; AES does not
+    const provider = parsedAnswersData.dataToEncryptHash ? "lit" : "aes";
 
     console.log("\n=== Data read from answers_blobId ===\n");
-    console.log("answers_ciphertext:", answers_ciphertext);
-    console.log("answers_dataToEncryptHash:", answers_dataToEncryptHash);
+    console.log("provider:", provider);
 
-    let response;
-    if (huntType === "IMAGE") {
-      // Image verification: requires embedding array
-      const userEmbedding = bodyData.embedding;
-      if (!userEmbedding || !Array.isArray(userEmbedding)) {
-        return res.status(400).json({ 
-          error: "embedding array is required for image hunts" 
-        });
-      }
-      console.log("Image hunt - using embedding verification");
-      const result = await decryptRunServerMode(
-        answers_dataToEncryptHash,
-        answers_ciphertext,
-        null,
-        null,
-        clueId,
-        huntType,
-        userEmbedding
-      );
-      response = result.response;
-    } else {
-      // Geolocation verification: requires lat/long
-      const curLat = bodyData.cLat;
-      const curLong = bodyData.cLong;
-      console.log("Geolocation hunt - using location verification");
-      const result = await decryptRunServerMode(
-        answers_dataToEncryptHash,
-        answers_ciphertext,
-        curLat,
-        curLong,
-        clueId,
-        huntType,
-        null
-      );
-      response = result.response;
+    if (!parsedAnswersData.ciphertext) {
+      return res.status(400).json({
+        error: "answers payload missing ciphertext",
+      });
     }
 
-    console.log("Final response:", response);
-    res.send({ isClose: response });
+    const answers_ciphertext = parsedAnswersData.ciphertext;
+
+    let isClose;
+
+    if (provider === "aes") {
+      if (huntType === "IMAGE") {
+        // Image verification: requires embedding array
+        const userEmbedding = bodyData.embedding;
+        if (!userEmbedding || !Array.isArray(userEmbedding)) {
+          return res.status(400).json({
+            error: "embedding array is required for image hunts",
+          });
+        }
+        console.log("Image hunt (AES) - using embedding verification");
+        isClose = verifyImage(answers_ciphertext, clueId, userEmbedding);
+      } else {
+        // Geolocation verification: requires lat/long
+        const curLat = bodyData.cLat;
+        const curLong = bodyData.cLong;
+        console.log("Geolocation hunt (AES) - using location verification");
+        isClose = verifyLocation(answers_ciphertext, clueId, curLat, curLong);
+      }
+    } else if (provider === "lit") {
+      if (ENCRYPTION_PROVIDER !== "lit") {
+        return res.status(400).json({
+          error:
+            "answers are encrypted with Lit Protocol. Set ENCRYPTION_PROVIDER=lit to verify these hunts.",
+        });
+      }
+
+      const { decryptRunServerMode } = await import(
+        "./services/lit-protocol.js"
+      );
+
+      const answers_dataToEncryptHash = parsedAnswersData.dataToEncryptHash;
+
+      if (!answers_dataToEncryptHash) {
+        return res.status(400).json({
+          error: "answers payload missing dataToEncryptHash for Lit provider",
+        });
+      }
+
+      let result;
+
+      if (huntType === "IMAGE") {
+        const userEmbedding = bodyData.embedding;
+        if (!userEmbedding || !Array.isArray(userEmbedding)) {
+          return res.status(400).json({
+            error: "embedding array is required for image hunts",
+          });
+        }
+        console.log("Image hunt (Lit) - using embedding verification");
+        result = await decryptRunServerMode(
+          answers_dataToEncryptHash,
+          answers_ciphertext,
+          null,
+          null,
+          clueId,
+          huntType,
+          userEmbedding
+        );
+      } else {
+        const curLat = bodyData.cLat;
+        const curLong = bodyData.cLong;
+        console.log("Geolocation hunt (Lit) - using location verification");
+        result = await decryptRunServerMode(
+          answers_dataToEncryptHash,
+          answers_ciphertext,
+          curLat,
+          curLong,
+          clueId,
+          huntType,
+          null
+        );
+      }
+
+      isClose = result.response;
+    } else {
+      return res.status(400).json({
+        error: `Unknown encryption provider in payload: ${provider}`,
+      });
+    }
+
+    console.log("Final response:", isClose);
+    res.send({ isClose });
   } catch (error) {
     console.error("Error decrypting answer:", error);
     res.status(500).json({
@@ -299,20 +367,56 @@ app.post("/clues/decrypt", async (req, res) => {
 
     const cluesData = await readObject(clues_blobId);
     const parsedCluesData = typeof cluesData === 'string' ? JSON.parse(cluesData) : cluesData;
-    
-    const {
-      ciphertext: clues_ciphertext,
-      dataToEncryptHash: clues_dataToEncryptHash,
-    } = parsedCluesData;
 
-    console.log("clues_dataToEncryptHash: ", clues_dataToEncryptHash);
-    console.log("clues_ciphertext: ", clues_ciphertext);
+    // Infer from payload shape: Lit uses dataToEncryptHash; AES does not
+    const provider = parsedCluesData.dataToEncryptHash ? "lit" : "aes";
 
-    const { response } = await decryptRunServerMode(
-      clues_dataToEncryptHash,
-      clues_ciphertext
-    );
-    res.send({ decryptedData: JSON.parse(response) });
+    if (!parsedCluesData.ciphertext) {
+      return res.status(400).json({
+        error: "clues payload missing ciphertext",
+      });
+    }
+
+    const clues_ciphertext = parsedCluesData.ciphertext;
+
+    console.log("clues provider: ", provider);
+
+    if (provider === "aes") {
+      const decryptedData = decryptClues(clues_ciphertext);
+      res.send({ decryptedData });
+    } else if (provider === "lit") {
+      if (ENCRYPTION_PROVIDER !== "lit") {
+        return res.status(400).json({
+          error:
+            "clues are encrypted with Lit Protocol. Set ENCRYPTION_PROVIDER=lit to decrypt these hunts.",
+        });
+      }
+
+      const { decryptRunServerMode } = await import(
+        "./services/lit-protocol.js"
+      );
+
+      const clues_dataToEncryptHash = parsedCluesData.dataToEncryptHash;
+
+      if (!clues_dataToEncryptHash) {
+        return res.status(400).json({
+          error: "clues payload missing dataToEncryptHash for Lit provider",
+        });
+      }
+
+      console.log("clues_dataToEncryptHash: ", clues_dataToEncryptHash);
+      console.log("clues_ciphertext: ", clues_ciphertext);
+
+      const { response } = await decryptRunServerMode(
+        clues_dataToEncryptHash,
+        clues_ciphertext
+      );
+      res.send({ decryptedData: JSON.parse(response) });
+    } else {
+      return res.status(400).json({
+        error: `Unknown encryption provider in payload: ${provider}`,
+      });
+    }
   } catch (error) {
     console.error("Error:", error);
     res.status(500).json({
