@@ -579,7 +579,6 @@ app.delete("/huddles/livestreams/:roomId", async (req, res) => {
 app.post("/clues/riddles", async (req, res) => {
   try {
     const { locations, theme } = req.body;
-
     // Validate input
     if (!locations || !Array.isArray(locations) || locations.length === 0) {
       return res.status(400).json({
@@ -593,6 +592,8 @@ app.post("/clues/riddles", async (req, res) => {
       });
     }
 
+    console.log(`Generating ${locations.length} riddles for ${locations.length} clues`);
+
     // Check for Gemini API key
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({
@@ -605,14 +606,23 @@ app.post("/clues/riddles", async (req, res) => {
 
     // Generate riddles with retry logic
     const generateRiddlesOperation = async () => {
-      const prompt = `You are a riddle generator creating a JSON array of treasure hunt riddles.
+      // Build explicit mapping instructions for each clue
+      const clueMappingInstructions = locations.map((location, index) => 
+        `Riddle at index ${index} must correspond to clue description: "${location}"`
+      ).join("\n");
+
+      const prompt = `You are a riddle generator creating a JSON array of thematic treasure hunt riddles.
           Rules:
           1. You will create exactly ${locations.length} riddles.
-          2. Each riddle should lead to one of these locations: ${locations.join(", ")}.
-          3. Each riddle must incorporate the following themes: ${theme}.
-          4. Do not include the actual location names in the riddle text.
+          2. CRITICAL: Each riddle must correspond to a specific clue by index:
+${clueMappingInstructions}
+          3. Each riddle should be STRICTLY around one of these themes: ${theme}. Try to incorporate at least one theme in each clue, differently so that each clue feels unique and covers all the aspects of the theme.
+          4. Do not include the actual location/clue names in the riddle text.
           5. Provide a subtle hint for each riddle that aids the solver but does not directly reveal the answer.
-          6. Output only valid JSON in this exact structure (no extra text, no explanations):`;
+          6. Output only valid JSON in this exact structure (no extra text, no explanations):
+          - The riddle at index 0 must guide players to/find: "${locations[0]}"
+          - The riddle at index 1 must guide players to/find: "${locations[1]}"
+          ${locations.length > 2 ? `- ... and so on for all ${locations.length} clues` : ''}`;
 
       const aiResponse = await ai.models.generateContent({
         model: GEMINI_MODEL,
