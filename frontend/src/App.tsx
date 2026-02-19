@@ -3,13 +3,13 @@ import "./App.css";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { Hunts } from "./components/Hunts";
 import { Clue } from "./components/Clue";
-import { Rewards } from "./components/Rewards";
 import { HuntEnd } from "./components/HuntEnd";
 import { HuntDetails } from "./components/HuntDetails";
 import { Footer } from "./components/Footer";
 import { Create } from "./components/Create";
 import { RouteGuard } from "./components/RouteGuard";
 import { LandingPage } from "./components/LandingPage";
+import { Profile } from "./components/Profile";
 import PWABadge from "./PWABadge";
 
 function AppContent() {
@@ -33,7 +33,7 @@ function AppContent() {
         />
         <Route path="/hunt/:huntId/end" element={<HuntEnd />} />
         <Route path="/hunt/:huntId" element={<HuntDetails />} />
-        <Route path="/profile" element={<Rewards />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/hunts/create" element={<Create />} />
       </Routes>
       <div className="md:hidden">

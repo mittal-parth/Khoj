@@ -18,7 +18,14 @@ import {
   verifyLocation,
   verifyImage,
 } from "./services/verification.js";
-import { attestClueSolved, attestClueAttempt, queryAttestationsForHunt, queryRetryAttemptsForClue } from "./services/sign-protocol.js";
+import {
+  attestClueSolved,
+  attestClueAttempt,
+  queryAttestationsForHunt,
+  queryRetryAttemptsForClue,
+  getSchemaId,
+  getRetrySchemaId,
+} from "./services/sign-protocol.js";
 import { calculateLeaderboardForHunt } from "./services/leaderboard.js";
 import { generateImageEmbedding } from "./services/vertex-ai.js";
 
@@ -825,15 +832,32 @@ app.get("/hunts/:huntId/teams/:teamIdentifier/progress", async (req, res) => {
         totalClues: totalClues || 0,
         isHuntCompleted: false,
         nextClue: 1,
-        message: "No progress found for this hunt"
+        solvedAttestations: [],
+        clueSchemaId: getSchemaId(),
+        message: "No progress found for this hunt",
       });
     }
 
     // Filter attestations for this team
-    const teamAttestations = attestations.filter(attestation => {
-      const data = JSON.parse(attestation.data);
-      return data.teamIdentifier === teamIdentifier;
-    });
+    const teamAttestations = attestations
+      .map((attestation) => {
+        try {
+          const data =
+            typeof attestation.data === "string"
+              ? JSON.parse(attestation.data)
+              : attestation.data;
+          return { attestation, data };
+        } catch (parseError) {
+          console.warn("Skipping malformed attestation in progress endpoint:", parseError);
+          return null;
+        }
+      })
+      .filter(
+        (entry) =>
+          entry &&
+          entry.data &&
+          entry.data.teamIdentifier?.toString() === teamIdentifier.toString()
+      );
 
     if (teamAttestations.length === 0) {
       return res.json({
@@ -843,22 +867,46 @@ app.get("/hunts/:huntId/teams/:teamIdentifier/progress", async (req, res) => {
         totalClues: totalClues || 0,
         isHuntCompleted: false,
         nextClue: 1,
-        message: "No progress found for this team"
+        solvedAttestations: [],
+        clueSchemaId: getSchemaId(),
+        message: "No progress found for this team",
       });
     }
 
-    // Find the highest clue index solved by this team and build a map of solve timestamps
+    // Find the highest clue index solved by this team and include attestation metadata
     let latestClueSolved = 0;
-    const solvedClues = {}; // Map of clueIndex -> { solveTimestamp }
+    const solvedClues = {}; // Map of clueIndex -> { solveTimestamp, attestationId }
+    const solvedAttestations = [];
     
-    for (const attestation of teamAttestations) {
-      const data = JSON.parse(attestation.data);
+    for (const { attestation, data } of teamAttestations) {
       const clueIndex = parseInt(data.clueIndex);
+      const timestamp = Math.floor(parseInt(attestation.attestTimestamp) / 1000);
+      const attemptCount = parseInt(data.attemptCount || "0");
+      const timeTaken = parseInt(data.timeTaken || "0");
+      const attestationId = attestation.id || attestation.attestationId || null;
+
+      if (Number.isNaN(clueIndex) || Number.isNaN(timestamp)) {
+        console.warn("Skipping attestation with invalid clue index/timestamp in progress endpoint");
+        continue;
+      }
       
       // Store solve timestamp (in seconds) for each clue
       solvedClues[clueIndex] = {
-        solveTimestamp: Math.floor(parseInt(attestation.attestTimestamp) / 1000)
+        solveTimestamp: timestamp,
+        attestationId,
       };
+
+      solvedAttestations.push({
+        attestationId,
+        clueIndex,
+        teamIdentifier: data.teamIdentifier?.toString() || teamIdentifier.toString(),
+        teamLeaderAddress: data.teamLeaderAddress || null,
+        solverAddress: data.solverAddress || null,
+        attemptCount: Number.isNaN(attemptCount) ? 0 : attemptCount,
+        timeTaken: Number.isNaN(timeTaken) ? 0 : timeTaken,
+        timestamp,
+        schemaId: attestation.schemaId || getSchemaId(),
+      });
       
       if (clueIndex > latestClueSolved) {
         latestClueSolved = clueIndex;
@@ -876,7 +924,12 @@ app.get("/hunts/:huntId/teams/:teamIdentifier/progress", async (req, res) => {
       totalClues: finalTotalClues,
       isHuntCompleted,
       nextClue: isHuntCompleted ? null : latestClueSolved + 1,
-      solvedClues // Include solve timestamps for each clue
+      solvedClues, // Include solve timestamps for each clue
+      solvedAttestations: solvedAttestations.sort((a, b) => {
+        if (a.clueIndex !== b.clueIndex) return a.clueIndex - b.clueIndex;
+        return a.timestamp - b.timestamp;
+      }),
+      clueSchemaId: getSchemaId(),
     });
   } catch (error) {
     console.error("Error checking progress:", error);
@@ -933,20 +986,59 @@ app.get("/hunts/:huntId/clues/:clueIndex/teams/:teamIdentifier/attempts", async 
         attemptCount: 0,
         firstAttemptTimestamp: null,
         latestAttemptTimestamp: null,
-        message: "No attempts found for this clue"
+        attempts: [],
+        retrySchemaId: getRetrySchemaId(),
+        message: "No attempts found for this clue",
       });
     }
 
     // Parse and sort attempts by attestTimestamp
     // attestTimestamp is in milliseconds, convert to seconds for consistency
-    const attempts = retryAttestations.map(attestation => {
-      const data = JSON.parse(attestation.data);
-      return {
-        attemptCount: parseInt(data.attemptCount),
-        timestamp: Math.floor(parseInt(attestation.attestTimestamp) / 1000), // Convert from ms to seconds
-        solverAddress: data.solverAddress,
-      };
-    }).sort((a, b) => a.timestamp - b.timestamp);
+    const attempts = retryAttestations
+      .map((attestation) => {
+        try {
+          const data =
+            typeof attestation.data === "string"
+              ? JSON.parse(attestation.data)
+              : attestation.data;
+          const parsedClueIndex = parseInt(data.clueIndex);
+          const parsedAttemptCount = parseInt(data.attemptCount);
+          const parsedTimestamp = Math.floor(parseInt(attestation.attestTimestamp) / 1000);
+
+          if (Number.isNaN(parsedClueIndex) || Number.isNaN(parsedTimestamp)) {
+            return null;
+          }
+
+          return {
+            attestationId: attestation.id || attestation.attestationId || null,
+            clueIndex: parsedClueIndex,
+            teamIdentifier: data.teamIdentifier?.toString() || teamIdentifier.toString(),
+            attemptCount: Number.isNaN(parsedAttemptCount) ? 0 : parsedAttemptCount,
+            timestamp: parsedTimestamp, // Convert from ms to seconds
+            solverAddress: data.solverAddress || null,
+            schemaId: attestation.schemaId || getRetrySchemaId(),
+          };
+        } catch (parseError) {
+          console.warn("Skipping malformed retry attestation:", parseError);
+          return null;
+        }
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.timestamp - b.timestamp);
+
+    if (attempts.length === 0) {
+      return res.json({
+        huntId,
+        clueIndex,
+        teamIdentifier,
+        attemptCount: 0,
+        firstAttemptTimestamp: null,
+        latestAttemptTimestamp: null,
+        attempts: [],
+        retrySchemaId: getRetrySchemaId(),
+        message: "No parsable attempts found for this clue",
+      });
+    }
 
     const firstAttempt = attempts[0];
     const latestAttempt = attempts[attempts.length - 1];
@@ -957,7 +1049,9 @@ app.get("/hunts/:huntId/clues/:clueIndex/teams/:teamIdentifier/attempts", async 
       teamIdentifier,
       attemptCount: attempts.length,
       firstAttemptTimestamp: firstAttempt.timestamp,
-      latestAttemptTimestamp: latestAttempt.timestamp
+      latestAttemptTimestamp: latestAttempt.timestamp,
+      attempts,
+      retrySchemaId: getRetrySchemaId(),
     });
   } catch (error) {
     console.error("Error fetching retry attempts:", error);
