@@ -323,15 +323,19 @@ export function Profile() {
               null;
 
             const timeline: TimelineEvent[] = [
-              ...attemptAttestations.map((attempt) => ({
-                type: attempt.clueIndex === 0 ? "hunt_start" : "attempt",
-                clueIndex: attempt.clueIndex,
-                timestamp: attempt.timestamp,
-                attestationId: attempt.attestationId,
-                schemaId: attempt.schemaId || retrySchemaId,
-                solverAddress: attempt.solverAddress,
-                attemptCount: attempt.attemptCount,
-              })),
+              ...attemptAttestations.map((attempt) => {
+                const eventType: TimelineEventType =
+                  attempt.clueIndex === 0 ? "hunt_start" : "attempt";
+                return {
+                  type: eventType,
+                  clueIndex: attempt.clueIndex,
+                  timestamp: attempt.timestamp,
+                  attestationId: attempt.attestationId,
+                  schemaId: attempt.schemaId || retrySchemaId,
+                  solverAddress: attempt.solverAddress,
+                  attemptCount: attempt.attemptCount,
+                };
+              }),
               ...solvedAttestations.map((solved) => ({
                 type: "solve" as const,
                 clueIndex: solved.clueIndex,
