@@ -790,7 +790,11 @@ app.get("/hunts/:huntId/teams/:teamIdentifier/progress", async (req, res) => {
   try {
     const huntId = parseInt(req.params.huntId);
     const teamIdentifier = req.params.teamIdentifier;
-    const totalClues = parseInt(req.query.totalClues) || null;
+    const parsedTotalClues = parseInt(req.query.totalClues);
+    const totalClues =
+      Number.isFinite(parsedTotalClues) && parsedTotalClues > 0
+        ? parsedTotalClues
+        : null;
     const chainId = req.query.chainId;
     const contractAddress = req.query.contractAddress;
     
@@ -914,8 +918,16 @@ app.get("/hunts/:huntId/teams/:teamIdentifier/progress", async (req, res) => {
     }
 
     // Use totalClues from frontend
-    const finalTotalClues = totalClues || 0; 
-    const isHuntCompleted = latestClueSolved >= finalTotalClues;
+    const finalTotalClues = totalClues || 0;
+    const isHuntCompleted =
+      totalClues !== null ? latestClueSolved >= finalTotalClues : false;
+    const nextClue = isHuntCompleted
+      ? null
+      : totalClues !== null
+        ? latestClueSolved + 1
+        : latestClueSolved > 0
+          ? latestClueSolved + 1
+          : 1;
 
     res.json({
       huntId,
@@ -923,7 +935,7 @@ app.get("/hunts/:huntId/teams/:teamIdentifier/progress", async (req, res) => {
       latestClueSolved,
       totalClues: finalTotalClues,
       isHuntCompleted,
-      nextClue: isHuntCompleted ? null : latestClueSolved + 1,
+      nextClue,
       solvedClues, // Include solve timestamps for each clue
       solvedAttestations: solvedAttestations.sort((a, b) => {
         if (a.clueIndex !== b.clueIndex) return a.clueIndex - b.clueIndex;
