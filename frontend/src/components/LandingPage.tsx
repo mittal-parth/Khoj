@@ -423,8 +423,8 @@ export const LandingPage = () => {
           </div>
           
           <div className="flex flex-wrap justify-center gap-6">
+            <a href="https://docs.playkhoj.com" target="_blank" rel="noopener noreferrer" className="hover:text-main transition-colors font-base">Docs</a>
             <a href="https://github.com/mittal-parth/Khoj" target="_blank" rel="noopener noreferrer" className="hover:text-main transition-colors font-base">GitHub</a>
-            <a href="https://github.com/mittal-parth/Khoj/wiki" target="_blank" rel="noopener noreferrer" className="hover:text-main transition-colors font-base">Wiki</a>
             <a href="https://tinyurl.com/playkhoj" className="hover:text-main transition-colors font-base">Deck</a>
           </div>
 
