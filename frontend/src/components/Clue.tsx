@@ -13,7 +13,14 @@ import {
   BsArrowRepeat,
   BsBarChartFill,
   BsArrowClockwise,
+  BsInfoCircle,
 } from 'react-icons/bs';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { HuddleRoom } from './HuddleRoom';
 import { Leaderboard } from './Leaderboard';
 import { useReadContract, useActiveAccount } from 'thirdweb/react';
@@ -65,6 +72,7 @@ export function Clue() {
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [isAttemptsTooltipOpen, setIsAttemptsTooltipOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const errorResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -812,10 +820,29 @@ export function Clue() {
                   {capturedImage ? 'Image captured' : 'Take a picture to verify'}
                 </div>
               )}
-              <div>
+              <div className="flex items-center gap-1">
                 {isLoadingRetries
                   ? 'Loading attempts...'
                   : `Attempts remaining: ${attempts}/${MAX_ATTEMPTS}`}
+                {teamData && teamData.memberCount > 1n && (
+                  <TooltipProvider>
+                    <Tooltip open={isAttemptsTooltipOpen} onOpenChange={setIsAttemptsTooltipOpen}>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          onClick={() => setIsAttemptsTooltipOpen(!isAttemptsTooltipOpen)}
+                          className="inline-flex items-center justify-center p-0.5 rounded-full hover:bg-foreground/10 transition-colors"
+                          aria-label="Attempts information"
+                        >
+                          <BsInfoCircle className="w-3.5 h-3.5" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" sideOffset={12} collisionPadding={10} className="max-w-xs">
+                        <p>Attempts are shared across your team. Any team member's attempt counts towards the total.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </div>
             </div>
 
