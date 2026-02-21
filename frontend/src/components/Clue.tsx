@@ -837,7 +837,7 @@ export function Clue() {
                           <BsInfoCircle className="w-3.5 h-3.5" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="max-w-xs">
+                      <TooltipContent side="top" sideOffset={12} collisionPadding={10} className="max-w-xs">
                         <p>Attempts are shared across your team. Any team member's attempt counts towards the total.</p>
                       </TooltipContent>
                     </Tooltip>
