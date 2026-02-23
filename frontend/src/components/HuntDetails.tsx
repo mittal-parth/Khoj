@@ -10,6 +10,7 @@ import {
   BsCalendar2DateFill,
   BsGeoAlt,
   BsCamera,
+  BsCopy,
 } from "react-icons/bs";
 import { TbUsersGroup } from "react-icons/tb";
 import { IoIosPeople } from "react-icons/io";
@@ -57,6 +58,7 @@ export function HuntDetails() {
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
   const [showInviteWarning, setShowInviteWarning] = useState(false);
+  const [teamNameToCreate, setTeamNameToCreate] = useState("");
   
   // Join team loading state
   const [isJoiningTeam, setIsJoiningTeam] = useState(false);
@@ -260,6 +262,7 @@ export function HuntDetails() {
       // Create hunt start attestation using attest-attempt endpoint with clueIndex: 0
       const requestPayload = {
         teamIdentifier,
+        teamName: (teamData?.name && teamData.name.length > 0) ? teamData.name : userWallet,
         huntId: parseInt(huntId!),
         clueIndex: 0, // Special value for hunt start
         solverAddress: userWallet,
@@ -600,6 +603,12 @@ export function HuntDetails() {
     }
     
     
+    const trimmedName = (teamNameToCreate || "").trim();
+    if (!trimmedName || trimmedName.length > 20) {
+      toast.error("Team name is required and must be 1-20 characters");
+      return;
+    }
+
     try {
       setIsGeneratingInvite(true);
       const transaction = prepareContractCall({
@@ -610,7 +619,7 @@ export function HuntDetails() {
           client,
         },
         method: "createTeam",
-        params: [BigInt(huntId || 0)],
+        params: [BigInt(huntId || 0), trimmedName],
       });
 
       console.log("📤 Sending transaction...");
@@ -887,10 +896,12 @@ export function HuntDetails() {
               {isUserInTeam ? (
                 <>
                   <div className="space-y-6">
-                    {/* Team Members List */}
+                    {/* Team name and members */}
                     <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <h4 className="text-md font-bold text-foreground">Team Members</h4>
+                      <div className="flex justify-between items-center flex-wrap gap-2">
+                        <h4 className="">
+                          Team: {(teamData?.name && teamData.name.length > 0) ? teamData.name : `Team #${teamData?.teamId ?? ""}`}
+                        </h4>
                         <span className="font-bold text-lg mr-1">{teamData?.memberCount?.toString() || '0'}/{teamData?.maxMembers?.toString() || '0'}</span>
                       </div>
                       <div className="space-y-2">
@@ -947,9 +958,8 @@ export function HuntDetails() {
                               }}
                               variant="neutral"
                               size="sm"
-                              className="flex items-center space-x-1 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all font-bold"
                             >
-                              <BsLink45Deg />
+                              <BsCopy />
                               <span>Copy</span>
                             </Button>
                           </div>
@@ -991,10 +1001,24 @@ export function HuntDetails() {
                       {!inviteCode ? (
                         <div className="w-full max-w-md">
                           <p className="text-sm mb-4 font-medium">Create a new team and generate an invite code for your teammates.</p>
+                          <div className="space-y-2 mb-4">
+                            <input
+                              id="team-name"
+                              type="text"
+                              value={teamNameToCreate}
+                              onChange={(e) => setTeamNameToCreate(e.target.value.slice(0, 20))}
+                              placeholder="Give your team a name"
+                              maxLength={20}
+                              className="w-full p-2 border-2 border-black rounded-sm placeholder:text-gray-500 placeholder:italic text-sm"
+                            />
+                            {teamNameToCreate.length > 0 && teamNameToCreate.length > 20 && (
+                              <p className="text-xs text-destructive">Maximum 20 characters</p>
+                            )}
+                          </div>
                           <Button 
                             className="w-full border-2 border-black shadow-[-4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] transition-all font-bold" 
                             onClick={generateMultiUseInvite}
-                            disabled={isGeneratingInvite || isStartingHunt || isGeneratingRiddles}
+                            disabled={isGeneratingInvite || isStartingHunt || isGeneratingRiddles || !(teamNameToCreate || "").trim() || (teamNameToCreate || "").trim().length > 20}
                           >
                             {isGeneratingInvite ? "Creating Team..." : "Create Team & Generate Invite"}
                           </Button>
@@ -1048,16 +1072,16 @@ export function HuntDetails() {
                     <div className="flex flex-col items-center justify-center space-y-4">
                       <div className="w-full max-w-md">
                         <div className="mb-4">
-                          <p className="text-sm mb-2 font-medium">Scan a team QR code or enter an invite code below:</p>
+                          <p className="text-sm mb-6 font-medium">Scan a team QR code or enter an invite code below</p>
                           <div className="flex space-x-2">
                             <input
                               type="text"
                               value={joinTeamCode}
                               onChange={(e) => setJoinTeamCode(e.target.value)}
                               placeholder="Enter invite code"
-                              className="flex-1 p-2 border-2 border-black rounded-sm font-mono"
+                              className="flex-1 p-2 border-2 border-black rounded-sm placeholder:text-gray-500 placeholder:italic text-sm"
                             />
-                            <Button onClick={() => startScanner()} className="flex items-center space-x-1 border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[-1px_1px_0px_0px_rgba(0,0,0,1)] transition-all font-bold">
+                            <Button onClick={() => startScanner()} size="sm">
                               <BsQrCode />
                               <span>Scan</span>
                             </Button>

@@ -64,6 +64,7 @@ export interface IPFSResponse {
 export interface Team {
   huntId: bigint;
   teamId: bigint;
+  name: string;
   owner: string;
   maxMembers: bigint;
   memberCount: bigint;

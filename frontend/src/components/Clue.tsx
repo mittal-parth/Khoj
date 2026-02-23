@@ -251,8 +251,10 @@ export function Clue() {
     }
 
     try {
+      const displayName = (teamData?.name && teamData.name.length > 0) ? teamData.name : userWallet;
       const attestationData = {
         teamIdentifier,
+        teamName: displayName,
         huntId: parseInt(huntId!),
         clueIndex: parseInt(clueId!),
         solverAddress: userWallet,
@@ -301,8 +303,10 @@ export function Clue() {
     }
 
     try {
+      const displayName = (teamData?.name && teamData.name.length > 0) ? teamData.name : userWallet;
       const attestationData = {
         teamIdentifier: teamData?.teamId?.toString() || userWallet.toString(), // team id for teams, user wallet for solo users
+        teamName: displayName,
         huntId: parseInt(huntId!),
         clueIndex: parseInt(clueId!),
         teamLeaderAddress: teamData?.owner || userWallet.toString(), // Use userWallet as fallback for solo users

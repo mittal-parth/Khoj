@@ -42,15 +42,17 @@ describe("Khoj Contract", function () {
         true,
         4,
         "mystery",
-        "ipfs://metadata123"
+        "ipfs://metadata123",
+        0 // HuntType.GEO_LOCATION
       );
 
       // Create a team and verify the team ID by checking the team data
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "Team1");
       
       // Verify the team was created with ID 1 by checking team data
       const team = await khoj.getTeam(0, owner.address);
       expect(team.teamId).to.equal(1);
+      expect(team.name).to.equal("Team1");
     });
   });
 
@@ -71,7 +73,8 @@ describe("Khoj Contract", function () {
         true,
         4,
         "mystery",
-        "ipfs://metadata123"
+        "ipfs://metadata123",
+        0 // HuntType.GEO_LOCATION
       );
       
       // Set huntId to 0 since it's the first hunt
@@ -106,7 +109,8 @@ describe("Khoj Contract", function () {
           false,
           1,
           "adventure",
-          "ipfs://metadata456"
+          "ipfs://metadata456",
+          0
         )
       )
         .to.emit(khoj, "HuntCreated")
@@ -129,7 +133,8 @@ describe("Khoj Contract", function () {
           true,
           4,
           "mystery",
-          "ipfs://metadata123"
+          "ipfs://metadata123",
+          0
         )
       ).to.be.revertedWith("Name cannot be empty");
     });
@@ -150,7 +155,8 @@ describe("Khoj Contract", function () {
           true,
           4,
           "mystery",
-          "ipfs://metadata123"
+          "ipfs://metadata123",
+          0
         )
       ).to.be.revertedWith("Description cannot be empty");
     });
@@ -171,7 +177,8 @@ describe("Khoj Contract", function () {
           true,
           4,
           "mystery",
-          "ipfs://metadata123"
+          "ipfs://metadata123",
+          0
         )
       ).to.be.revertedWith("Clues blob ID cannot be empty");
     });
@@ -192,7 +199,8 @@ describe("Khoj Contract", function () {
           true,
           4,
           "mystery",
-          "ipfs://metadata123"
+          "ipfs://metadata123",
+          0
         )
       ).to.be.revertedWith("Answers blob ID cannot be empty");
     });
@@ -213,7 +221,8 @@ describe("Khoj Contract", function () {
           true,
           4,
           "mystery",
-          ""
+          "",
+          0
         )
       ).to.be.revertedWith("NFT metadata URI cannot be empty");
     });
@@ -234,7 +243,8 @@ describe("Khoj Contract", function () {
           true,
           4,
           "mystery",
-          "ipfs://metadata123"
+          "ipfs://metadata123",
+          0
         )
       ).to.be.revertedWith("End time cannot be before start time");
     });
@@ -255,7 +265,8 @@ describe("Khoj Contract", function () {
           true,
           1, // Invalid team size
           "mystery",
-          "ipfs://metadata123"
+          "ipfs://metadata123",
+          0
         )
       ).to.be.revertedWith("Invalid team size configuration");
     });
@@ -275,7 +286,8 @@ describe("Khoj Contract", function () {
         false,
         1, // Valid when teams disabled
         "mystery",
-        "ipfs://metadata123"
+        "ipfs://metadata123",
+        0 // HuntType.GEO_LOCATION
       );
 
       // Verify hunt was created by checking hunt data
@@ -302,7 +314,8 @@ describe("Khoj Contract", function () {
         true,
         4,
         "mystery",
-        "ipfs://metadata123"
+        "ipfs://metadata123",
+        0 // HuntType.GEO_LOCATION
       );
     });
 
@@ -342,7 +355,8 @@ describe("Khoj Contract", function () {
           true,
           4,
           "mystery",
-          ""
+          "",
+          0
         )
       ).to.be.revertedWith("NFT metadata URI cannot be empty");
     });
@@ -376,12 +390,13 @@ describe("Khoj Contract", function () {
         true,
         4,
         "mystery",
-        "ipfs://metadata123"
+        "ipfs://metadata123",
+        0 // HuntType.GEO_LOCATION
       );
     });
 
     it("Should create team successfully", async function () {
-      const tx = await khoj.createTeam(0);
+      const tx = await khoj.createTeam(0, "MyTeam");
       await expect(tx)
         .to.emit(khoj, "TeamCreated")
         .withArgs(1, owner.address, 4);
@@ -393,6 +408,7 @@ describe("Khoj Contract", function () {
       // Verify team was created by checking team data
       const team = await khoj.getTeam(0, owner.address);
       expect(team.teamId).to.equal(1);
+      expect(team.name).to.equal("MyTeam");
       expect(team.owner).to.equal(owner.address);
       expect(team.maxMembers).to.equal(4);
       expect(team.memberCount).to.equal(1);
@@ -421,34 +437,36 @@ describe("Khoj Contract", function () {
         false, // Teams disabled
         1,
         "mystery",
-        "ipfs://metadata123"
+        "ipfs://metadata123",
+        0 // HuntType.GEO_LOCATION
       );
 
       await expect(
-        khoj.createTeam(1) // Hunt ID 1
+        khoj.createTeam(1, "X") // Hunt ID 1
       ).to.be.revertedWith("Teams disabled for this hunt");
     });
 
     it("Should reject team creation for non-existent hunt", async function () {
       await expect(
-        khoj.createTeam(999)
+        khoj.createTeam(999, "X")
       ).to.be.revertedWith("Hunt does not exist");
     });
 
     it("Should reject creating multiple teams by same user", async function () {
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "Team1");
       
       await expect(
-        khoj.createTeam(0)
+        khoj.createTeam(0, "Team2")
       ).to.be.revertedWith("Already in another team of the hunt");
     });
 
     it("Should set correct team data", async function () {
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "Alpha");
       
       const team = await khoj.getTeam(0, owner.address);
       expect(team.huntId).to.equal(0);
       expect(team.teamId).to.equal(1);
+      expect(team.name).to.equal("Alpha");
       expect(team.owner).to.equal(owner.address);
       expect(team.maxMembers).to.equal(4);
       expect(team.memberCount).to.equal(1);
@@ -458,16 +476,30 @@ describe("Khoj Contract", function () {
     it("Should increment team count in hunt", async function () {
       expect(await khoj.getHuntTeamCount(0)).to.equal(0);
       
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "Team1");
       expect(await khoj.getHuntTeamCount(0)).to.equal(1);
     });
 
     it("Should add team to hunt's team list", async function () {
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "Team1");
       
       const teamIds = await khoj.getHuntTeams(0);
       expect(teamIds.length).to.equal(1);
       expect(teamIds[0]).to.equal(1);
+    });
+
+    it("Should store and return team name from getTeam", async function () {
+      await khoj.createTeam(0, "Cool Hunters");
+      const team = await khoj.getTeam(0, owner.address);
+      expect(team.name).to.equal("Cool Hunters");
+    });
+
+    it("Should reject empty team name", async function () {
+      await expect(khoj.createTeam(0, "")).to.be.revertedWith("Invalid team name");
+    });
+
+    it("Should reject team name longer than 20 characters", async function () {
+      await expect(khoj.createTeam(0, "This is way too long a team name")).to.be.revertedWith("Invalid team name");
     });
   });
 
@@ -489,10 +521,11 @@ describe("Khoj Contract", function () {
         true,
         4,
         "mystery",
-        "ipfs://metadata123"
+        "ipfs://metadata123",
+        0 // HuntType.GEO_LOCATION
       );
 
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "InviteTeam");
       huntId = 0;
       teamId = 1; // First team will have ID 1
       
@@ -518,6 +551,7 @@ describe("Khoj Contract", function () {
 
       const team = await khoj.getTeam(0, addr1.address);
       expect(team.teamId).to.equal(teamId);
+      expect(team.name).to.equal("InviteTeam");
       expect(team.memberCount).to.equal(2);
       expect(team.members).to.include(addr1.address);
     });
@@ -546,7 +580,7 @@ describe("Khoj Contract", function () {
 
     it("Should reject joining if in another team of same hunt", async function () {
       // Create another team
-      await khoj.connect(addr2).createTeam(0);
+      await khoj.connect(addr2).createTeam(0, "OtherTeam");
       
       // Get the team ID for addr2
       const teamId2 = await khoj.getParticipantTeamId(0, addr2.address);
@@ -583,10 +617,11 @@ describe("Khoj Contract", function () {
         true,
         2, // Max team size 2
         "mystery",
-        "ipfs://metadata123"
+        "ipfs://metadata123",
+        0 // HuntType.GEO_LOCATION
       );
 
-      await khoj.createTeam(1); // Hunt ID 1
+      await khoj.createTeam(1, "SmallTeam"); // Hunt ID 1
       
       // Get the team ID for the owner
       const smallTeamId = await khoj.getParticipantTeamId(1, owner.address);
@@ -719,10 +754,11 @@ describe("Khoj Contract", function () {
         true,
         4,
         "mystery",
-        "ipfs://metadata123"
+        "ipfs://metadata123",
+        0 // HuntType.GEO_LOCATION
       );
 
-      await khoj.createTeam(0);
+      await khoj.createTeam(0, "TestTeam");
       
       // Get the actual IDs using getter functions
       huntId = 0; // First hunt has ID 0
@@ -766,7 +802,8 @@ describe("Khoj Contract", function () {
           false,
           1,
           "adventure",
-          "ipfs://metadata456"
+          "ipfs://metadata456",
+          0
         );
 
         const allHunts = await khoj.getAllHunts();
@@ -796,6 +833,7 @@ describe("Khoj Contract", function () {
         
         expect(team.huntId).to.equal(0);
         expect(team.teamId).to.equal(teamId);
+        expect(team.name).to.equal("TestTeam");
         expect(team.owner).to.equal(owner.address);
         expect(team.maxMembers).to.equal(4);
         expect(team.memberCount).to.equal(1);
@@ -816,7 +854,7 @@ describe("Khoj Contract", function () {
 
       it("Should reject access by non-member", async function () {
         // Create another team
-        const teamId2 = await khoj.connect(addr1).createTeam(0);
+        const teamId2 = await khoj.connect(addr1).createTeam(0, "Addr1Team");
         
         // Try to access team info from non-member
         await expect(
@@ -902,7 +940,8 @@ describe("Khoj Contract", function () {
         true,
         4,
         "mystery",
-        "ipfs://metadata123"
+        "ipfs://metadata123",
+        0 // HuntType.GEO_LOCATION
       );
     });
 
@@ -960,10 +999,11 @@ describe("Khoj Contract", function () {
         true,
         5, // Team size 5 (owner + 4 others)
         "mystery",
-        "ipfs://metadata123"
+        "ipfs://metadata123",
+        0 // HuntType.GEO_LOCATION
       );
 
-      await khoj.createTeam(0); // Hunt ID 0 (this will be the first hunt in this test)
+      await khoj.createTeam(0, "BigTeam"); // Hunt ID 0 (this will be the first hunt in this test)
       
       // Get the team ID for the owner
       const teamId = await khoj.getParticipantTeamId(0, owner.address);
@@ -984,6 +1024,7 @@ describe("Khoj Contract", function () {
 
       const team = await khoj.getTeam(0, owner.address);
       expect(team.memberCount).to.equal(5);
+      expect(team.name).to.equal("BigTeam");
     });
 
     it("Should handle multiple teams in same hunt", async function () {
@@ -1001,13 +1042,14 @@ describe("Khoj Contract", function () {
         true,
         4,
         "mystery",
-        "ipfs://metadata123"
+        "ipfs://metadata123",
+        0 // HuntType.GEO_LOCATION
       );
 
       // Create multiple teams
-      await khoj.createTeam(0); // Hunt ID 0 (this will be the first hunt in this test)
-      await khoj.connect(addr1).createTeam(0);
-      await khoj.connect(addr2).createTeam(0);
+      await khoj.createTeam(0, "TeamA"); // Hunt ID 0 (this will be the first hunt in this test)
+      await khoj.connect(addr1).createTeam(0, "TeamB");
+      await khoj.connect(addr2).createTeam(0, "TeamC");
       
       // Get team IDs using getter functions
       const team1 = await khoj.getParticipantTeamId(0, owner.address);
@@ -1039,7 +1081,8 @@ describe("Khoj Contract", function () {
           true,
           4,
           "mystery",
-          `ipfs://metadata${i}`
+          `ipfs://metadata${i}`,
+          0
         );
       }
 
