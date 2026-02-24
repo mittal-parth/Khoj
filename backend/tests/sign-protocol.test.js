@@ -9,6 +9,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const TEST_CHAIN_ID = '1';
+const TEST_CONTRACT_ADDRESS = '0x0000000000000000000000000000000000000abc';
+const TEST_CONTRACT_SUFFIX = TEST_CONTRACT_ADDRESS.slice(-3);
+
 describe('Sign Protocol Integration', () => {
   let createdAttestations = [];
   let attestationData = [];
@@ -20,33 +24,37 @@ describe('Sign Protocol Integration', () => {
     }
 
     attestationData = [
-        {
-            teamIdentifier: "1",
-            huntId: 0,
-            clueIndex: 1,
-            teamLeaderAddress: '0x996090Fa3503cDB3e05E9bD78d3f00D3af867123',
-            solverAddress: '0x996090Fa3503cDB3e05E9bD78d3f00D3af867123',
-            timeTaken: 300,
-            attemptCount: 2
-        },
-        {
-            teamIdentifier: "2",
-            huntId: 0,
-            clueIndex: 2,
-            teamLeaderAddress: '0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397',
-            solverAddress: '0x9F45F50996F66c66c9C97e0e0e0Be3dB019E5519',
-            timeTaken: 180,
-            attemptCount: 1
-        },
-        {
-            teamIdentifier: "0xAF56F60A96F77d77dAD08f1f1f1Be4dB020F6620",
-            huntId: 0,
-            clueIndex: 1,
-            teamLeaderAddress: '0xAF56F60A96F77d77dAD08f1f1f1Be4dB020F6620',
-            solverAddress: '0xAF56F60A96F77d77dAD08f1f1f1Be4dB020F6620',
-            timeTaken: 450,
-            attemptCount: 3
-        }
+      {
+        teamIdentifier: "1",
+        teamName: "Team One",
+        huntId: 0,
+        clueIndex: 1,
+        teamLeaderAddress: '0x996090Fa3503cDB3e05E9bD78d3f00D3af867123',
+        solverAddress: '0x996090Fa3503cDB3e05E9bD78d3f00D3af867123',
+        timeTaken: 300,
+        attemptCount: 2
+      },
+      {
+        teamIdentifier: "2",
+        teamName: "Team Two",
+        huntId: 0,
+        clueIndex: 2,
+        teamLeaderAddress: '0x7F23F30796F54a44a7A95d8f8c8Be1dB017C3397',
+        solverAddress: '0x9F45F50996F66c66c9C97e0e0e0Be3dB019E5519',
+        timeTaken: 180,
+        attemptCount: 1
+      },
+      {
+        // Solo participant: teamIdentifier is the wallet address and also used as display name
+        teamIdentifier: "0xAF56F60A96F77d77dAD08f1f1f1Be4dB020F6620",
+        teamName: "0xAF56F60A96F77d77dAD08f1f1f1Be4dB020F6620",
+        huntId: 0,
+        clueIndex: 1,
+        teamLeaderAddress: '0xAF56F60A96F77d77dAD08f1f1f1Be4dB020F6620',
+        solverAddress: '0xAF56F60A96F77d77dAD08f1f1f1Be4dB020F6620',
+        timeTaken: 450,
+        attemptCount: 3
+      }
     ]
   });
 
@@ -56,12 +64,15 @@ describe('Sign Protocol Integration', () => {
 
       const result = await attestClueSolved(
         testData.teamIdentifier,
+        testData.teamName,
         testData.huntId,
         testData.clueIndex,
         testData.teamLeaderAddress,
         testData.solverAddress,
         testData.timeTaken,
-        testData.attemptCount
+        testData.attemptCount,
+        TEST_CHAIN_ID,
+        TEST_CONTRACT_ADDRESS
       );
 
       expect(result).toBeDefined();
@@ -75,12 +86,15 @@ describe('Sign Protocol Integration', () => {
 
       const result = await attestClueSolved(
         testData.teamIdentifier,
+        testData.teamName,
         testData.huntId,
         testData.clueIndex,
         testData.teamLeaderAddress,
         testData.solverAddress,
         testData.timeTaken,
-        testData.attemptCount
+        testData.attemptCount,
+        TEST_CHAIN_ID,
+        TEST_CONTRACT_ADDRESS
       );
 
       expect(result).toBeDefined();
@@ -95,12 +109,15 @@ describe('Sign Protocol Integration', () => {
 
       const result = await attestClueSolved(
         testData.teamIdentifier,
+        testData.teamName,
         testData.huntId,
         testData.clueIndex,
         testData.teamLeaderAddress,
         testData.solverAddress,
         testData.timeTaken,
-        testData.attemptCount
+        testData.attemptCount,
+        TEST_CHAIN_ID,
+        TEST_CONTRACT_ADDRESS
       );
 
       expect(result).toBeDefined();
@@ -114,14 +131,14 @@ describe('Sign Protocol Integration', () => {
 
   describe('Attestation Querying', () => {
     test('should query attestations for hunt 0 and return array', async () => {
-      const result = await queryAttestationsForHunt(0);
+      const result = await queryAttestationsForHunt(0, TEST_CHAIN_ID, TEST_CONTRACT_ADDRESS);
       
       expect(Array.isArray(result)).toBe(true);
       expect(result.length).toBeGreaterThanOrEqual(3);
     });
 
     test('should return attestations with correct data', async () => {
-      const result = await queryAttestationsForHunt(0);
+      const result = await queryAttestationsForHunt(0, TEST_CHAIN_ID, TEST_CONTRACT_ADDRESS);
       
       expect(result.length).toBeGreaterThan(0);
 
@@ -141,10 +158,13 @@ describe('Sign Protocol Integration', () => {
         expect(attestationResult).toBeDefined();
         expect(attestationResult.data).toBeDefined();
         expect(typeof attestationResult.data).toBe('string');
-        expect(attestationResult.indexingValue).toBe(`khoj-hunt-${attestationDatum.huntId}`);
+        // Indexing value should follow the pattern used in getIndexingValue
+        expect(attestationResult.indexingValue).toContain(`khoj-chain-${TEST_CHAIN_ID}-hunt-${attestationDatum.huntId}`);
+        expect(attestationResult.indexingValue.endsWith(TEST_CONTRACT_SUFFIX)).toBe(true);
 
         let attestationResultBody = JSON.parse(attestationResult.data);
         expect(attestationResultBody.teamIdentifier).toBe(attestationDatum.teamIdentifier);
+        expect(attestationResultBody.teamName).toBe(attestationDatum.teamName);
         expect(attestationResultBody.huntId).toBe(attestationDatum.huntId.toString());
         expect(attestationResultBody.clueIndex).toBe(attestationDatum.clueIndex.toString());
         expect(attestationResultBody.teamLeaderAddress).toBe(attestationDatum.teamLeaderAddress);

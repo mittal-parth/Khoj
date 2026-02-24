@@ -54,6 +54,7 @@ const CLUE_SCHEMA = {
   description: "Attestation for when a team solves a clue in a Khoj hunt",
   data: [
     { name: "teamIdentifier", type: "string" },
+    { name: "teamName", type: "string" },
     { name: "huntId", type: "uint256" },
     { name: "clueIndex", type: "uint256" },
     { name: "teamLeaderAddress", type: "address" },
@@ -70,6 +71,7 @@ const CLUE_RETRY_SCHEMA = {
   description: "Attestation for when a team attempts to solve a clue in a Khoj hunt",
   data: [
     { name: "teamIdentifier", type: "string" },
+    { name: "teamName", type: "string" },
     { name: "huntId", type: "uint256" },
     { name: "clueIndex", type: "uint256" },
     { name: "solverAddress", type: "address" },
@@ -127,6 +129,7 @@ export async function createClueRetrySchema() {
  * Create an attestation when a team attempts to solve a clue (for retry tracking)
  * Also used for hunt start tracking with clueIndex: 0, attemptCount: 0
  * @param {string} teamIdentifier - The team identifier (teamId for teams, wallet address for solo users)
+ * @param {string} teamName - Display name (team name for teams, wallet address for solo users)
  * @param {number} huntId - The hunt ID
  * @param {number} clueIndex - The clue index (1-based, or 0 for hunt start)
  * @param {string} solverAddress - The address of the team member who attempted the clue
@@ -137,6 +140,7 @@ export async function createClueRetrySchema() {
  */
 export async function attestClueAttempt(
   teamIdentifier,
+  teamName,
   huntId,
   clueIndex,
   solverAddress,
@@ -157,6 +161,7 @@ export async function attestClueAttempt(
     
     console.log(logMessage, {
       teamIdentifier,
+      teamName,
       huntId,
       clueIndex,
       solverAddress,
@@ -167,6 +172,7 @@ export async function attestClueAttempt(
 
     const attestationData = {
       teamIdentifier: teamIdentifier.toString(),
+      teamName: (teamName != null && teamName !== undefined) ? String(teamName) : teamIdentifier.toString(),
       huntId: huntId.toString(),
       clueIndex: clueIndex.toString(),
       solverAddress,
@@ -194,6 +200,7 @@ export async function attestClueAttempt(
 /**
  * Create an attestation when a team solves a clue
  * @param {string} teamIdentifier - The team identifier (teamId for teams, wallet address for solo users)
+ * @param {string} teamName - Display name (team name for teams, wallet address for solo users)
  * @param {number} huntId - The hunt ID
  * @param {number} clueIndex - The clue index (1-based)
  * @param {string} teamLeaderAddress - The team leader's wallet address
@@ -206,6 +213,7 @@ export async function attestClueAttempt(
  */
 export async function attestClueSolved(
   teamIdentifier,
+  teamName,
   huntId,
   clueIndex,
   teamLeaderAddress,
@@ -224,6 +232,7 @@ export async function attestClueSolved(
 
     console.log("Creating attestation for clue solve:", {
       teamIdentifier,
+      teamName,
       huntId,
       clueIndex,
       teamLeaderAddress,
@@ -236,6 +245,7 @@ export async function attestClueSolved(
 
     const attestationData = {
       teamIdentifier: teamIdentifier.toString(),
+      teamName: (teamName != null && teamName !== undefined) ? String(teamName) : teamIdentifier.toString(),
       huntId: huntId.toString(),
       clueIndex: clueIndex.toString(),
       teamLeaderAddress,

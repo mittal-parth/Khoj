@@ -30,6 +30,7 @@ export function calculateLeaderboard(attestations) {
     if (!teamData.has(teamIdentifier)) {
       teamData.set(teamIdentifier, {
         teamIdentifier,
+        teamName: data.teamName || teamIdentifier,
         teamLeaderAddress: data.teamLeaderAddress,
         clues: [],
         totalAttempts: 0,
@@ -67,6 +68,7 @@ export function calculateLeaderboard(attestations) {
     
     leaderboard.push({
       teamIdentifier,
+      teamName: team.teamName || teamIdentifier,
       teamLeaderAddress: team.teamLeaderAddress,
       totalTime: team.totalTimeTaken, // Now represents sum of timeTaken for all clues
       totalAttempts: team.totalAttempts,

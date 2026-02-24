@@ -695,7 +695,7 @@ ${clueMappingInstructions}
 // Attest clue attempt endpoint (for retry tracking and hunt start with clueIndex: 0)
 app.post("/attestations/attempts", async (req, res) => {
   try {
-    const { teamIdentifier, huntId, clueIndex, solverAddress, attemptCount, chainId, contractAddress } = req.body;
+    const { teamIdentifier, teamName, huntId, clueIndex, solverAddress, attemptCount, chainId, contractAddress } = req.body;
 
     // Validate required fields
     if (huntId === undefined || clueIndex === undefined || !teamIdentifier || !solverAddress || attemptCount === undefined || !chainId || !contractAddress) {
@@ -704,8 +704,11 @@ app.post("/attestations/attempts", async (req, res) => {
       });
     }
 
+    const displayName = teamName != null && teamName !== undefined ? teamName : teamIdentifier;
+
     console.log("Creating attestation for clue attempt:", {
       teamIdentifier,
+      teamName: displayName,
       huntId,
       clueIndex,
       solverAddress,
@@ -716,6 +719,7 @@ app.post("/attestations/attempts", async (req, res) => {
 
     const attestationInfo = await attestClueAttempt(
       teamIdentifier,
+      displayName,
       huntId,
       clueIndex,
       solverAddress,
@@ -741,7 +745,7 @@ app.post("/attestations/attempts", async (req, res) => {
 // Attest clue solve endpoint
 app.post("/attestations/clues", async (req, res) => {
   try {
-    const { teamIdentifier, huntId, clueIndex, teamLeaderAddress, solverAddress, timeTaken, attemptCount, chainId, contractAddress } = req.body;
+    const { teamIdentifier, teamName, huntId, clueIndex, teamLeaderAddress, solverAddress, timeTaken, attemptCount, chainId, contractAddress } = req.body;
 
     // Validate required fields
     if (huntId === undefined || clueIndex === undefined || !teamLeaderAddress || !teamIdentifier || !solverAddress || timeTaken === undefined || attemptCount === undefined || !chainId || !contractAddress) {
@@ -750,8 +754,11 @@ app.post("/attestations/clues", async (req, res) => {
       });
     }
 
+    const displayName = teamName != null && teamName !== undefined ? teamName : teamIdentifier;
+
     console.log("Creating attestation for clue solve:", {
       teamIdentifier,
+      teamName: displayName,
       huntId,
       clueIndex,
       teamLeaderAddress,
@@ -764,6 +771,7 @@ app.post("/attestations/clues", async (req, res) => {
 
     const attestationInfo = await attestClueSolved(
       teamIdentifier,
+      displayName,
       huntId,
       clueIndex,
       teamLeaderAddress,

@@ -248,6 +248,11 @@ export const huntABI = [
         name: "_huntId",
         type: "uint256",
       },
+      {
+        internalType: "string",
+        name: "_name",
+        type: "string",
+      },
     ],
     name: "createTeam",
     outputs: [
@@ -554,6 +559,11 @@ export const huntABI = [
             internalType: "uint256",
             name: "teamId",
             type: "uint256",
+          },
+          {
+            internalType: "string",
+            name: "name",
+            type: "string",
           },
           {
             internalType: "address",

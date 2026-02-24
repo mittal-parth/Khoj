@@ -17,6 +17,7 @@ const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 interface LeaderboardEntry {
   rank: number;
   teamIdentifier: string;
+  teamName?: string;
   teamLeaderAddress: string;
   totalTime: number;
   totalAttempts: number;
@@ -200,7 +201,10 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                             }
                             title="Click to see team leader address"
                           >
-                            <TeamIdentifierDisplay teamIdentifier={team.teamIdentifier} />
+                            <TeamIdentifierDisplay
+                              teamIdentifier={team.teamIdentifier}
+                              teamName={team.teamName}
+                            />
                           </div>
                           {hoveredTeam === team.teamIdentifier && (
                             <div className="absolute top-full left-0 mt-1 p-2 bg-foreground text-background text-xs sm:text-sm rounded-base border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] z-20 whitespace-nowrap max-w-[200px] break-all">
