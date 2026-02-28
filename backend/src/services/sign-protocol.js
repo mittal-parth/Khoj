@@ -184,6 +184,7 @@ export async function attestClueAttempt(
       schemaId: retrySchemaId,
       data: attestationData,
       indexingValue,
+      recipients: [solverAddress],
     });
 
     const successMessage = clueIndex === 0
@@ -259,6 +260,7 @@ export async function attestClueSolved(
       schemaId,
       data: attestationData,
       indexingValue,
+      recipients: [solverAddress],
     });
 
     console.log("Attestation created successfully:", attestationInfo);
