@@ -130,4 +130,3 @@ describe("Verification service", () => {
     expect(result).toBe(false);
   });
 });
-
