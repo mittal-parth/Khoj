@@ -73,6 +73,7 @@ export async function extractTeamIdFromTransactionLogs(
           // The teamId is the first indexed parameter (topics[1])
           const teamIdHex = log.topics[1];
           if (!teamIdHex) {
+            console.error("Could not extract teamId from transaction logs");
             continue;
           }
 
@@ -83,6 +84,7 @@ export async function extractTeamIdFromTransactionLogs(
             break;
           }
         } catch {
+          console.error("Could not extract teamId from transaction logs");
           continue;
         }
       }
