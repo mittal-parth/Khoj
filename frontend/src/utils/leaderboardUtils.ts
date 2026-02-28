@@ -47,7 +47,7 @@ export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: big
       return 0.0;
     }
   } catch (error) {
-    console.error("Error fetching team score:", error);
+    console.error("Error fetching team score:", (error as Error)?.message);
     return 0.0; // Fallback score
   }
 }

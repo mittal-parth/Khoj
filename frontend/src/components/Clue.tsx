@@ -66,7 +66,7 @@ export function Clue() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [attempts, setAttempts] = useState(MAX_ATTEMPTS);
   const [verificationState, setVerificationState] = useState<VerificationState>('idle');
-  const [showSuccessMessage, setShowSuccessMessage] = useState(false);
+  const [_showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
@@ -161,7 +161,6 @@ export function Clue() {
       }
 
       const data = await response.json();
-      console.log('Retry attempts data:', data);
 
       if (data.attemptCount > 0) {
         setAttemptCount(data.attemptCount);
@@ -176,7 +175,7 @@ export function Clue() {
 
       return data;
     } catch (error) {
-      console.error('Error fetching retry attempts:', error);
+      console.error('Error fetching retry attempts:', (error as Error)?.message);
       return null;
     } finally {
       if (showLoading) {
@@ -208,11 +207,11 @@ export function Clue() {
       navigator.geolocation.getCurrentPosition(
         ({ coords }) => {
           const { latitude, longitude } = coords;
-          console.log(latitude, longitude);
           setLocation({ latitude, longitude });
         },
         (error) => {
-          console.error('Geolocation error:', error);
+          const msg = (error as GeolocationPositionError)?.message ?? 'Geolocation error';
+          console.error('Geolocation error:', msg);
         }
       );
     }
@@ -239,14 +238,6 @@ export function Clue() {
       !isDefined(userWallet) ||
       !hasRequiredClueAndTeamParams({ huntId, clueId, chainId, contractAddress, teamIdentifier })
     ) {
-      console.log('Missing required data for retry attestation:', {
-        userWallet: !!userWallet,
-        huntId: !!huntId,
-        clueId: !!clueId,
-        teamIdentifier: !!teamIdentifier,
-        chainId: !!chainId,
-        contractAddress: !!contractAddress,
-      });
       return null;
     }
 
@@ -263,8 +254,6 @@ export function Clue() {
         contractAddress: contractAddress,
       };
 
-      console.log('Creating retry attestation:', attestationData);
-
       const response = await fetch(`${BACKEND_URL}/attestations/attempts`, {
         method: 'POST',
         headers: {
@@ -278,10 +267,9 @@ export function Clue() {
       }
 
       const result = await response.json();
-      console.log('Retry attestation created successfully:', result);
       return result;
     } catch (error) {
-      console.error('Failed to create retry attestation:', error);
+      console.error('Failed to create retry attestation:', (error as Error)?.message);
       return null;
     }
   };
@@ -292,13 +280,6 @@ export function Clue() {
       !isDefined(userWallet) ||
       !hasRequiredClueParams({ huntId, clueId, chainId, contractAddress })
     ) {
-      console.log('Missing required data for attestation:', {
-        userWallet: !!userWallet,
-        huntId: !!huntId,
-        clueId: !!clueId,
-        chainId: !!chainId,
-        contractAddress: !!contractAddress,
-      });
       return;
     }
 
@@ -317,8 +298,6 @@ export function Clue() {
         contractAddress: contractAddress,
       };
 
-      console.log('Creating clue solve attestation:', attestationData);
-
       const response = await fetch(`${BACKEND_URL}/attestations/clues`, {
         method: 'POST',
         headers: {
@@ -331,11 +310,10 @@ export function Clue() {
         throw new Error(`Attestation failed: ${response.status}`);
       }
 
-      const result = await response.json();
-      console.log('Attestation created successfully:', result);
+      await response.json();
       toast.success('Clue solve recorded!');
     } catch (error) {
-      console.error('Failed to create attestation:', error);
+      console.error('Failed to create attestation:', (error as Error)?.message);
       toast.error('Failed to record clue solve');
     }
   };
@@ -367,7 +345,7 @@ export function Clue() {
       // If no navigation occurred, ensure redirecting state is cleared
       setIsRedirecting(false);
     } catch (error) {
-      console.error('Error syncing progress:', error);
+      console.error('Error syncing progress:', (error as Error)?.message);
       toast.error('Failed to sync progress');
       setIsRedirecting(false);
     } finally {
@@ -376,7 +354,6 @@ export function Clue() {
   };
 
   const handleVerify = async (e: React.FormEvent) => {
-    console.log('handleVerify called');
     e.preventDefault();
 
     // Clear any existing error reset timeout when starting a new verification
@@ -387,16 +364,13 @@ export function Clue() {
 
     // Validate based on hunt type
     if (huntType === HUNT_TYPE.GEO_LOCATION && !location) {
-      console.log('location is null');
       toast.error('Please wait for location to be detected');
       return;
     } else if (huntType === HUNT_TYPE.IMAGE && !capturedImage) {
-      console.log('capturedImage is null');
       toast.error('Please capture an image first');
       return;
     }
     if (!huntData) {
-      console.log('huntData is null');
       return;
     }
 
@@ -406,14 +380,6 @@ export function Clue() {
 
     // Re-validate clue access before verification to handle real-time changes
     if (huntId && teamIdentifier && chainId && contractAddress) {
-      console.log('Re-validating clue access before verification...', {
-        huntId,
-        teamIdentifier,
-        clueId,
-        totalClues,
-        chainId,
-        contractAddress,
-      });
       setIsRedirecting(true);
       const canProceed = await validateClueAccess(
         parseInt(huntId),
@@ -424,10 +390,7 @@ export function Clue() {
         contractAddress,
         totalClues
       );
-      console.log('Clue access re-validation result:', canProceed);
       if (!canProceed) {
-        console.log('Clue access denied during verification, returning early');
-        // Reset states before returning
         resetVerificationStates();
         return; // User was redirected, don't proceed with verification
       }
@@ -449,7 +412,7 @@ export function Clue() {
           const clueIndex = parseInt(clueId || '0');
 
           if (isClueSolved(progressData, clueIndex)) {
-            console.log('Clue already solved by team, skipping verification');
+            console.info('Clue already solved by team, skipping verification');
             toast.info('This clue has already been solved by your team!');
             setVerificationState('success');
             setShowSuccessMessage(true);
@@ -468,7 +431,7 @@ export function Clue() {
         }
       }
     } catch (error) {
-      console.error('Error checking if clue is already solved:', error);
+      console.error('Error checking if clue is already solved:', (error as Error)?.message);
       // Continue with normal flow if check fails
     }
 
@@ -489,12 +452,6 @@ export function Clue() {
       resetVerificationStates();
       return;
     }
-
-    console.log('huntData: ', huntData);
-    console.log('=== DEBUGGING REQUEST ===');
-    console.log('Current location state:', location);
-    console.log('clueId param:', clueId);
-    console.log('Number(clueId):', Number(clueId));
 
     // Calculate current attempt number (starts at 1) using the updated count
     const currentAttemptNumber = currentAttemptCount + 1;
@@ -522,7 +479,6 @@ export function Clue() {
         }
 
         const embeddingData = await embeddingResponse.json();
-        console.log('Embedding generated');
 
         // Step 2: Call decrypt-ans with embedding
         console.log('Image hunt - Step 2: Verifying answer...');
@@ -554,9 +510,6 @@ export function Clue() {
           huntType: HUNT_TYPE.GEO_LOCATION,
         };
 
-        console.log('Request body object:', requestBody);
-        console.log('Request body object keys:', Object.keys(requestBody));
-
         const bodyContent = JSON.stringify(requestBody);
 
         const response = await fetch(`${BACKEND_URL}/clues/verify`, {
@@ -567,8 +520,6 @@ export function Clue() {
 
         data = await response.json();
       }
-      console.log('=== BACKEND RESPONSE ===');
-      console.log('data.isClose:', data.isClose);
 
       const isCorrect = data.isClose === true || data.isClose === 'true';
 
@@ -589,11 +540,10 @@ export function Clue() {
               const huntStartData = await huntStartResponse.json();
               if (huntStartData.firstAttemptTimestamp) {
                 startTimestamp = huntStartData.firstAttemptTimestamp;
-                console.log('Using hunt start timestamp:', startTimestamp);
               }
             }
           } catch (error) {
-            console.error('Error fetching hunt start timestamp:', error);
+            console.error('Error fetching hunt start timestamp:', (error as Error)?.message);
           }
         } else {
           // For other clues, use previous clue solve timestamp from progress endpoint
@@ -606,29 +556,22 @@ export function Clue() {
               const prevClueIndex = currentClue - 1;
               if (progressData.solvedClues && progressData.solvedClues[prevClueIndex]) {
                 startTimestamp = progressData.solvedClues[prevClueIndex].solveTimestamp;
-                console.log('Using previous clue solve timestamp:', startTimestamp);
               }
             }
           } catch (error) {
-            console.error('Error fetching previous clue solve timestamp:', error);
+            console.error('Error fetching previous clue solve timestamp:', (error as Error)?.message);
           }
         }
 
         const timeTaken = currentTimestamp - startTimestamp;
-        console.log(
-          'Clue solved! Time taken:',
-          timeTaken,
-          'seconds, Attempts:',
-          currentAttemptNumber
-        );
+        console.info('Clue solved', { timeTakenSeconds: timeTaken, attempts: currentAttemptNumber });
 
         // Create attestation when clue is solved with timeTaken and total attempts
         await createAttestation(timeTaken, currentAttemptNumber);
 
         setVerificationState('success');
         setShowSuccessMessage(true);
-
-        (console.log('Success'), showSuccessMessage);
+        toast.success(`Correct answer, clue ${currentClue} solved!`);
 
         // Wait 0.5 seconds before navigating
         setTimeout(async () => {
@@ -644,6 +587,7 @@ export function Clue() {
         setVerificationState('error');
         setAttempts((prev) => prev - 1);
         setAttemptCount((prev) => prev + 1); // Increment attempt count for next attempt
+        toast.error(`Incorrect answer, attempts remaining: ${remainingAttempts - 1}`);
         // Reset verification state to idle after a brief delay so user can retry
         errorResetTimeoutRef.current = setTimeout(() => {
           setVerificationState('idle');
@@ -651,7 +595,7 @@ export function Clue() {
         }, 2000); // Show error for 2 seconds, then reset to allow retry
       }
     } catch (error) {
-      console.error('Verification failed:', error);
+      console.error('Verification failed:', (error as Error)?.message);
       setVerificationState('error');
       // Reset verification state to idle after a brief delay so user can retry
       errorResetTimeoutRef.current = setTimeout(() => {
@@ -679,7 +623,7 @@ export function Clue() {
         }
       }, 100);
     } catch (error) {
-      console.error('Error accessing camera:', error);
+      console.error('Error accessing camera:', (error as Error)?.message);
       toast.error('Unable to access camera. Please grant camera permissions.');
     }
   };
@@ -917,7 +861,7 @@ export function Clue() {
                           {verificationState === 'success' && <BsCheckCircle className="mr-2" />}
                           {verificationState === 'error' && <BsXCircle className="mr-2" />}
                           {isSubmitting && <BsArrowRepeat className="mr-2 animate-spin" />}
-                          {getButtonText(huntType, location, verificationState, attempts)}
+                          {getButtonText(huntType, location, verificationState)}
                         </Button>
                       </form>
                     </div>
@@ -945,7 +889,7 @@ export function Clue() {
                   {verificationState === 'success' && <BsCheckCircle className="mr-2" />}
                   {verificationState === 'error' && <BsXCircle className="mr-2" />}
                   {isSubmitting && <BsArrowRepeat className="mr-2 animate-spin" />}
-                  {getButtonText(huntType, location, verificationState, attempts)}
+                  {getButtonText(huntType, location, verificationState)}
                 </Button>
               </form>
             )}

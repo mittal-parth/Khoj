@@ -36,12 +36,12 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId, teamIdentifier }) => {
 
   const { joinRoom, leaveRoom } = useRoom({
     onJoin: () => {
-      console.log("Joined the room");
+      console.info("Huddle room joined");
       setHasJoinedRoom(true);
       setIsJoining(false);
     },
     onLeave: () => {
-      console.log("Left the room");
+      console.info("Huddle room left");
       setHasJoinedRoom(false);
     },
   });
@@ -89,7 +89,7 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId, teamIdentifier }) => {
           setToken(huddleRoomConfig.token);
         }
       } catch (error) {
-        console.error("Error creating/joining Huddle room:", error);
+        console.error("Error creating/joining Huddle room:", (error as Error)?.message);
       }
     };
 
@@ -112,9 +112,8 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId, teamIdentifier }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log("Streaming stopped");
-      console.log("Frontend Response: ", data);
+      await response.json();
+      console.info("Streaming stopped");
       setIsStreaming(false);
     } catch (error) {
       console.error("Error stopping stream:", error);
@@ -123,12 +122,6 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId, teamIdentifier }) => {
 
   const handleStreamSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Frontend body: ", {
-      roomId: roomId,
-      token: token,
-      streamUrl: streamUrl,
-      streamKey: streamKey,
-    });
 
     try {
       // Start streaming
@@ -149,15 +142,14 @@ export const HuddleRoom: FC<HuddleRoomProps> = ({ huntId, teamIdentifier }) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      console.log("Streaming started");
-      console.log("Frontend Response: ", data);
+      await response.json();
+      console.info("Streaming started");
       setIsStreaming(true);
       setIsDrawerOpen(false);
       setStreamKey("");
       setStreamUrl("");
     } catch (error) {
-      console.error("Error starting stream:", error);
+      console.error("Error starting stream:", (error as Error)?.message);
     }
   };
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useActiveAccount } from "thirdweb/react";
 import { huntABI } from "../assets/hunt_abi";
 import { toast } from "@/components/ui/toast";
@@ -73,14 +73,7 @@ export function Create() {
   const clueImageInputRef = useRef<HTMLInputElement>(null);
 
   // Use the reactive network state hook
-  const { currentNetwork, contractAddress, chainId } = useNetworkState();
-
-  // Log network info only when component mounts or network changes
-  useEffect(() => {
-    console.log("Create: Current Network: ", currentNetwork);
-    console.log("Create: Chain ID: ", chainId);
-    console.log("Create: Contract Address: ", contractAddress);
-  }, [currentNetwork, chainId, contractAddress]);
+  const { contractAddress } = useNetworkState();
 
   if (!isValidHexAddress(contractAddress)) {
     toast.error("Invalid contract address format");
@@ -205,7 +198,7 @@ export function Create() {
       }));
       toast.success("Image embedding generated! You can now add this clue.");
     } catch (error) {
-      console.error("Error generating embedding:", error);
+      console.error("Error generating embedding:", (error as Error)?.message);
       toast.error("Failed to generate embedding");
     } finally {
       setIsGeneratingEmbedding(false);
@@ -260,9 +253,6 @@ export function Create() {
       huntTypeEnum, // huntType (0 = GEO_LOCATION, 1 = IMAGE)
     ];
 
-    console.log("Transaction args:", args);
-    console.log("Start timestamp:", startTimestamp, "End timestamp:", endTimestamp, "Current time:", Math.floor(Date.now() / 1000));
-    
     return args;
   };
 
@@ -305,26 +295,16 @@ export function Create() {
   };
 
   const handleTransactionError = (error: any) => {
-    console.error("Error creating hunt:", error);
-    console.error("Full error object:", JSON.stringify(error, null, 2));
-    
-    // Try to extract more detailed error information
-    if (error?.cause?.data) {
-      console.error("Error data:", error.cause.data);
-    }
-    if (error?.reason) {
-      console.error("Error reason:", error.reason);
-    }
-    
-    toast.error(error.message || error.reason || "Failed to create hunt");
+    const message = error?.reason || error?.message || "Failed to create hunt";
+    console.error("Error creating hunt:", message);
+    toast.error(message || "Failed to create hunt");
   };
 
   const testBackendHealth = async () => {
     try {
       const response = await fetch(`${BACKEND_URL}/health`);
       if (response.ok) {
-        const data = await response.json();
-        console.log("Backend health check response:", BACKEND_URL, data);
+        await response.json();
         setHealthCheckStatus("✅ Backend is healthy");
         toast.success("Backend is working!");
       } else {
@@ -438,7 +418,7 @@ export function Create() {
       toast.success("NFT metadata created and uploaded!");
       
     } catch (error) {
-      console.error("Error creating NFT metadata:", error);
+      console.error("Error creating NFT metadata:", (error as Error)?.message);
       toast.error("Failed to create NFT metadata");
     }
   };
@@ -500,7 +480,7 @@ export function Create() {
         "Successfully uploaded to IPFS! CIDs have been automatically added to the configuration."
       );
     } catch (err) {
-      console.error("Error uploading to IPFS:", err);
+      console.error("Error uploading to IPFS:", (err as Error)?.message);
       toast.error("Failed to upload to IPFS");
     } finally {
       setIsUploading(false);

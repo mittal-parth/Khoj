@@ -41,7 +41,7 @@ export function Hunts() {
   const enableHuntFiltering = import.meta.env.VITE_ENABLE_HUNT_FILTERING === 'true';
 
   // Use the reactive network state hook
-  const { currentNetwork, contractAddress: rawContractAddress, chainId, currentChain } = useNetworkState();
+  const { contractAddress: rawContractAddress, currentChain } = useNetworkState();
 
   // Memoize the contract instance to prevent recreation on every render
   const contract = useMemo(() => {
@@ -70,7 +70,7 @@ export function Hunts() {
   // Cast to Hunt type to include participants field
   const hunts = huntsData as Hunt[];
 
-  const { data: nftContractAddress } = useReadContract({
+  useReadContract({
     contract: contract!,
     method: "nftContract",
     params: [],
@@ -119,7 +119,7 @@ export function Hunts() {
 
         setHuntRegistrations(registrationStatus);
       } catch (error) {
-        console.error("Error checking registration status:", error);
+        console.error("Error checking registration status:", (error as Error)?.message);
       } finally {
         setIsCheckingRegistrations(false);
       }
@@ -145,16 +145,7 @@ export function Hunts() {
     return null;
   }
 
-  //get the token getTokenId
-  // chainId is now provided by useNetworkState hook
-
-  console.log("Hunts: chainId", chainId);
-  console.log("Hunts: contractAddress", rawContractAddress);
-  console.log("NFT Contract Address:", nftContractAddress);
-
-
-  const handleRegisterSuccess = (data: any, originalHuntIndex: number) => {
-    console.log("Register success: ", data);
+  const handleRegisterSuccess = (_data: any, originalHuntIndex: number) => {
     toast.success("Successfully registered for hunt!");
 
     // Update registration status for this specific hunt using the original index
@@ -171,35 +162,12 @@ export function Hunts() {
     // and fetches fresh data from the contract, so no need to manually update it here
   };
 
-  // Add more detailed logging
-  console.log("Contract Debug:", {
-    contractAddress,
-    chainId,
-    currentNetwork,
-    huntsError,
-    hunts,
-  });
-
   if (huntsError) {
     console.error("Error fetching hunts:", huntsError);
     toast.error("Failed to fetch hunts. Please check your connection.");
   }
 
-  console.log("Debug Info:", {
-    currentNetwork,
-    contractAddress,
-    chainId,
-    address,
-    hunts,
-    huntsError,
-  });
-
-  console.log("Hunts: hunts", hunts);
-
   const today = Math.floor(Date.now() / 1000);
-
-  console.log("today", today);
-  console.log("reg", huntRegistrations);
 
   // Show loading state while hunts are being fetched
   if (huntsLoading) {
@@ -358,7 +326,7 @@ export function Hunts() {
                         isCheckingRegistrations ||
                         buttonConfig.disabled
                       }
-                      onError={(error) => console.log(error)}
+                      onError={(error) => console.error("Registration error:", (error as Error)?.message)}
                       onSuccess={(data) => handleRegisterSuccess(data, originalIndex)}
                     />
                   ) : (

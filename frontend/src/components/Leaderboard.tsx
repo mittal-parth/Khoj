@@ -70,7 +70,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
         setLeaderboardData([]);
       }
     } catch (err) {
-      console.error('Error fetching leaderboard:', err);
+      console.error('Error fetching leaderboard:', (err as Error)?.message);
       setError(err instanceof Error ? err.message : 'Failed to fetch leaderboard');
       toast.error('Failed to load leaderboard');
     } finally {
