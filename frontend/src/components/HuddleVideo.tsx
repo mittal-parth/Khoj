@@ -36,7 +36,7 @@ export const HuddleVideo: FC<HuddleVideoProps> = ({ minimized = false }) => {
         await videoRef.current.requestPictureInPicture();
       }
     } catch (error) {
-      console.error('PiP failed:', error);
+      console.error('PiP failed:', (error as Error)?.message);
     }
   };
 

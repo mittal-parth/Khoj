@@ -73,7 +73,7 @@ export function useGenerateRiddles(huntId: any) {
     try {
       await withRetry(generateRiddlesOperation, {
         onRetry: (attempt, error) => {
-          console.error(`Riddle Generation Error (attempt ${attempt}):`, error);
+          console.error("Riddle generation error (attempt " + attempt + "):", (error as Error)?.message);
           setIsRetrying(true);
           setRetryCount(attempt);
         }

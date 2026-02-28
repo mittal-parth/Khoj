@@ -62,7 +62,6 @@ export function getButtonText(
   huntType: HuntType,
   location: Location | null,
   verificationState: VerificationState,
-  attempts: number
 ): string {
   // For geolocation hunts, check location first
   if (huntType === HUNT_TYPE.GEO_LOCATION && !location) {
@@ -72,13 +71,13 @@ export function getButtonText(
   // (since the verify button is hidden when no image is captured)
   switch (verificationState) {
     case "verifying":
-      return huntType === HUNT_TYPE.IMAGE ? "Verifying image..." : "Verifying location...";
+      return "Verifying...";
     case "success":
       return "Correct Answer!";
     case "error":
       return huntType === HUNT_TYPE.IMAGE
-        ? `Wrong image - ${attempts} attempts remaining`
-        : `Wrong location - ${attempts} attempts remaining`;
+        ? `Incorrect answer`
+        : `Incorrect location`;
     default:
       return huntType === HUNT_TYPE.IMAGE ? "Verify Image" : "Verify Location";
   }

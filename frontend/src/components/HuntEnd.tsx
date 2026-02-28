@@ -59,12 +59,12 @@ export function HuntEnd() {
     const loadTeamScore = async () => {
       if (!hasRequiredHuntParams({ huntId, chainId, contractAddress }) || !userWallet) {
         setIsLoadingScore(false);
-        console.log("Team score loading failed because of missing params");
+        console.error("Team score loading failed because of missing params");
         return;
       }
 
       try {
-        console.log("Fetching team score");
+        console.info("Fetching team score");
         // Use getTeamIdentifier to handle both teams and solo participants
         // For teams: uses teamData.teamId, for solo: uses userWallet
         const teamIdentifier = getTeamIdentifier(teamData, userWallet);
@@ -75,7 +75,7 @@ export function HuntEnd() {
           setHasShownConfetti(true);
         }
       } catch (error) {
-        console.error("Error fetching team score:", error);
+        console.error("Error fetching team score:", (error as Error)?.message);
         setTeamScore(0.0);
       } finally {
         setIsLoadingScore(false);

@@ -102,7 +102,7 @@ export function RouteGuard({ children }: RouteGuardProps) {
           return;
         }
       } catch (err) {
-        console.error("Error validating clue access:", err);
+        console.error("Error validating clue access:", (err as Error)?.message);
         setError("Failed to validate access");
         // Allow access if validation fails to prevent blocking users
         setIsValid(true);

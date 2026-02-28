@@ -41,7 +41,7 @@ export async function fetchProgress(
     const data = await response.json();
     return data;
   } catch (error) {
-    console.error("Error fetching progress:", error);
+    console.error("Error fetching progress:", (error as Error)?.message);
     return null;
   }
 }
@@ -146,18 +146,7 @@ async function handleNavigation(
     const shouldNavigate = (isSync || isResume)
       ? (targetClue !== currentClueIndex) // This handles both different clues AND hunt completion (null)
       : !canAccessClue(progress, currentClueIndex);
-    
-    console.log("handleNavigation debug:", {
-      progress,
-      targetClue,
-      shouldNavigate,
-      currentClueIndex,
-      canAccess: canAccessClue(progress, currentClueIndex),
-      isSync,
-      isResume,
-      allowVerification
-    });
-    
+
     if (shouldNavigate) {
       if (targetClue === null) {
         // Hunt is completed, go to end
@@ -193,7 +182,7 @@ async function handleNavigation(
     // For start hunt flow when targetClue is 1, continue with normal flow
     return !isSync && targetClue === 1 ? false : true;
   } catch (error) {
-    console.error(`Error ${isSync ? 'syncing' : 'checking'} progress:`, error);
+    console.error(`Error ${isSync ? 'syncing' : 'checking'} progress:`, (error as Error)?.message);
     if (isSync) {
       toast.error("Failed to sync progress");
     }
@@ -273,7 +262,7 @@ export async function validateClueAccess(
 
     return true;
   } catch (error) {
-    console.error("Error validating clue access:", error);
+    console.error("Error validating clue access:", (error as Error)?.message);
     // If validation fails, allow verification to proceed
     return true;
   }
@@ -317,7 +306,7 @@ export async function checkHuntStarted(
     // (attestation with clueIndex: 0 exists)
     return data.attemptCount > 0;
   } catch (error) {
-    console.error("Error checking hunt start:", error);
+    console.error("Error checking hunt start:", (error as Error)?.message);
     return false;
   }
 }
