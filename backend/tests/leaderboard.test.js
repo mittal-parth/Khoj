@@ -4,7 +4,7 @@
  * without requiring real Sign Protocol attestations
  */
 
-import { calculateLeaderboard } from '../src/services/leaderboard.js';
+import { calculateLeaderboard, buildAttestationTimeline } from '../src/services/leaderboard.js';
 
 // Mock attestation data for testing leaderboard logic
 const mockAttestations = [
@@ -299,6 +299,222 @@ describe('Leaderboard Logic', () => {
       // Total attempts: 6 + 5 + 3 + 2 + 1 = 17
       // Average: 17 / 5 = 3.4
       expect(avgAttempts).toBe(3.4);
+    });
+  });
+});
+
+describe('Attestation Timeline', () => {
+  const huntId = 1;
+  const teamId = 'team-alpha';
+
+  // Hunt start at 1000s (attestTimestamp in ms)
+  const huntStartTsMs = 1_000_000;
+  const huntStartAttestations = [
+    { data: JSON.stringify({ attemptCount: '0' }), attestTimestamp: huntStartTsMs, attestationId: 'start-1' },
+  ];
+
+  // Solve attestations: team-alpha solves clue 1 at 1600s (timeTaken 600), clue 2 at 1900s (timeTaken 300)
+  const solveAttestations = [
+    {
+      data: JSON.stringify({
+        teamIdentifier: teamId,
+        clueIndex: '1',
+        timeTaken: '600',
+        attemptCount: '2',
+      }),
+      attestTimestamp: 1_600_000, // 1600s
+      attestationId: 'solve-clue1',
+    },
+    {
+      data: JSON.stringify({
+        teamIdentifier: teamId,
+        clueIndex: '2',
+        timeTaken: '300',
+        attemptCount: '1',
+      }),
+      attestTimestamp: 1_900_000, // 1900s
+      attestationId: 'solve-clue2',
+    },
+  ];
+
+  // Retry for clue 1 at 1300s (300s after hunt start)
+  const retryClue1 = [
+    {
+      data: JSON.stringify({ attemptCount: '1' }),
+      attestTimestamp: 1_300_000, // 1300s
+      attestationId: 'retry-clue1',
+    },
+  ];
+
+  const retryAttestationsByClue = new Map([
+    [1, retryClue1],
+    [2, []], // clue 2 solved on first attempt
+  ]);
+
+  // Parsed team solve attestations (as server would pass after parse + filter)
+  const teamSolveAttestations = solveAttestations.map((a) => ({
+    ...a,
+    parsedData: JSON.parse(a.data),
+  }));
+
+  const solvedClueIndices = [1, 2];
+
+  describe('Happy path', () => {
+    test('returns correct structure with huntId, teamIdentifier, clues', () => {
+      const result = buildAttestationTimeline({
+        teamSolveAttestations,
+        solvedClueIndices,
+        retryAttestationsByClue,
+        huntStartAttestations,
+        teamIdentifier: teamId,
+        huntId,
+      });
+      expect(result).toHaveProperty('huntId', huntId);
+      expect(result).toHaveProperty('teamIdentifier', teamId);
+      expect(result).toHaveProperty('clues');
+      expect(Array.isArray(result.clues)).toBe(true);
+      expect(result.clues.length).toBe(2);
+    });
+
+    test('clue 1 has retry then solve, with correct timeTaken', () => {
+      const result = buildAttestationTimeline({
+        teamSolveAttestations,
+        solvedClueIndices,
+        retryAttestationsByClue,
+        huntStartAttestations,
+        teamIdentifier: teamId,
+        huntId,
+      });
+      const clue1 = result.clues.find((c) => c.clueIndex === 1);
+      expect(clue1).toBeDefined();
+      expect(clue1.attempts.length).toBe(2); // retry + solve
+      const [retryEntry, solveEntry] = clue1.attempts;
+      expect(retryEntry.type).toBe('retry');
+      expect(retryEntry.timestamp).toBe(1300); // 1300000/1000
+      expect(retryEntry.timeTaken).toBe(300); // 1300 - 1000 (hunt start)
+      expect(solveEntry.type).toBe('solve');
+      expect(solveEntry.timestamp).toBe(1600);
+      expect(solveEntry.timeTaken).toBe(600); // from data
+    });
+
+    test('clue 2 has only solve entry (no retries)', () => {
+      const result = buildAttestationTimeline({
+        teamSolveAttestations,
+        solvedClueIndices,
+        retryAttestationsByClue,
+        huntStartAttestations,
+        teamIdentifier: teamId,
+        huntId,
+      });
+      const clue2 = result.clues.find((c) => c.clueIndex === 2);
+      expect(clue2).toBeDefined();
+      expect(clue2.attempts.length).toBe(1);
+      expect(clue2.attempts[0].type).toBe('solve');
+      expect(clue2.attempts[0].timeTaken).toBe(300);
+    });
+
+    test('attempts are sorted by timestamp', () => {
+      const result = buildAttestationTimeline({
+        teamSolveAttestations,
+        solvedClueIndices,
+        retryAttestationsByClue,
+        huntStartAttestations,
+        teamIdentifier: teamId,
+        huntId,
+      });
+      result.clues.forEach((clue) => {
+        for (let i = 1; i < clue.attempts.length; i++) {
+          expect(clue.attempts[i].timestamp).toBeGreaterThanOrEqual(clue.attempts[i - 1].timestamp);
+        }
+      });
+    });
+  });
+
+  describe('Empty team', () => {
+    test('returns clues empty when teamSolveAttestations is empty', () => {
+      const result = buildAttestationTimeline({
+        teamSolveAttestations: [],
+        solvedClueIndices: [],
+        retryAttestationsByClue: new Map(),
+        huntStartAttestations: [],
+        teamIdentifier: 'other-team',
+        huntId,
+      });
+      expect(result.huntId).toBe(huntId);
+      expect(result.teamIdentifier).toBe('other-team');
+      expect(result.clues).toEqual([]);
+    });
+  });
+
+  describe('Clue 1 timing', () => {
+    test('uses hunt start timestamp as time reference for clue 1', () => {
+      const result = buildAttestationTimeline({
+        teamSolveAttestations,
+        solvedClueIndices,
+        retryAttestationsByClue,
+        huntStartAttestations,
+        teamIdentifier: teamId,
+        huntId,
+      });
+      const clue1 = result.clues.find((c) => c.clueIndex === 1);
+      const retry = clue1.attempts.find((a) => a.type === 'retry');
+      expect(retry.timeTaken).toBe(300); // 1300 - 1000 (hunt start)
+    });
+  });
+
+  describe('Clue 2+ timing', () => {
+    test('uses previous clue solve timestamp as reference for clue 2', () => {
+      const result = buildAttestationTimeline({
+        teamSolveAttestations,
+        solvedClueIndices,
+        retryAttestationsByClue,
+        huntStartAttestations,
+        teamIdentifier: teamId,
+        huntId,
+      });
+      const clue2 = result.clues.find((c) => c.clueIndex === 2);
+      expect(clue2.attempts[0].type).toBe('solve');
+      expect(clue2.attempts[0].timestamp).toBe(1900); // from clue 2 solve
+      expect(clue2.attempts[0].timeTaken).toBe(300); // from data (time since clue 1 solve)
+    });
+  });
+
+  describe('Solve entry present', () => {
+    test('each clue has solve entry last in attempts', () => {
+      const result = buildAttestationTimeline({
+        teamSolveAttestations,
+        solvedClueIndices,
+        retryAttestationsByClue,
+        huntStartAttestations,
+        teamIdentifier: teamId,
+        huntId,
+      });
+      result.clues.forEach((clue) => {
+        const last = clue.attempts[clue.attempts.length - 1];
+        expect(last.type).toBe('solve');
+        expect(last).toHaveProperty('attemptCount');
+        expect(last).toHaveProperty('attestationId');
+        expect(last).toHaveProperty('timestamp');
+        expect(last).toHaveProperty('timeTaken');
+      });
+    });
+  });
+
+  describe('No retries for a clue', () => {
+    test('clue with no retries has only solve entry', () => {
+      const retriesEmpty = new Map([[1, []], [2, []]]);
+      const result = buildAttestationTimeline({
+        teamSolveAttestations,
+        solvedClueIndices,
+        retryAttestationsByClue: retriesEmpty,
+        huntStartAttestations,
+        teamIdentifier: teamId,
+        huntId,
+      });
+      result.clues.forEach((clue) => {
+        expect(clue.attempts.length).toBe(1);
+        expect(clue.attempts[0].type).toBe('solve');
+      });
     });
   });
 });

@@ -1,45 +1,33 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { Collapsible, CollapsibleContent } from './ui/collapsible';
 import { FaTrophy, FaMedal } from 'react-icons/fa';
 import { FiRefreshCw } from 'react-icons/fi';
+import { ChevronRight, ChevronDown, X, Check, Clock, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/toast';
 import { TeamIdentifierDisplay, isSoloParticipant } from './TeamIdentifierDisplay';
 import { AddressDisplay } from './AddressDisplay';
 import { useNetworkState } from '../lib/utils';
 import { hasRequiredHuntParams } from '../utils/validationUtils';
+import { formatTimeTaken } from '../utils/leaderboardUtils';
+import type { TeamAttestationsResponse, AttestationEntry, LeaderboardEntry, LeaderboardProps } from '@/types/ui';
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 
-// Leaderboard data interface based on backend response
-interface LeaderboardEntry {
-  rank: number;
-  teamIdentifier: string;
-  teamName?: string;
-  teamLeaderAddress: string;
-  totalTime: number;
-  totalAttempts: number;
-  cluesCompleted: number;
-  solvers: string[];
-  solverCount: number;
-  combinedScore: number;
-}
-
-interface LeaderboardProps {
-  huntId?: string;
-  huntName?: string;
-  isOpen: boolean;
-  onClose: () => void;
-}
+const SIGN_EXPLORER_BASE = 'https://scan.sign.global/attestation/';
 
 export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardProps) {
   const [hoveredTeam, setHoveredTeam] = useState<string | null>(null);
   const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+  const [expandedTeam, setExpandedTeam] = useState<string | null>(null);
+  const [teamAttestations, setTeamAttestations] = useState<TeamAttestationsResponse | null>(null);
+  const [isLoadingAttestations, setIsLoadingAttestations] = useState(false);
+
   const { chainId, contractAddress } = useNetworkState();
 
   // Fetch leaderboard data when component opens
@@ -78,14 +66,49 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
     }
   };
 
+  const fetchTeamAttestations = useCallback(async (teamIdentifier: string) => {
+    if (!hasRequiredHuntParams({ huntId, chainId, contractAddress })) return;
+
+    setIsLoadingAttestations(true);
+    setTeamAttestations(null);
+
+    try {
+      const url = `${BACKEND_URL}/hunts/${huntId}/teams/${encodeURIComponent(teamIdentifier)}/attestations?chainId=${chainId}&contractAddress=${contractAddress}`;
+      const response = await fetch(url);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch attestations: ${response.status}`);
+      }
+
+      const data: TeamAttestationsResponse = await response.json();
+      setTeamAttestations(data);
+    } catch (err) {
+      console.error('Error fetching team attestations:', (err as Error)?.message);
+      toast.error('Failed to load attestations');
+      setExpandedTeam(null);
+    } finally {
+      setIsLoadingAttestations(false);
+    }
+  }, [huntId, chainId, contractAddress]);
+
+  const handleRowExpand = useCallback((teamIdentifier: string) => {
+    if (expandedTeam === teamIdentifier) {
+      setExpandedTeam(null);
+      setTeamAttestations(null);
+      return;
+    }
+    setExpandedTeam(teamIdentifier);
+    fetchTeamAttestations(teamIdentifier);
+  }, [expandedTeam, fetchTeamAttestations]);
+
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
-        return <FaTrophy className="w-5 h-5 text-yellow-500" style={{ color: '#FFD700' }} />;
+        return <FaTrophy className="w-5 h-5 text-amber-400" />;
       case 2:
-        return <FaMedal className="w-5 h-5" style={{ color: '#C0C0C0' }} />;
+        return <FaMedal className="w-5 h-5 text-gray-400" />;
       case 3:
-        return <FaMedal className="w-5 h-5" style={{ color: '#CD7F32' }} />;
+        return <FaMedal className="w-5 h-5 text-amber-700" />;
       default:
         return (
           <span className="w-5 h-5 flex items-center justify-center text-xs font-bold text-gray-500">
@@ -93,6 +116,57 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
           </span>
         );
     }
+  };
+
+  const renderAttestationTimeline = () => {
+    if (isLoadingAttestations) {
+      return <div className="py-4 text-sm text-foreground/60">Loading attestations...</div>;
+    }
+    if (!teamAttestations || teamAttestations.clues.length === 0) {
+      return <div className="py-4 text-sm text-foreground/60">No attestations found</div>;
+    }
+    return (
+      <div className="border-l-2 border-border/50 pl-4 py-2 space-y-4">
+        {teamAttestations.clues.map((clue) => (
+          <div key={clue.clueIndex}>
+            <div className="relative flex items-center mb-2">
+              <div
+                className="absolute w-2 h-2 rounded-full bg-foreground -left-[21px] top-1/2 -translate-y-1/2 shrink-0"
+                aria-hidden
+              />
+              <span className="text-sm font-semibold text-foreground">Clue #{clue.clueIndex}</span>
+            </div>
+            <div className="ml-4 space-y-2">
+              {clue.attempts.map((entry: AttestationEntry, i: number) => (
+                <div
+                  key={entry.attestationId}
+                  className="flex items-center gap-3 text-sm"
+                >
+                  <span className="text-foreground/80 w-24">Attempt #{i + 1}</span>
+                  {entry.type === 'retry' ? (
+                    <X className="w-4 h-4 text-red-600 shrink-0" />
+                  ) : (
+                    <Check className="w-4 h-4 text-green-600 shrink-0" />
+                  )}
+                  <span className="flex items-center gap-1 w-16">
+                    <Clock className="w-4 h-4 text-foreground/60 shrink-0" />
+                    {formatTimeTaken(entry.timeTaken)}
+                  </span>
+                  <a
+                    href={`${SIGN_EXPLORER_BASE}${entry.attestationId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-main hover:underline"
+                  >
+                    <ExternalLink className="w-4 h-4 shrink-0" />
+                  </a>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   const getScoreColor = (score: number) => {
@@ -104,7 +178,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl w-[95vw] sm:w-[90vw] bg-white">
+      <DialogContent className="max-w-xl w-[95vw] sm:w-[85vw] bg-white">
         <DialogHeader className="bg-main text-main-foreground p-6 border-b-2 border-black -m-6 mb-0">
           <DialogTitle className="text-center flex items-center justify-center text-xl">
             Leaderboard
@@ -166,75 +240,105 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                     <TableHead className="text-left font-bold text-sm px-2 sm:px-4">Team</TableHead>
                     <TableHead className="text-center font-bold text-sm px-2 sm:px-4">Clues</TableHead>
                     <TableHead className="text-center font-bold text-sm px-2 sm:px-4">Score</TableHead>
+                    <TableHead className="w-8 px-2" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {leaderboardData.map((team, index) => (
-                    <TableRow
-                      key={team.teamIdentifier}
-                      className={cn(
-                        'hover:bg-muted/50 transition-colors',
-                        index === leaderboardData.length - 1 && 'border-b-0',
-                        team.rank === 1
-                          ? 'bg-yellow-50'
-                          : team.rank === 2
-                            ? 'bg-gray-50'
-                            : team.rank === 3
-                              ? 'bg-orange-50'
-                              : ''
-                      )}
-                    >
-                      {/* Rank */}
-                      <TableCell className="text-center px-2 sm:px-4">
-                        {getRankIcon(team.rank)}
-                      </TableCell>
+                    <React.Fragment key={team.teamIdentifier}>
+                      <TableRow
+                        className={cn(
+                          'hover:bg-muted/50 transition-colors',
+                          index === leaderboardData.length - 1 && !expandedTeam && 'border-b-0',
+                          team.rank === 1
+                            ? 'bg-yellow-50'
+                            : team.rank === 2
+                              ? 'bg-gray-50'
+                              : team.rank === 3
+                                ? 'bg-orange-50'
+                                : ''
+                        )}
+                      >
+                        {/* Rank */}
+                        <TableCell className="text-center px-2 sm:px-4">
+                          {getRankIcon(team.rank)}
+                        </TableCell>
 
-                      {/* Team */}
-                      <TableCell className="px-2 sm:px-4 min-w-[100px]">
-                        <div className="relative">
-                          <div
-                            className="font-medium text-sm text-foreground cursor-pointer hover:text-main transition-colors break-all"
-                            onClick={() =>
-                              setHoveredTeam(
-                                hoveredTeam === team.teamIdentifier ? null : team.teamIdentifier
-                              )
-                            }
-                            title="Click to see team leader address"
-                          >
-                            <TeamIdentifierDisplay
-                              teamIdentifier={team.teamIdentifier}
-                              teamName={team.teamName}
-                            />
-                          </div>
-                          {hoveredTeam === team.teamIdentifier && (
-                            <div className="absolute top-full left-0 mt-1 p-2 bg-foreground text-background text-xs sm:text-sm rounded-base border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] z-20 whitespace-nowrap max-w-[200px] break-all">
-                              {isSoloParticipant(team.teamIdentifier) ? (
-                                <span>
-                                  Solo: <TeamIdentifierDisplay teamIdentifier={team.teamIdentifier} />
-                                </span>
-                              ) : (
-                                <span>
-                                  Team Leader: <AddressDisplay address={team.teamLeaderAddress} />
-                                </span>
-                              )}
-                              <div className="absolute -top-1 left-2 w-2 h-2 bg-foreground transform rotate-45"></div>
+                        {/* Team */}
+                        <TableCell className="px-2 sm:px-4 min-w-[100px]">
+                          <div className="relative">
+                            <div
+                              className="font-medium text-sm text-foreground cursor-pointer hover:text-main transition-colors break-all"
+                              onClick={() =>
+                                setHoveredTeam(
+                                  hoveredTeam === team.teamIdentifier ? null : team.teamIdentifier
+                                )
+                              }
+                              title="Click to see team leader address"
+                            >
+                              <TeamIdentifierDisplay
+                                teamIdentifier={team.teamIdentifier}
+                                teamName={team.teamName}
+                              />
                             </div>
-                          )}
-                        </div>
-                      </TableCell>
+                            {hoveredTeam === team.teamIdentifier && (
+                              <div className="absolute top-full left-0 mt-1 p-2 bg-foreground text-background text-xs sm:text-sm rounded-base border-2 border-black shadow-[-2px_2px_0px_0px_rgba(0,0,0,1)] z-20 whitespace-nowrap max-w-[200px] break-all">
+                                {isSoloParticipant(team.teamIdentifier) ? (
+                                  <span>
+                                    Solo: <TeamIdentifierDisplay teamIdentifier={team.teamIdentifier} />
+                                  </span>
+                                ) : (
+                                  <span>
+                                    Team Leader: <AddressDisplay address={team.teamLeaderAddress} />
+                                  </span>
+                                )}
+                                <div className="absolute -top-1 left-2 w-2 h-2 bg-foreground transform rotate-45"></div>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
 
-                      {/* Clues Solved */}
-                      <TableCell className="text-center px-2 sm:px-4">
-                        <div className="text-base font-bold text-main">{team.cluesCompleted}</div>
-                      </TableCell>
+                        {/* Clues Solved */}
+                        <TableCell className="text-center px-2 sm:px-4">
+                          <div className="text-base font-bold text-main">{team.cluesCompleted}</div>
+                        </TableCell>
 
-                      {/* Score */}
-                      <TableCell className="text-center px-2 sm:px-4">
-                        <div className={cn('text-sm font-bold', getScoreColor(team.combinedScore))}>
-                          {team.combinedScore.toFixed(1)}
-                        </div>
-                      </TableCell>
-                    </TableRow>
+                        {/* Score */}
+                        <TableCell className="text-center px-2 sm:px-4">
+                          <div className={cn('text-sm font-bold', getScoreColor(team.combinedScore))}>
+                            {team.combinedScore.toFixed(1)}
+                          </div>
+                        </TableCell>
+
+                        {/* Expand */}
+                        <TableCell className="px-2 w-8">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0"
+                            onClick={() => handleRowExpand(team.teamIdentifier)}
+                            title={expandedTeam === team.teamIdentifier ? 'Collapse' : 'View attestations'}
+                          >
+                            {expandedTeam === team.teamIdentifier ? (
+                              <ChevronDown className="w-4 h-4" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4" />
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                      {expandedTeam === team.teamIdentifier && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="bg-muted/30 p-4 align-top">
+                            <Collapsible open>
+                              <CollapsibleContent>
+                                {renderAttestationTimeline()}
+                              </CollapsibleContent>
+                            </Collapsible>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
                   ))}
                 </TableBody>
               </Table>

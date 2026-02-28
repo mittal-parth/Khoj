@@ -1,3 +1,5 @@
+import type React from "react";
+
 // Import ButtonProps from the button component
 type ButtonProps = any; // We'll define this properly when needed
 
@@ -24,7 +26,7 @@ export interface RewardCard {
   description: string;
   isExpired: boolean;
   expiryDate?: string;
-  icon: JSX.Element;
+  icon: React.ReactElement;
 }
 
 export interface Riddle {
@@ -67,3 +69,44 @@ export const textColorClasses = {
   pink: "text-pink-600",
   red: "text-red-600"
 };
+
+export interface AttestationEntry {
+  clueIndex: number;
+  type: "retry" | "solve";
+  attemptCount: number;
+  attestationId: string;
+  timestamp: number;
+  timeTaken: number;
+}
+
+export interface ClueAttestations {
+  clueIndex: number;
+  attempts: AttestationEntry[];
+}
+
+export interface TeamAttestationsResponse {
+  huntId: number;
+  teamIdentifier: string;
+  clues: ClueAttestations[];
+}
+
+// Leaderboard types
+export interface LeaderboardEntry {
+  rank: number;
+  teamIdentifier: string;
+  teamName?: string;
+  teamLeaderAddress: string;
+  totalTime: number;
+  totalAttempts: number;
+  cluesCompleted: number;
+  solvers: string[];
+  solverCount: number;
+  combinedScore: number;
+}
+
+export interface LeaderboardProps {
+  huntId?: string;
+  huntName?: string;
+  isOpen: boolean;
+  onClose: () => void;
+}

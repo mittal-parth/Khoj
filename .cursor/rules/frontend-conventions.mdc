@@ -1,0 +1,49 @@
+---
+description: Frontend conventions — UI components, Tailwind, types, utils, and lint/build
+globs: frontend/**/*.ts,frontend/**/*.tsx
+alwaysApply: false
+---
+
+# Frontend Conventions
+
+## UI components and styling
+
+- **Use components from `frontend/src/components/ui/`** for layout and styling (Button, Card, Input, Dialog, Tabs, Badge, etc.). Prefer these over custom markup.
+- **No inline styles.** Use Tailwind classes only. Do not add neobrutalism styling inline.
+- **Existing components in `frontend/src/components/`** already include styling; use them as-is and avoid overriding with inline styles.
+
+```tsx
+// ❌ BAD — inline styles
+<div style={{ borderRadius: '8px', padding: '16px' }}>...</div>
+<button style={{ border: '2px solid black' }}>Click</button>
+
+// ✅ GOOD — UI component + Tailwind
+<Card className="rounded-lg p-4">...</Card>
+<Button variant="default">Click</Button>
+```
+
+## Types and interfaces
+
+- **All `type` and `interface` definitions** live under `frontend/src/types/`.
+- **Prefer existing files** (e.g. `ui.ts`, `hunt.ts`, `wallet.ts`, `huddle.ts`, `index.ts`). Add to a new file only when the type is a new domain.
+
+```ts
+// ❌ BAD — type in component file
+// MyComponent.tsx
+interface MyProps { title: string }
+
+// ✅ GOOD — type in frontend/src/types/
+// frontend/src/types/ui.ts (or existing appropriate file)
+export interface MyProps { title: string }
+```
+
+## Utility methods
+
+- **Formatting and other helpers** (dates, numbers, strings, etc.) go under `frontend/src/utils/`.
+- Use or extend existing utils (e.g. `dateUtils.ts`, `leaderboardUtils.ts`) when relevant; otherwise add a new file (e.g. `formatUtils.ts`).
+
+## After making frontend changes
+
+- **Run lint and build** before considering the change done:
+  - From repo root: `npm run lint` and `npm run build` (or the project’s equivalent in `frontend/`).
+  - Fix any lint or build errors.

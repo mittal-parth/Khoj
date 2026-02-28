@@ -113,3 +113,103 @@ export function calculateLeaderboardForHunt(attestations, huntId) {
   
   return calculateLeaderboard(huntAttestations);
 }
+
+/**
+ * Build attestation timeline for a team (solve + retry entries per clue).
+ * Pure function: accepts pre-fetched, already-parsed attestation data, returns structured timeline.
+ * @param {Object} params
+ * @param {Array} params.teamSolveAttestations - Solve attestations for the team only (each item has .parsedData, .attestTimestamp, .attestationId)
+ * @param {number[]} params.solvedClueIndices - Sorted array of clue indices the team has solved
+ * @param {Map<number, Array>} params.retryAttestationsByClue - Map of clueIndex -> retry attestations (raw)
+ * @param {Array} params.huntStartAttestations - Attestations for clueIndex 0 (hunt start)
+ * @param {string} params.teamIdentifier - Team identifier (for response)
+ * @param {number} params.huntId - Hunt ID
+ * @returns {{ huntId: number, teamIdentifier: string, clues: Array<{ clueIndex: number, attempts: Array }> }}
+ */
+export function buildAttestationTimeline({
+  teamSolveAttestations,
+  solvedClueIndices,
+  retryAttestationsByClue,
+  huntStartAttestations,
+  teamIdentifier,
+  huntId,
+}) {
+  const list = teamSolveAttestations || [];
+  if (list.length === 0) {
+    return { huntId, teamIdentifier, clues: [] };
+  }
+
+  const indices = solvedClueIndices ?? [...new Set(
+    list.map((a) => parseInt(a.parsedData.clueIndex))
+  )].sort((a, b) => a - b);
+
+  let huntStartTimestamp = null;
+  if (huntStartAttestations && huntStartAttestations.length > 0) {
+    const sortedByTime = huntStartAttestations
+      .map((a) => Math.floor(Number(a.attestTimestamp) / 1000))
+      .sort((a, b) => a - b);
+    huntStartTimestamp = sortedByTime[0];
+  }
+
+  const clues = [];
+
+  for (const clueIndex of indices) {
+    let clueStartTimestamp = null;
+    if (clueIndex === 1) {
+      clueStartTimestamp = huntStartTimestamp;
+    } else {
+      const prevClueIndex = clueIndex - 1;
+      const prevSolveAttestation = list.find(
+        (a) => parseInt(a.parsedData.clueIndex) === prevClueIndex
+      );
+      if (prevSolveAttestation) {
+        clueStartTimestamp = Math.floor(Number(prevSolveAttestation.attestTimestamp) / 1000);
+      }
+    }
+
+    const retryAttestations = retryAttestationsByClue?.get(clueIndex) ?? [];
+    const entries = [];
+
+    if (retryAttestations.length > 0) {
+      const sortedRetries = retryAttestations
+        .map((a) => {
+          const data = JSON.parse(a.data);
+          const rawTs = a.attestTimestamp;
+          const retryTimestamp = Math.floor(Number(rawTs) / 1000);
+          const timeTaken = clueStartTimestamp != null
+            ? Math.max(0, retryTimestamp - clueStartTimestamp)
+            : 0;
+          return {
+            type: "retry",
+            attemptCount: parseInt(data.attemptCount),
+            attestationId: a.attestationId,
+            timestamp: retryTimestamp,
+            timeTaken,
+            clueIndex,
+          };
+        })
+        .sort((a, b) => a.timestamp - b.timestamp);
+      entries.push(...sortedRetries);
+    }
+
+    const solveAttestation = list.find(
+      (a) => parseInt(a.parsedData.clueIndex) === clueIndex
+    );
+    if (solveAttestation) {
+      const data = solveAttestation.parsedData;
+      entries.push({
+        type: "solve",
+        attemptCount: parseInt(data.attemptCount),
+        attestationId: solveAttestation.attestationId,
+        timestamp: Math.floor(Number(solveAttestation.attestTimestamp) / 1000),
+        timeTaken: parseInt(data.timeTaken),
+        clueIndex,
+      });
+    }
+
+    entries.sort((a, b) => a.timestamp - b.timestamp);
+    clues.push({ clueIndex, attempts: entries });
+  }
+
+  return { huntId, teamIdentifier, clues };
+}

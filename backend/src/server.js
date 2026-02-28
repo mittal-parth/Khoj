@@ -19,7 +19,7 @@ import {
   verifyImage,
 } from "./services/verification.js";
 import { attestClueSolved, attestClueAttempt, queryAttestationsForHunt, queryRetryAttemptsForClue } from "./services/sign-protocol.js";
-import { calculateLeaderboardForHunt } from "./services/leaderboard.js";
+import { calculateLeaderboardForHunt, buildAttestationTimeline } from "./services/leaderboard.js";
 import { generateImageEmbedding } from "./services/vertex-ai.js";
 
 // Import utilities
@@ -981,7 +981,97 @@ app.get("/hunts/:huntId/clues/:clueIndex/teams/:teamIdentifier/attempts", async 
     console.error("Error fetching retry attempts:", error);
     res.status(500).json({
       error: "Failed to fetch retry attempts",
-      message: error.message,
+    });
+  }
+});
+
+// Get attestation timeline for a team (solve + retry attestations per clue)
+app.get("/hunts/:huntId/teams/:teamIdentifier/attestations", async (req, res) => {
+  try {
+    const huntId = parseInt(req.params.huntId);
+    const teamIdentifier = req.params.teamIdentifier;
+    const chainId = req.query.chainId;
+    const contractAddress = req.query.contractAddress;
+
+    if (isNaN(huntId)) {
+      return res.status(400).json({
+        error: "Invalid hunt ID",
+      });
+    }
+
+    if (!teamIdentifier) {
+      return res.status(400).json({
+        error: "Team identifier is required",
+      });
+    }
+
+    if (!chainId) {
+      return res.status(400).json({
+        error: "Chain ID is required",
+      });
+    }
+
+    if (!contractAddress) {
+      return res.status(400).json({
+        error: "Contract address is required",
+      });
+    }
+
+    console.log(`Fetching attestations for hunt ${huntId}, team ${teamIdentifier}, chainId ${chainId}, contractAddress ${contractAddress}...`);
+
+    // 1. Fetch all solve attestations for the hunt; parse data once per attestation
+    const allSolveAttestations = await queryAttestationsForHunt(huntId, chainId, contractAddress);
+    const parsedSolveAttestations = allSolveAttestations.map((a) => ({
+      ...a,
+      parsedData: JSON.parse(a.data),
+    }));
+
+    // 2. Filter by teamIdentifier
+    const teamSolveAttestations = parsedSolveAttestations.filter(
+      (a) => a.parsedData.teamIdentifier === teamIdentifier
+    );
+
+    if (teamSolveAttestations.length === 0) {
+      return res.json({ huntId, teamIdentifier, clues: [] });
+    }
+
+    // 3. Get solved clue indices (ordered)
+    const solvedClueIndices = [...new Set(
+      teamSolveAttestations.map((a) => parseInt(a.parsedData.clueIndex))
+    )].sort((a, b) => a - b);
+
+    // 4. Fetch hunt start attestation (clueIndex 0) for time reference
+    const huntStartAttestations = await queryRetryAttemptsForClue(
+      huntId,
+      0,
+      teamIdentifier,
+      chainId,
+      contractAddress
+    );
+
+    // 5. Fetch retry attestations for each solved clue in parallel
+    const retryPromises = solvedClueIndices.map((clueIndex) =>
+      queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier, chainId, contractAddress)
+    );
+    const allRetries = await Promise.all(retryPromises);
+    const retryAttestationsByClue = new Map(
+      solvedClueIndices.map((clueIndex, i) => [clueIndex, allRetries[i] || []])
+    );
+
+    // 6. Build attestation timeline (teamSolveAttestations already parsed above)
+    const result = buildAttestationTimeline({
+      teamSolveAttestations,
+      solvedClueIndices,
+      retryAttestationsByClue,
+      huntStartAttestations: huntStartAttestations || [],
+      teamIdentifier,
+      huntId,
+    });
+    res.json(result);
+  } catch (error) {
+    console.error("Error fetching team attestations:", error);
+    res.status(500).json({
+      error: "Failed to fetch team attestations",
     });
   }
 });
@@ -1035,7 +1125,6 @@ app.get("/hunts/:huntId/leaderboard", async (req, res) => {
     console.error("Error fetching leaderboard:", error);
     res.status(500).json({
       error: "Failed to fetch leaderboard",
-      message: error.message,
     });
   }
 });
