@@ -986,6 +986,163 @@ app.get("/hunts/:huntId/clues/:clueIndex/teams/:teamIdentifier/attempts", async 
   }
 });
 
+// Get attestation timeline for a team (solve + retry attestations per clue)
+app.get("/hunts/:huntId/teams/:teamIdentifier/attestations", async (req, res) => {
+  try {
+    const huntId = parseInt(req.params.huntId);
+    const teamIdentifier = req.params.teamIdentifier;
+    const chainId = req.query.chainId;
+    const contractAddress = req.query.contractAddress;
+
+    if (isNaN(huntId)) {
+      return res.status(400).json({
+        error: "Invalid hunt ID",
+      });
+    }
+
+    if (!teamIdentifier) {
+      return res.status(400).json({
+        error: "Team identifier is required",
+      });
+    }
+
+    if (!chainId) {
+      return res.status(400).json({
+        error: "Chain ID is required",
+      });
+    }
+
+    if (!contractAddress) {
+      return res.status(400).json({
+        error: "Contract address is required",
+      });
+    }
+
+    console.log(`Fetching attestations for hunt ${huntId}, team ${teamIdentifier}, chainId ${chainId}, contractAddress ${contractAddress}...`);
+
+    // 1. Fetch all solve attestations for the hunt
+    const allSolveAttestations = await queryAttestationsForHunt(huntId, chainId, contractAddress);
+
+    // 2. Filter by teamIdentifier
+    const teamSolveAttestations = allSolveAttestations.filter((attestation) => {
+      const data = JSON.parse(attestation.data);
+      return data.teamIdentifier === teamIdentifier;
+    });
+
+    if (teamSolveAttestations.length === 0) {
+      return res.json({
+        huntId,
+        teamIdentifier,
+        clues: [],
+      });
+    }
+
+    // 3. Get solved clue indices (ordered)
+    const solvedClueIndices = [...new Set(
+      teamSolveAttestations.map((a) => parseInt(JSON.parse(a.data).clueIndex))
+    )].sort((a, b) => a - b);
+
+    // 4. Fetch hunt start attestation (clueIndex 0) for time reference
+    let huntStartTimestamp = null;
+    const huntStartAttestations = await queryRetryAttemptsForClue(
+      huntId,
+      0,
+      teamIdentifier,
+      chainId,
+      contractAddress
+    );
+    if (huntStartAttestations && huntStartAttestations.length > 0) {
+      const sortedByTime = huntStartAttestations
+        .map((a) => Math.floor(Number(a.attestTimestamp) / 1000))
+        .sort((a, b) => a - b);
+      huntStartTimestamp = sortedByTime[0];
+    }
+
+    const clues = [];
+
+    for (const clueIndex of solvedClueIndices) {
+
+      // 5. Time reference: same as frontend - hunt start for clue 1, prev clue solve for clue 2+
+      let clueStartTimestamp = null;
+      if (clueIndex === 1) {
+        clueStartTimestamp = huntStartTimestamp;
+      } else {
+        const prevClueIndex = clueIndex - 1;
+        const prevSolveAttestation = teamSolveAttestations.find(
+          (a) => parseInt(JSON.parse(a.data).clueIndex) === prevClueIndex
+        );
+        if (prevSolveAttestation) {
+          clueStartTimestamp = Math.floor(Number(prevSolveAttestation.attestTimestamp) / 1000);
+        }
+      }
+
+      // 6. Fetch retry attestations for this clue
+      const retryAttestations = await queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier, chainId, contractAddress);
+
+      // 7. Build merge list: retries (with computed timeTaken) + solve
+      const entries = [];
+
+      if (retryAttestations && retryAttestations.length > 0) {
+        const sortedRetries = retryAttestations
+          .map((a) => {
+            const data = JSON.parse(a.data);
+            const rawTs = a.attestTimestamp;
+            const retryTimestamp = Math.floor(Number(rawTs) / 1000);
+            const timeTaken = clueStartTimestamp != null
+              ? Math.max(0, retryTimestamp - clueStartTimestamp)
+              : 0;
+            return {
+              type: "retry",
+              attemptCount: parseInt(data.attemptCount),
+              attestationId: a.attestationId,
+              timestamp: retryTimestamp,
+              timeTaken,
+              clueIndex,
+            };
+          })
+          .sort((a, b) => a.timestamp - b.timestamp);
+
+        for (const r of sortedRetries) {
+          entries.push(r);
+        }
+      }
+
+      // Find solve attestation for this clue
+      const solveAttestation = teamSolveAttestations.find(
+        (a) => parseInt(JSON.parse(a.data).clueIndex) === clueIndex
+      );
+      if (solveAttestation) {
+        const data = JSON.parse(solveAttestation.data);
+        entries.push({
+          type: "solve",
+          attemptCount: parseInt(data.attemptCount),
+          attestationId: solveAttestation.attestationId,
+          timestamp: Math.floor(Number(solveAttestation.attestTimestamp) / 1000),
+          timeTaken: parseInt(data.timeTaken),
+          clueIndex,
+        });
+      }
+
+      // Sort by timestamp
+      entries.sort((a, b) => a.timestamp - b.timestamp);
+
+      clues.push({ clueIndex, attempts: entries });
+    }
+
+    res.json({
+      huntId,
+      teamIdentifier,
+      clues,
+    });
+  } catch (error) {
+    console.error("Error fetching team attestations:", error);
+    res.status(500).json({
+      error: "Failed to fetch team attestations",
+      message: error.message,
+    });
+  }
+});
+
 // Leaderboard endpoint
 app.get("/hunts/:huntId/leaderboard", async (req, res) => {
   try {

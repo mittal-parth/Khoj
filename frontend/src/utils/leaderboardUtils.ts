@@ -53,6 +53,18 @@ export async function fetchTeamCombinedScore(huntId: string, teamIdentifier: big
 }
 
 /**
+ * Format duration in seconds as "m:ss" for leaderboard display.
+ * @param seconds - Duration in seconds
+ * @returns Formatted string (e.g., "2:05") or "—" if <= 0
+ */
+export function formatTimeTaken(seconds: number): string {
+  if (seconds <= 0) return '—';
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+/**
  * Formats an EVM address to a shortened version for display.
  * @param address - The blockchain address (0x...)
  * @returns Shortened format (e.g., "0x1234...5678")
