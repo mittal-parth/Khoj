@@ -19,7 +19,7 @@ import {
   verifyImage,
 } from "./services/verification.js";
 import { attestClueSolved, attestClueAttempt, queryAttestationsForHunt, queryRetryAttemptsForClue } from "./services/sign-protocol.js";
-import { calculateLeaderboardForHunt } from "./services/leaderboard.js";
+import { calculateLeaderboardForHunt, buildAttestationTimeline } from "./services/leaderboard.js";
 import { generateImageEmbedding } from "./services/vertex-ai.js";
 
 // Import utilities
@@ -981,7 +981,6 @@ app.get("/hunts/:huntId/clues/:clueIndex/teams/:teamIdentifier/attempts", async 
     console.error("Error fetching retry attempts:", error);
     res.status(500).json({
       error: "Failed to fetch retry attempts",
-      message: error.message,
     });
   }
 });
@@ -1020,30 +1019,28 @@ app.get("/hunts/:huntId/teams/:teamIdentifier/attestations", async (req, res) =>
 
     console.log(`Fetching attestations for hunt ${huntId}, team ${teamIdentifier}, chainId ${chainId}, contractAddress ${contractAddress}...`);
 
-    // 1. Fetch all solve attestations for the hunt
+    // 1. Fetch all solve attestations for the hunt; parse data once per attestation
     const allSolveAttestations = await queryAttestationsForHunt(huntId, chainId, contractAddress);
+    const parsedSolveAttestations = allSolveAttestations.map((a) => ({
+      ...a,
+      parsedData: JSON.parse(a.data),
+    }));
 
     // 2. Filter by teamIdentifier
-    const teamSolveAttestations = allSolveAttestations.filter((attestation) => {
-      const data = JSON.parse(attestation.data);
-      return data.teamIdentifier === teamIdentifier;
-    });
+    const teamSolveAttestations = parsedSolveAttestations.filter(
+      (a) => a.parsedData.teamIdentifier === teamIdentifier
+    );
 
     if (teamSolveAttestations.length === 0) {
-      return res.json({
-        huntId,
-        teamIdentifier,
-        clues: [],
-      });
+      return res.json({ huntId, teamIdentifier, clues: [] });
     }
 
     // 3. Get solved clue indices (ordered)
     const solvedClueIndices = [...new Set(
-      teamSolveAttestations.map((a) => parseInt(JSON.parse(a.data).clueIndex))
+      teamSolveAttestations.map((a) => parseInt(a.parsedData.clueIndex))
     )].sort((a, b) => a - b);
 
     // 4. Fetch hunt start attestation (clueIndex 0) for time reference
-    let huntStartTimestamp = null;
     const huntStartAttestations = await queryRetryAttemptsForClue(
       huntId,
       0,
@@ -1051,94 +1048,27 @@ app.get("/hunts/:huntId/teams/:teamIdentifier/attestations", async (req, res) =>
       chainId,
       contractAddress
     );
-    if (huntStartAttestations && huntStartAttestations.length > 0) {
-      const sortedByTime = huntStartAttestations
-        .map((a) => Math.floor(Number(a.attestTimestamp) / 1000))
-        .sort((a, b) => a - b);
-      huntStartTimestamp = sortedByTime[0];
-    }
 
-    const clues = [];
-
+    // 5. Fetch retry attestations for each solved clue
+    const retryAttestationsByClue = new Map();
     for (const clueIndex of solvedClueIndices) {
-
-      // 5. Time reference: same as frontend - hunt start for clue 1, prev clue solve for clue 2+
-      let clueStartTimestamp = null;
-      if (clueIndex === 1) {
-        clueStartTimestamp = huntStartTimestamp;
-      } else {
-        const prevClueIndex = clueIndex - 1;
-        const prevSolveAttestation = teamSolveAttestations.find(
-          (a) => parseInt(JSON.parse(a.data).clueIndex) === prevClueIndex
-        );
-        if (prevSolveAttestation) {
-          clueStartTimestamp = Math.floor(Number(prevSolveAttestation.attestTimestamp) / 1000);
-        }
-      }
-
-      // 6. Fetch retry attestations for this clue
-      const retryAttestations = await queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier, chainId, contractAddress);
-
-      // 7. Build merge list: retries (with computed timeTaken) + solve
-      const entries = [];
-
-      if (retryAttestations && retryAttestations.length > 0) {
-        const sortedRetries = retryAttestations
-          .map((a) => {
-            const data = JSON.parse(a.data);
-            const rawTs = a.attestTimestamp;
-            const retryTimestamp = Math.floor(Number(rawTs) / 1000);
-            const timeTaken = clueStartTimestamp != null
-              ? Math.max(0, retryTimestamp - clueStartTimestamp)
-              : 0;
-            return {
-              type: "retry",
-              attemptCount: parseInt(data.attemptCount),
-              attestationId: a.attestationId,
-              timestamp: retryTimestamp,
-              timeTaken,
-              clueIndex,
-            };
-          })
-          .sort((a, b) => a.timestamp - b.timestamp);
-
-        for (const r of sortedRetries) {
-          entries.push(r);
-        }
-      }
-
-      // Find solve attestation for this clue
-      const solveAttestation = teamSolveAttestations.find(
-        (a) => parseInt(JSON.parse(a.data).clueIndex) === clueIndex
-      );
-      if (solveAttestation) {
-        const data = JSON.parse(solveAttestation.data);
-        entries.push({
-          type: "solve",
-          attemptCount: parseInt(data.attemptCount),
-          attestationId: solveAttestation.attestationId,
-          timestamp: Math.floor(Number(solveAttestation.attestTimestamp) / 1000),
-          timeTaken: parseInt(data.timeTaken),
-          clueIndex,
-        });
-      }
-
-      // Sort by timestamp
-      entries.sort((a, b) => a.timestamp - b.timestamp);
-
-      clues.push({ clueIndex, attempts: entries });
+      const retries = await queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier, chainId, contractAddress);
+      retryAttestationsByClue.set(clueIndex, retries || []);
     }
 
-    res.json({
-      huntId,
+    // 6. Build attestation timeline (teamSolveAttestations already parsed above)
+    const result = buildAttestationTimeline({
+      teamSolveAttestations,
+      retryAttestationsByClue,
+      huntStartAttestations: huntStartAttestations || [],
       teamIdentifier,
-      clues,
+      huntId,
     });
+    res.json(result);
   } catch (error) {
     console.error("Error fetching team attestations:", error);
     res.status(500).json({
       error: "Failed to fetch team attestations",
-      message: error.message,
     });
   }
 });
