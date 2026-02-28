@@ -110,3 +110,23 @@ export interface LeaderboardProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+// Profile page types
+export type HuntStatus = "active" | "upcoming" | "ended";
+
+export interface ProfileHuntSummary {
+  huntId: number;
+  huntName: string;
+  teamIdentifier: string;
+  teamName?: string;
+  cluesSolved: number;
+  rank?: number;
+  score?: number;
+  status: HuntStatus;
+}
+
+export interface ProfileStats {
+  totalHunts: number;
+  totalCluesSolved: number;
+  totalAttestations: number;
+}
