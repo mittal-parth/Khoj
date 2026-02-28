@@ -13,6 +13,7 @@ import { Button } from "./ui/button.tsx";
 import { Card, CardContent } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Loader } from "./ui/loader";
+import { HuntsSkeleton } from "./HuntsSkeleton";
 import { useState, useEffect, useMemo } from "react";
 import { useNetworkState } from "../lib/utils";
 import { client } from "../lib/client";
@@ -176,11 +177,7 @@ export function Hunts() {
         <h1 className="text-3xl font-bold mt-12 mb-6 mx-2 text-green drop-shadow-xl">
           Hunts
         </h1>
-        <Loader 
-          text="Loading Treasure Hunts..." 
-          subtext="Fetching the latest adventures for you..."
-          showAnimation={true}
-        />
+        <HuntsSkeleton />
       </div>
     );
   }
