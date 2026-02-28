@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/toast';
 import { TeamIdentifierDisplay, isSoloParticipant } from './TeamIdentifierDisplay';
 import { AddressDisplay } from './AddressDisplay';
+import { LeaderboardSkeleton, LeaderboardAttestationsSkeleton } from './LeaderboardSkeleton';
 import { useNetworkState } from '../lib/utils';
 import { hasRequiredHuntParams } from '../utils/validationUtils';
 import { formatTimeTaken } from '../utils/leaderboardUtils';
@@ -120,7 +121,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
 
   const renderAttestationTimeline = () => {
     if (isLoadingAttestations) {
-      return <div className="py-4 text-sm text-foreground/60">Loading attestations...</div>;
+      return <LeaderboardAttestationsSkeleton />;
     }
     if (!teamAttestations || teamAttestations.clues.length === 0) {
       return <div className="py-4 text-sm text-foreground/60">No attestations found</div>;
@@ -205,9 +206,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
 
           {/* Loading State */}
           {isLoading && (
-            <div className="flex items-center justify-center py-8">
-              <div className="text-foreground/60 font-medium">Loading leaderboard...</div>
-            </div>
+            <LeaderboardSkeleton />
           )}
 
           {/* Error State */}

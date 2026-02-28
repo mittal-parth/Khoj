@@ -1,7 +1,8 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
-import { Loader } from "./ui/loader";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import { Skeleton } from "./ui/skeleton";
+import { HuntDetailsSkeleton } from "./HuntDetailsSkeleton";
 import { useState, useEffect, useRef } from "react";
 import {
   BsQrCode,
@@ -527,17 +528,7 @@ export function HuntDetails() {
 
   // Show loading state while hunt data is being fetched
   if (huntLoading) {
-    return (
-      <div className="min-h-screen bg-background pt-20 px-4 mb-[90px]">
-        <div className="max-w-4xl mx-auto">
-          <Loader 
-            text="Loading Hunt Details..." 
-            subtext="Fetching hunt information and team data..."
-            showAnimation={true}
-          />
-        </div>
-      </div>
-    );
+    return <HuntDetailsSkeleton />;
   }
 
   // Generate multi-use invite code
@@ -895,8 +886,14 @@ export function HuntDetails() {
                 </div>
               ) : isCheckingHuntStart ? (
                 // Show loading state while checking if hunt has started
-                <div className="flex items-center justify-center py-4">
-                  <Loader text="Checking hunt status..." showAnimation={true} />
+                <div className="space-y-3 py-4">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-10 w-10 shrink-0 rounded-lg" />
+                    <div className="flex-1 space-y-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                  </div>
                 </div>
               ) : (
                 // Show create/join options when user is not in a team
