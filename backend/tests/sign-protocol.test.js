@@ -172,6 +172,10 @@ describe('Sign Protocol Integration', () => {
         expect(attestationResultBody.attemptCount).toBe(attestationDatum.attemptCount.toString());
         expect(attestationResultBody.timeTaken).toBe(attestationDatum.timeTaken.toString());
         expect(attestationResultBody.timeTaken).toBeDefined();
+        // Attestations are created with solverAddress as recipient
+        if (attestationResult.recipients) {
+          expect(attestationResult.recipients).toEqual([attestationDatum.solverAddress]);
+        }
       }
     });
   });
