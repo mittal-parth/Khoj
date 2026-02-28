@@ -91,7 +91,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
     }
   }, [huntId, chainId, contractAddress]);
 
-  const handleRowExpand = (teamIdentifier: string) => {
+  const handleRowExpand = useCallback((teamIdentifier: string) => {
     if (expandedTeam === teamIdentifier) {
       setExpandedTeam(null);
       setTeamAttestations(null);
@@ -99,7 +99,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
     }
     setExpandedTeam(teamIdentifier);
     fetchTeamAttestations(teamIdentifier);
-  };
+  }, [expandedTeam, fetchTeamAttestations]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
@@ -139,7 +139,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
             <div className="ml-4 space-y-2">
               {clue.attempts.map((entry: AttestationEntry, i: number) => (
                 <div
-                  key={`${clue.clueIndex}-${i}`}
+                  key={entry.attestationId}
                   className="flex items-center gap-3 text-sm"
                 >
                   <span className="text-foreground/80 w-24">Attempt #{i + 1}</span>

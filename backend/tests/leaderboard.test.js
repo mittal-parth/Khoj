@@ -357,10 +357,13 @@ describe('Attestation Timeline', () => {
     parsedData: JSON.parse(a.data),
   }));
 
+  const solvedClueIndices = [1, 2];
+
   describe('Happy path', () => {
     test('returns correct structure with huntId, teamIdentifier, clues', () => {
       const result = buildAttestationTimeline({
         teamSolveAttestations,
+        solvedClueIndices,
         retryAttestationsByClue,
         huntStartAttestations,
         teamIdentifier: teamId,
@@ -376,6 +379,7 @@ describe('Attestation Timeline', () => {
     test('clue 1 has retry then solve, with correct timeTaken', () => {
       const result = buildAttestationTimeline({
         teamSolveAttestations,
+        solvedClueIndices,
         retryAttestationsByClue,
         huntStartAttestations,
         teamIdentifier: teamId,
@@ -396,6 +400,7 @@ describe('Attestation Timeline', () => {
     test('clue 2 has only solve entry (no retries)', () => {
       const result = buildAttestationTimeline({
         teamSolveAttestations,
+        solvedClueIndices,
         retryAttestationsByClue,
         huntStartAttestations,
         teamIdentifier: teamId,
@@ -411,6 +416,7 @@ describe('Attestation Timeline', () => {
     test('attempts are sorted by timestamp', () => {
       const result = buildAttestationTimeline({
         teamSolveAttestations,
+        solvedClueIndices,
         retryAttestationsByClue,
         huntStartAttestations,
         teamIdentifier: teamId,
@@ -428,6 +434,7 @@ describe('Attestation Timeline', () => {
     test('returns clues empty when teamSolveAttestations is empty', () => {
       const result = buildAttestationTimeline({
         teamSolveAttestations: [],
+        solvedClueIndices: [],
         retryAttestationsByClue: new Map(),
         huntStartAttestations: [],
         teamIdentifier: 'other-team',
@@ -443,6 +450,7 @@ describe('Attestation Timeline', () => {
     test('uses hunt start timestamp as time reference for clue 1', () => {
       const result = buildAttestationTimeline({
         teamSolveAttestations,
+        solvedClueIndices,
         retryAttestationsByClue,
         huntStartAttestations,
         teamIdentifier: teamId,
@@ -458,6 +466,7 @@ describe('Attestation Timeline', () => {
     test('uses previous clue solve timestamp as reference for clue 2', () => {
       const result = buildAttestationTimeline({
         teamSolveAttestations,
+        solvedClueIndices,
         retryAttestationsByClue,
         huntStartAttestations,
         teamIdentifier: teamId,
@@ -474,6 +483,7 @@ describe('Attestation Timeline', () => {
     test('each clue has solve entry last in attempts', () => {
       const result = buildAttestationTimeline({
         teamSolveAttestations,
+        solvedClueIndices,
         retryAttestationsByClue,
         huntStartAttestations,
         teamIdentifier: teamId,
@@ -495,6 +505,7 @@ describe('Attestation Timeline', () => {
       const retriesEmpty = new Map([[1, []], [2, []]]);
       const result = buildAttestationTimeline({
         teamSolveAttestations,
+        solvedClueIndices,
         retryAttestationsByClue: retriesEmpty,
         huntStartAttestations,
         teamIdentifier: teamId,

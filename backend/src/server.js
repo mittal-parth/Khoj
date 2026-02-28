@@ -1049,16 +1049,19 @@ app.get("/hunts/:huntId/teams/:teamIdentifier/attestations", async (req, res) =>
       contractAddress
     );
 
-    // 5. Fetch retry attestations for each solved clue
-    const retryAttestationsByClue = new Map();
-    for (const clueIndex of solvedClueIndices) {
-      const retries = await queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier, chainId, contractAddress);
-      retryAttestationsByClue.set(clueIndex, retries || []);
-    }
+    // 5. Fetch retry attestations for each solved clue in parallel
+    const retryPromises = solvedClueIndices.map((clueIndex) =>
+      queryRetryAttemptsForClue(huntId, clueIndex, teamIdentifier, chainId, contractAddress)
+    );
+    const allRetries = await Promise.all(retryPromises);
+    const retryAttestationsByClue = new Map(
+      solvedClueIndices.map((clueIndex, i) => [clueIndex, allRetries[i] || []])
+    );
 
     // 6. Build attestation timeline (teamSolveAttestations already parsed above)
     const result = buildAttestationTimeline({
       teamSolveAttestations,
+      solvedClueIndices,
       retryAttestationsByClue,
       huntStartAttestations: huntStartAttestations || [],
       teamIdentifier,
@@ -1122,7 +1125,6 @@ app.get("/hunts/:huntId/leaderboard", async (req, res) => {
     console.error("Error fetching leaderboard:", error);
     res.status(500).json({
       error: "Failed to fetch leaderboard",
-      message: error.message,
     });
   }
 });

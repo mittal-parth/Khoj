@@ -119,6 +119,7 @@ export function calculateLeaderboardForHunt(attestations, huntId) {
  * Pure function: accepts pre-fetched, already-parsed attestation data, returns structured timeline.
  * @param {Object} params
  * @param {Array} params.teamSolveAttestations - Solve attestations for the team only (each item has .parsedData, .attestTimestamp, .attestationId)
+ * @param {number[]} params.solvedClueIndices - Sorted array of clue indices the team has solved
  * @param {Map<number, Array>} params.retryAttestationsByClue - Map of clueIndex -> retry attestations (raw)
  * @param {Array} params.huntStartAttestations - Attestations for clueIndex 0 (hunt start)
  * @param {string} params.teamIdentifier - Team identifier (for response)
@@ -127,6 +128,7 @@ export function calculateLeaderboardForHunt(attestations, huntId) {
  */
 export function buildAttestationTimeline({
   teamSolveAttestations,
+  solvedClueIndices,
   retryAttestationsByClue,
   huntStartAttestations,
   teamIdentifier,
@@ -137,7 +139,7 @@ export function buildAttestationTimeline({
     return { huntId, teamIdentifier, clues: [] };
   }
 
-  const solvedClueIndices = [...new Set(
+  const indices = solvedClueIndices ?? [...new Set(
     list.map((a) => parseInt(a.parsedData.clueIndex))
   )].sort((a, b) => a - b);
 
@@ -151,7 +153,7 @@ export function buildAttestationTimeline({
 
   const clues = [];
 
-  for (const clueIndex of solvedClueIndices) {
+  for (const clueIndex of indices) {
     let clueStartTimestamp = null;
     if (clueIndex === 1) {
       clueStartTimestamp = huntStartTimestamp;
