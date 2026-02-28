@@ -121,7 +121,11 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
 
   const renderAttestationTimeline = () => {
     if (isLoadingAttestations) {
-      return <LeaderboardAttestationsSkeleton />;
+      return (
+        <div className="border-l-2 border-border/50 pl-4 py-2 space-y-4">
+          <LeaderboardAttestationsSkeleton />
+        </div>
+      );
     }
     if (!teamAttestations || teamAttestations.clues.length === 0) {
       return <div className="py-4 text-sm text-foreground/60">No attestations found</div>;

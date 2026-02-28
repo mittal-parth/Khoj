@@ -3,12 +3,7 @@ import { Skeleton } from "./ui/skeleton";
 
 export function HuntsSkeleton() {
   return (
-    <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-[90px]">
-      <h1 className="text-3xl font-bold mt-12 mb-6 mx-2 text-green drop-shadow-xl">
-        Hunts
-      </h1>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mx-2">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mx-2">
         {[1, 2, 3].map((i) => (
           <Card key={i} className="overflow-hidden p-0 bg-white">
             <div className="flex h-full min-h-[250px]">
@@ -38,7 +33,6 @@ export function HuntsSkeleton() {
             </div>
           </Card>
         ))}
-      </div>
     </div>
   );
 }

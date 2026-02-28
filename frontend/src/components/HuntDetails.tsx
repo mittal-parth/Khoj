@@ -528,7 +528,13 @@ export function HuntDetails() {
 
   // Show loading state while hunt data is being fetched
   if (huntLoading) {
-    return <HuntDetailsSkeleton />;
+    return (
+      <div className="min-h-screen bg-background pt-20 px-4 mb-[90px]">
+        <div className="max-w-4xl mx-auto">
+          <HuntDetailsSkeleton />
+        </div>
+      </div>
+    );
   }
 
   // Generate multi-use invite code

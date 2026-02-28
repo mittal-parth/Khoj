@@ -3,8 +3,7 @@ import { Skeleton } from "./ui/skeleton";
 
 export function HuntDetailsSkeleton() {
   return (
-    <div className="min-h-screen bg-background pt-20 px-4 mb-[90px]">
-      <div className="max-w-4xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto space-y-6">
         {/* Hunt Info Card skeleton */}
         <Card className="bg-white">
           <CardHeader className="bg-main text-main-foreground p-6 border-b-2 border-black -my-6">
@@ -61,7 +60,6 @@ export function HuntDetailsSkeleton() {
 
         {/* Start Hunt button skeleton */}
         <Skeleton className="h-12 w-full rounded-base" />
-      </div>
     </div>
   );
 }

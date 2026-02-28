@@ -172,7 +172,14 @@ export function Hunts() {
 
   // Show loading state while hunts are being fetched
   if (huntsLoading) {
-    return <HuntsSkeleton />;
+    return (
+      <div className="pt-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto mb-[90px]">
+        <h1 className="text-3xl font-bold mt-12 mb-6 mx-2 text-green drop-shadow-xl">
+          Hunts
+        </h1>
+        <HuntsSkeleton />
+      </div>
+    );
   }
 
   // Array of icons to rotate through for visual variety

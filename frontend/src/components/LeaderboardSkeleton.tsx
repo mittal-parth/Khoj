@@ -57,7 +57,7 @@ export function LeaderboardSkeleton() {
 
 export function LeaderboardAttestationsSkeleton() {
   return (
-    <div className="border-l-2 border-border/50 pl-4 py-2 space-y-4">
+    <>
       {[1, 2, 3].map((clueIndex) => (
         <div key={clueIndex}>
           <div className="relative flex items-center mb-2">
@@ -81,6 +81,6 @@ export function LeaderboardAttestationsSkeleton() {
           </div>
         </div>
       ))}
-    </div>
+    </>
   );
 }
