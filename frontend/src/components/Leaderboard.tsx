@@ -5,20 +5,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Collapsible, CollapsibleContent } from './ui/collapsible';
 import { FaTrophy, FaMedal } from 'react-icons/fa';
 import { FiRefreshCw } from 'react-icons/fi';
-import { ChevronRight, ChevronDown, X, Check, Clock, ExternalLink } from 'lucide-react';
+import { ChevronRight, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/components/ui/toast';
 import { TeamIdentifierDisplay, isSoloParticipant } from './TeamIdentifierDisplay';
 import { AddressDisplay } from './AddressDisplay';
-import { LeaderboardSkeleton, LeaderboardAttestationsSkeleton } from './LeaderboardSkeleton';
+import { LeaderboardSkeleton } from './LeaderboardSkeleton';
+import { AttestationTimeline } from './AttestationTimeline';
 import { useNetworkState } from '../lib/utils';
 import { hasRequiredHuntParams } from '../utils/validationUtils';
-import { formatTimeTaken } from '../utils/leaderboardUtils';
-import type { TeamAttestationsResponse, AttestationEntry, LeaderboardEntry, LeaderboardProps } from '@/types/ui';
+import type { TeamAttestationsResponse, LeaderboardEntry, LeaderboardProps } from '@/types/ui';
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
-
-const SIGN_EXPLORER_BASE = 'https://scan.sign.global/attestation/';
 
 export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardProps) {
   const [hoveredTeam, setHoveredTeam] = useState<string | null>(null);
@@ -117,61 +115,6 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
           </span>
         );
     }
-  };
-
-  const renderAttestationTimeline = () => {
-    if (isLoadingAttestations) {
-      return (
-        <div className="border-l-2 border-border/50 pl-4 py-2 space-y-4">
-          <LeaderboardAttestationsSkeleton />
-        </div>
-      );
-    }
-    if (!teamAttestations || teamAttestations.clues.length === 0) {
-      return <div className="py-4 text-sm text-foreground/60">No attestations found</div>;
-    }
-    return (
-      <div className="border-l-2 border-border/50 pl-4 py-2 space-y-4">
-        {teamAttestations.clues.map((clue) => (
-          <div key={clue.clueIndex}>
-            <div className="relative flex items-center mb-2">
-              <div
-                className="absolute w-2 h-2 rounded-full bg-foreground -left-[21px] top-1/2 -translate-y-1/2 shrink-0"
-                aria-hidden
-              />
-              <span className="text-sm font-semibold text-foreground">Clue #{clue.clueIndex}</span>
-            </div>
-            <div className="ml-4 space-y-2">
-              {clue.attempts.map((entry: AttestationEntry, i: number) => (
-                <div
-                  key={entry.attestationId}
-                  className="flex items-center gap-3 text-sm"
-                >
-                  <span className="text-foreground/80 w-24">Attempt #{i + 1}</span>
-                  {entry.type === 'retry' ? (
-                    <X className="w-4 h-4 text-red-600 shrink-0" />
-                  ) : (
-                    <Check className="w-4 h-4 text-green-600 shrink-0" />
-                  )}
-                  <span className="flex items-center gap-1 w-16">
-                    <Clock className="w-4 h-4 text-foreground/60 shrink-0" />
-                    {formatTimeTaken(entry.timeTaken)}
-                  </span>
-                  <a
-                    href={`${SIGN_EXPLORER_BASE}${entry.attestationId}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-main hover:underline"
-                  >
-                    <ExternalLink className="w-4 h-4 shrink-0" />
-                  </a>
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    );
   };
 
   const getScoreColor = (score: number) => {
@@ -335,7 +278,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
                           <TableCell colSpan={5} className="bg-muted/30 p-4 align-top">
                             <Collapsible open>
                               <CollapsibleContent>
-                                {renderAttestationTimeline()}
+                                <AttestationTimeline teamAttestations={teamAttestations} isLoading={isLoadingAttestations} />
                               </CollapsibleContent>
                             </Collapsible>
                           </TableCell>
