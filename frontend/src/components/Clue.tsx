@@ -50,6 +50,7 @@ import {
   getButtonText,
   VerificationState,
 } from '../utils/clueButtonUtils';
+import { useHaptic } from '@/lib/haptics';
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 const MAX_ATTEMPTS = parseInt(import.meta.env.VITE_MAX_CLUE_ATTEMPTS || '6', 10);
@@ -76,6 +77,7 @@ export function Clue() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const errorResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const haptics = useHaptic();
 
   // Helper function to reset verification states
   const resetVerificationStates = () => {
@@ -416,6 +418,7 @@ export function Clue() {
             toast.info('This clue has already been solved by your team!');
             setVerificationState('success');
             setShowSuccessMessage(true);
+            haptics.success();
 
             // Navigate to next clue since it's solved
             setTimeout(async () => {
@@ -572,6 +575,7 @@ export function Clue() {
         setVerificationState('success');
         setShowSuccessMessage(true);
         toast.success(`Correct answer, clue ${currentClue} solved!`);
+        haptics.success();
 
         // Wait 0.5 seconds before navigating
         setTimeout(async () => {
@@ -588,6 +592,7 @@ export function Clue() {
         setAttempts((prev) => prev - 1);
         setAttemptCount((prev) => prev + 1); // Increment attempt count for next attempt
         toast.error(`Incorrect answer, attempts remaining: ${remainingAttempts - 1}`);
+        haptics.error();
         // Reset verification state to idle after a brief delay so user can retry
         errorResetTimeoutRef.current = setTimeout(() => {
           setVerificationState('idle');
@@ -597,6 +602,7 @@ export function Clue() {
     } catch (error) {
       console.error('Verification failed:', (error as Error)?.message);
       setVerificationState('error');
+      haptics.error();
       // Reset verification state to idle after a brief delay so user can retry
       errorResetTimeoutRef.current = setTimeout(() => {
         setVerificationState('idle');
