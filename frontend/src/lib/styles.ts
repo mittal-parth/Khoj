@@ -18,3 +18,26 @@ export const buttonStyles = {
 } as const;
 
 export type ButtonStyleKey = keyof typeof buttonStyles;
+
+export const statAccents = {
+  green: {
+    bg: 'bg-emerald-50',
+    iconBg: 'bg-emerald-100',
+    iconColor: 'text-emerald-600',
+    hover: 'hover:bg-emerald-100/80',
+  },
+  amber: {
+    bg: 'bg-amber-50',
+    iconBg: 'bg-amber-100',
+    iconColor: 'text-amber-600',
+    hover: 'hover:bg-amber-100/80',
+  },
+  violet: {
+    bg: 'bg-violet-50',
+    iconBg: 'bg-violet-100',
+    iconColor: 'text-violet-600',
+    hover: 'hover:bg-violet-100/80',
+  },
+} as const;
+
+export type StatAccentKey = keyof typeof statAccents;
