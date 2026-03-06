@@ -3,28 +3,56 @@ import { getContract, readContract } from 'thirdweb';
 import { useReadContract } from 'thirdweb/react';
 import { client } from '@/lib/client';
 import { huntABI } from '@/assets/hunt_abi';
-import { fetchUserHuntSummary } from '@/utils/profileUtils';
-import { hasRequiredHuntParams } from '@/utils/validationUtils';
+import { countAttestationEntries } from '@/utils/attestationUtils';
+import { hasRequiredHuntParams, hasRequiredTeamParams, isValidHexAddress } from '@/utils/validationUtils';
 import type { Hunt } from '@/types';
-import type { TeamAttestationsResponse } from '@/types/ui';
+import type { LeaderboardEntry, TeamAttestationsResponse } from '@/types/ui';
 
 const BACKEND_URL = import.meta.env.VITE_PUBLIC_BACKEND_URL;
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000' as const;
 
-function isValidHexAddress(address: string): address is `0x${string}` {
-  return /^0x[0-9a-fA-F]{40}$/.test(address);
-}
+async function fetchUserHuntSummary(
+  huntId: string | number,
+  teamIdentifier: string,
+  chainId: string | number,
+  contractAddress: string
+): Promise<{ rank: number; score: number; cluesSolved: number; teamName?: string }> {
+  const defaultResult = {
+    rank: 0,
+    score: 0,
+    cluesSolved: 0,
+  };
 
-function countAttestationEntries(teamAttestations: TeamAttestationsResponse | null, mode: 'attestations' | 'clues') {
-  if (!teamAttestations?.clues?.length) return 0;
-  let total = 0;
-  for (const clue of teamAttestations.clues) {
-    for (const entry of clue.attempts) {
-      if (mode === 'clues' && entry.type !== 'solve') continue;
-      total += 1;
-    }
+  if (!hasRequiredTeamParams({ huntId: String(huntId), chainId, contractAddress, teamIdentifier })) {
+    return defaultResult;
   }
-  return total;
+
+  try {
+    const url = new URL(`${BACKEND_URL}/hunts/${huntId}/leaderboard`);
+    url.searchParams.set('chainId', String(chainId));
+    url.searchParams.set('contractAddress', contractAddress);
+    const response = await fetch(url.toString());
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch leaderboard: ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data.leaderboard || !Array.isArray(data.leaderboard)) return defaultResult;
+
+    const teamEntry = (data.leaderboard as LeaderboardEntry[]).find((entry) => entry.teamIdentifier === teamIdentifier);
+    if (!teamEntry) return defaultResult;
+
+    return {
+      rank: teamEntry.rank,
+      score: teamEntry.combinedScore,
+      cluesSolved: teamEntry.cluesCompleted,
+      teamName: teamEntry.teamName,
+    };
+  } catch (error) {
+    console.error('Error fetching user hunt summary:', (error as Error)?.message);
+    return defaultResult;
+  }
 }
 
 export function useProfileData({

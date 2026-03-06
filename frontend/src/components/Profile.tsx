@@ -9,6 +9,7 @@ import { AttestationTimeline } from './AttestationTimeline';
 import { ProfileStatsSkeleton, ProfileHuntCardsSkeleton } from './ProfileSkeleton';
 import { useNetworkState } from '../lib/utils';
 import { statAccents, type StatAccentKey } from '../lib/styles';
+import { countAttestationEntries } from '@/utils/attestationUtils';
 import type { Hunt } from '../types';
 import type { HuntStatus, TeamAttestationsResponse } from '@/types/ui';
 import { useProfileData } from '@/hooks/useProfileData';
@@ -122,18 +123,6 @@ function HuntParticipationCard({
       </Collapsible>
     </Card>
   );
-}
-
-function countAttestationEntries(teamAttestations: TeamAttestationsResponse | null, mode: 'attestations' | 'clues') {
-  if (!teamAttestations?.clues?.length) return 0;
-  let total = 0;
-  for (const clue of teamAttestations.clues) {
-    for (const entry of clue.attempts) {
-      if (mode === 'clues' && entry.type !== 'solve') continue;
-      total += 1;
-    }
-  }
-  return total;
 }
 
 function StatCard({
