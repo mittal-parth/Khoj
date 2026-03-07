@@ -1,7 +1,20 @@
 import { ConnectButton, lightTheme } from "thirdweb/react";
+import { inAppWallet, createWallet } from "thirdweb/wallets";
 import { client } from "../lib/client";
 import { ENABLED_CHAINS_ARRAY } from "../lib/utils";
 import { WalletWrapperParams } from "../types";
+
+const wallets = [
+  inAppWallet({
+    executionMode: {
+      mode: "EIP7702",
+      sponsorGas: true,
+    },
+  }),
+  createWallet("io.metamask"),
+  createWallet("com.coinbase.wallet"),
+  createWallet("me.rainbow"),
+];
 
 const customTheme = lightTheme({
   colors: {
@@ -24,6 +37,7 @@ export default function WalletWrapper({
   return (
     <ConnectButton
       client={client}
+      wallets={wallets}
       chains={ENABLED_CHAINS_ARRAY}
       theme={customTheme}
       connectButton={{
