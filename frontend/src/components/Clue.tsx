@@ -77,6 +77,7 @@ export function Clue() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const errorResetTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [resultKey, setResultKey] = useState(0);
   const haptics = useHaptic();
 
   // Helper function to reset verification states
@@ -574,8 +575,10 @@ export function Clue() {
 
         setVerificationState('success');
         setShowSuccessMessage(true);
-        toast.success(`Correct answer, clue ${currentClue} solved!`);
+        // TODO: This is a known limitation of the haptics library and is not expected to work
+        // The issue is with the requirement of browsers to have a user interaction to trigger the haptic feedback
         haptics.success();
+        toast.success(`Correct answer, clue ${currentClue} solved!`);
 
         // Wait 0.5 seconds before navigating
         setTimeout(async () => {
@@ -589,10 +592,15 @@ export function Clue() {
         }, 500);
       } else {
         setVerificationState('error');
+        // By incrementing resultKey on each result, the button is recreated each time, 
+        // so the wiggle animation runs again for every success or error.
+        setResultKey((k) => k + 1);
         setAttempts((prev) => prev - 1);
         setAttemptCount((prev) => prev + 1); // Increment attempt count for next attempt
-        toast.error(`Incorrect answer, attempts remaining: ${remainingAttempts - 1}`);
+        // TODO: This is a known limitation of the haptics library and is not expected to work
+        // The issue is with the requirement of browsers to have a user interaction to trigger the haptic feedback
         haptics.error();
+        toast.error(`Incorrect answer, attempts remaining: ${remainingAttempts - 1}`);
         // Reset verification state to idle after a brief delay so user can retry
         errorResetTimeoutRef.current = setTimeout(() => {
           setVerificationState('idle');
@@ -602,6 +610,7 @@ export function Clue() {
     } catch (error) {
       console.error('Verification failed:', (error as Error)?.message);
       setVerificationState('error');
+      setResultKey((k) => k + 1);
       haptics.error();
       // Reset verification state to idle after a brief delay so user can retry
       errorResetTimeoutRef.current = setTimeout(() => {
@@ -846,6 +855,11 @@ export function Clue() {
                       </div>
                       <form onSubmit={handleVerify} className="flex-1">
                         <Button
+                          key={
+                            verificationState === 'error'
+                              ? `result-${resultKey}`
+                              : undefined
+                          }
                           type="submit"
                           variant={getButtonVariant(
                             huntType,
@@ -856,6 +870,7 @@ export function Clue() {
                           size="lg"
                           className={cn(
                             'w-full transition-colors duration-300 whitespace-normal break-words',
+                            verificationState === 'error' && 'animate-result-wiggle',
                             getButtonStyles(huntType, location, verificationState)
                           )}
                           disabled={
@@ -878,11 +893,17 @@ export function Clue() {
               // Geolocation hunt - show verify button as before
               <form onSubmit={handleVerify} className="w-full">
                 <Button
+                      key={
+                        verificationState === 'error'
+                          ? `result-${resultKey}`
+                          : undefined
+                      }
                   type="submit"
                   variant={getButtonVariant(huntType, location, capturedImage, verificationState)}
                   size="lg"
                   className={cn(
                     'w-full transition-colors duration-300',
+                    verificationState === 'error' && 'animate-result-wiggle',
                     getButtonStyles(huntType, location, verificationState)
                   )}
                   disabled={
