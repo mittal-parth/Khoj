@@ -52,16 +52,16 @@ function Button({
   const Comp = asChild ? Slot : "button"
   const haptics = useHaptic()
 
-  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-    if (haptic) {
-      haptics[haptic]()
-    }
-
-    if (props.onClick) {
-      props.onClick(event)
-    }
-  }
-
+  const handleClick = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (haptic) {
+        haptics[haptic]();
+      }
+      props.onClick?.(event);
+    },
+    [haptic, haptics, props.onClick]
+  );
+  
   return (
     <Comp
       data-slot="button"
