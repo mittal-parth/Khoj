@@ -5,6 +5,7 @@ import { client } from "../lib/client";
 import { useNetworkState } from "../lib/utils";
 import { Button } from "./ui/button";
 import { TransactionButtonProps } from "../types";
+import { useHaptic } from "@/lib/haptics";
 
 
 export function TransactionButton({
@@ -22,6 +23,7 @@ export function TransactionButton({
   const account = useActiveAccount();
   const { mutate: sendTransaction, isPending } = useSendTransaction();
   const [isLoading, setIsLoading] = useState(false);
+  const haptics = useHaptic();
   
   // Get current chain from reactive network state
   const { currentChain } = useNetworkState();
@@ -29,6 +31,7 @@ export function TransactionButton({
   const handleTransaction = async () => {
     if (!account) {
       onError?.({ message: "Please connect your wallet first" });
+      haptics.error();
       return;
     }
 
@@ -54,15 +57,18 @@ export function TransactionButton({
       sendTransaction(transaction, {
         onSuccess: (result) => {
           setIsLoading(false);
+          haptics.success();
           onSuccess?.(result);
         },
         onError: (error) => {
           setIsLoading(false);
+          haptics.error();
           onError?.(error);
         },
       });
     } catch (error) {
       setIsLoading(false);
+      haptics.error();
       onError?.(error);
     }
   };

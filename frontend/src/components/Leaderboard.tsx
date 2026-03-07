@@ -29,14 +29,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
 
   const { chainId, contractAddress } = useNetworkState();
 
-  // Fetch leaderboard data when component opens
-  useEffect(() => {
-    if (isOpen && huntId && chainId && contractAddress) {
-      fetchLeaderboard();
-    }
-  }, [isOpen, huntId, chainId, contractAddress]);
-
-  const fetchLeaderboard = async () => {
+  const fetchLeaderboard = useCallback(async () => {
     if (!hasRequiredHuntParams({ huntId, chainId, contractAddress })) return;
 
     setIsLoading(true);
@@ -63,7 +56,14 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [huntId, chainId, contractAddress]);
+
+  // Fetch leaderboard data when component opens
+  useEffect(() => {
+    if (isOpen && huntId && chainId && contractAddress) {
+      fetchLeaderboard();
+    }
+  }, [isOpen, huntId, chainId, contractAddress, fetchLeaderboard]);
 
   const fetchTeamAttestations = useCallback(async (teamIdentifier: string) => {
     if (!hasRequiredHuntParams({ huntId, chainId, contractAddress })) return;
@@ -126,8 +126,8 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-xl w-[95vw] sm:w-[85vw] bg-white">
-        <DialogHeader className="bg-main text-main-foreground p-6 border-b-2 border-black -m-6 mb-0">
+      <DialogContent className="max-w-xl w-[95vw] sm:w-[85vw] bg-white p-0 gap-0 overflow-hidden">
+        <DialogHeader className="bg-main text-main-foreground p-4 sm:p-6 border-b-2 border-black">
           <DialogTitle className="text-center flex items-center justify-center text-xl">
             Leaderboard
             <Button
@@ -135,7 +135,7 @@ export function Leaderboard({ huntId, huntName, isOpen, onClose }: LeaderboardPr
               disabled={isLoading}
               variant="neutral"
               size="icon"
-              className="ml-4"
+              className="ml-4 h-8 w-8 sm:h-10 sm:w-10"
               title="Refresh leaderboard"
             >
               <FiRefreshCw className={`w-2 h-2 ${isLoading ? 'animate-spin' : ''}`} />

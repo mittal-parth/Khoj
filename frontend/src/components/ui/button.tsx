@@ -4,6 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import * as React from "react"
 
 import { cn } from "@/lib/utils"
+import { type HapticType, useHaptic } from "@/lib/haptics"
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center whitespace-nowrap rounded-base text-sm font-base ring-offset-white transition-all gap-2 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-black focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
@@ -41,18 +42,32 @@ function Button({
   variant,
   size,
   asChild = false,
+  haptic = "selection",
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    haptic?: HapticType | false
   }) {
   const Comp = asChild ? Slot : "button"
+  const haptics = useHaptic()
 
+  const handleClick = React.useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (haptic) {
+        haptics[haptic]();
+      }
+      props.onClick?.(event);
+    },
+    [haptic, haptics, props.onClick]
+  );
+  
   return (
     <Comp
       data-slot="button"
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
+      onClick={handleClick}
     />
   )
 }
