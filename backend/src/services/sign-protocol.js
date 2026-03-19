@@ -10,6 +10,11 @@ import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
 
+export const CLUE_STATUS = {
+  SOLVED: "solved",
+  SKIPPED: "skipped",
+};
+
 // Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -47,11 +52,6 @@ const client = new SignProtocolClient(SpMode.OffChain, {
 
 // Initialize Index Service for querying attestations
 const indexService = new IndexService('mainnet');
-
-export const CLUE_STATUS = {
-  SOLVED: "solved",
-  SKIPPED: "skipped",
-};
 
 // Schema definition for clue solving attestations (when a clue is successfully solved)
 const CLUE_SCHEMA = {
