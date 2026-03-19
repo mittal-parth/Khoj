@@ -18,13 +18,14 @@ import {
   verifyLocation,
   verifyImage,
 } from "./services/verification.js";
-import { attestClueSolved, attestClueAttempt, queryAttestationsForHunt, queryRetryAttemptsForClue, CLUE_STATUS } from "./services/sign-protocol.js";
+import { attestClueSolved, attestClueAttempt, queryAttestationsForHunt, queryRetryAttemptsForClue } from "./services/sign-protocol.js";
 import { calculateLeaderboardForHunt, buildAttestationTimeline } from "./services/leaderboard.js";
 import { generateImageEmbedding } from "./services/vertex-ai.js";
 
 // Import utilities
 import { withRetry } from "./utils/retry-utils.js";
 import { createCorsOptionsFromEnv, isOriginAllowed, getAllowedCorsOriginsFromEnv } from "./utils/cors.js";
+import { CLUE_STATUS } from "./utils/constants.js";
 
 // Load environment variables
 dotenv.config();

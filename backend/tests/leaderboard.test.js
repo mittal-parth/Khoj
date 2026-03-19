@@ -5,7 +5,7 @@
  */
 
 import { calculateLeaderboard, buildAttestationTimeline } from '../src/services/leaderboard.js';
-import { CLUE_STATUS } from '../src/services/sign-protocol.js';
+import { CLUE_STATUS } from '../src/utils/constants.js';
 
 // Mock attestation data for testing leaderboard logic
 const mockAttestations = [

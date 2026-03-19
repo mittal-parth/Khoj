@@ -9,11 +9,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
-
-export const CLUE_STATUS = {
-  SOLVED: "solved",
-  SKIPPED: "skipped",
-};
+import { CLUE_STATUS } from "../utils/constants.js";
 
 // Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url);

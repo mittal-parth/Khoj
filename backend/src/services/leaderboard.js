@@ -15,7 +15,7 @@
  * @param {Array} attestations - Array of attestation objects with data field
  * @returns {Array} Ranked leaderboard array
  */
-import { CLUE_STATUS } from "./sign-protocol.js";
+import { CLUE_STATUS } from "../utils/constants.js";
 
 export function calculateLeaderboard(attestations) {
   if (!attestations || attestations.length === 0) {
