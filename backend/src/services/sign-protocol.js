@@ -9,6 +9,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
+import { CLUE_STATUS } from "../utils/constants.js";
 
 // Get the directory of the current module
 const __filename = fileURLToPath(import.meta.url);
@@ -62,6 +63,7 @@ const CLUE_SCHEMA = {
     { name: "timeTaken", type: "uint256" }, // Time taken to solve in seconds
     { name: "attemptCount", type: "uint256" },
     { name: "chainId", type: "uint256" },
+    { name: "status", type: "string" },
   ],
 };
 
@@ -222,7 +224,8 @@ export async function attestClueSolved(
   timeTaken,
   attemptCount,
   chainId,
-  contractAddress
+  contractAddress,
+  status = CLUE_STATUS.SOLVED
 ) {
   try {
     if (!schemaId) {
@@ -241,6 +244,7 @@ export async function attestClueSolved(
       timeTaken,
       attemptCount,
       chainId,
+      status,
       indexingValue,
     });
 
@@ -254,6 +258,7 @@ export async function attestClueSolved(
       timeTaken: timeTaken.toString(),
       attemptCount: attemptCount.toString(),
       chainId: chainId,
+      status: status,
     };
 
     const attestationInfo = await client.createAttestation({

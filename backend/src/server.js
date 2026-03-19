@@ -25,6 +25,7 @@ import { generateImageEmbedding } from "./services/vertex-ai.js";
 // Import utilities
 import { withRetry } from "./utils/retry-utils.js";
 import { createCorsOptionsFromEnv, isOriginAllowed, getAllowedCorsOriginsFromEnv } from "./utils/cors.js";
+import { CLUE_STATUS } from "./utils/constants.js";
 
 // Load environment variables
 dotenv.config();
@@ -745,7 +746,19 @@ app.post("/attestations/attempts", async (req, res) => {
 // Attest clue solve endpoint
 app.post("/attestations/clues", async (req, res) => {
   try {
-    const { teamIdentifier, teamName, huntId, clueIndex, teamLeaderAddress, solverAddress, timeTaken, attemptCount, chainId, contractAddress } = req.body;
+    const {
+      teamIdentifier,
+      teamName,
+      huntId,
+      clueIndex,
+      teamLeaderAddress,
+      solverAddress,
+      timeTaken,
+      attemptCount,
+      chainId,
+      contractAddress,
+      status = CLUE_STATUS.SOLVED,
+    } = req.body;
 
     // Validate required fields
     if (huntId === undefined || clueIndex === undefined || !teamLeaderAddress || !teamIdentifier || !solverAddress || timeTaken === undefined || attemptCount === undefined || !chainId || !contractAddress) {
@@ -767,6 +780,7 @@ app.post("/attestations/clues", async (req, res) => {
       attemptCount,
       chainId,
       contractAddress,
+      status,
     });
 
     const attestationInfo = await attestClueSolved(
@@ -779,7 +793,8 @@ app.post("/attestations/clues", async (req, res) => {
       timeTaken,
       attemptCount,
       chainId,
-      contractAddress
+      contractAddress,
+      status
     );
 
     res.json({

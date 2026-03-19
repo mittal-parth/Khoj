@@ -1,4 +1,4 @@
-import { Check, Clock, ExternalLink, X } from 'lucide-react';
+import { Check, Clock, ExternalLink, SkipForward, X } from 'lucide-react';
 import { LeaderboardAttestationsSkeleton } from './LeaderboardSkeleton';
 import { formatTimeTaken } from '@/utils/leaderboardUtils';
 import type { AttestationEntry, TeamAttestationsResponse } from '@/types/ui';
@@ -41,6 +41,8 @@ export function AttestationTimeline({ teamAttestations, isLoading }: Attestation
                 <span className="text-foreground/80 w-24">Attempt #{i + 1}</span>
                 {entry.type === 'retry' ? (
                   <X className="w-4 h-4 text-red-600 shrink-0" />
+                ) : entry.type === 'skip' ? (
+                  <SkipForward className="w-4 h-4 text-amber-600 shrink-0" />
                 ) : (
                   <Check className="w-4 h-4 text-green-600 shrink-0" />
                 )}

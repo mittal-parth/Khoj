@@ -12,6 +12,67 @@ export interface ProgressData {
   message?: string;
 }
 
+export async function calculateTimeTaken(params: {
+  huntId: number;
+  teamIdentifier: string;
+  currentClue: number;
+  totalClues: number;
+  chainId: string | number;
+  contractAddress: string;
+}): Promise<number> {
+  const { huntId, teamIdentifier, currentClue, totalClues, chainId, contractAddress } = params;
+
+  const currentTimestamp = Math.floor(Date.now() / 1000);
+  let startTimestamp = currentTimestamp; // fallback
+
+  if (!huntId || !teamIdentifier || !chainId || !contractAddress) {
+    return 0;
+  }
+
+  // For both first attempts and retries, we measure from when the clue became available
+  if (currentClue === 1) {
+    // For first clue, use hunt start timestamp from retry-attempts with clueIndex: 0
+    try {
+      const url = new URL(
+        `${BACKEND_URL}/hunts/${huntId}/clues/0/teams/${teamIdentifier}/attempts`
+      );
+      url.searchParams.set('chainId', chainId.toString());
+      url.searchParams.set('contractAddress', contractAddress);
+
+      const huntStartResponse = await fetch(url.toString());
+      if (huntStartResponse.ok) {
+        const huntStartData = await huntStartResponse.json();
+        if (huntStartData.firstAttemptTimestamp) {
+          startTimestamp = huntStartData.firstAttemptTimestamp;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching hunt start timestamp:', (error as Error)?.message);
+    }
+  } else {
+    // For other clues, use previous clue completion timestamp from progress endpoint
+    try {
+      const progressUrl = new URL(`${BACKEND_URL}/hunts/${huntId}/teams/${teamIdentifier}/progress`);
+      progressUrl.searchParams.set('chainId', chainId.toString());
+      progressUrl.searchParams.set('contractAddress', contractAddress);
+      progressUrl.searchParams.set('totalClues', totalClues.toString());
+
+      const progressResponse = await fetch(progressUrl.toString());
+      if (progressResponse.ok) {
+        const progressData = await progressResponse.json();
+        const prevClueIndex = currentClue - 1;
+        if (progressData.solvedClues && progressData.solvedClues[prevClueIndex]) {
+          startTimestamp = progressData.solvedClues[prevClueIndex].solveTimestamp;
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching previous clue solve timestamp:', (error as Error)?.message);
+    }
+  }
+
+  return Math.max(0, currentTimestamp - startTimestamp);
+}
+
 /**
  * Fetch progress data for a team/individual in a hunt
  */
@@ -255,7 +316,7 @@ export async function validateClueAccess(
       } else {
         // Navigate to next clue
         navigate(`/hunt/${huntId}/clue/${targetClue}`);
-        toast.info(`This clue has already been solved! Redirecting to clue ${targetClue}...`);
+        toast.info(`This clue has already been completed! Redirecting to clue ${targetClue}...`);
       }
       return false;
     }
