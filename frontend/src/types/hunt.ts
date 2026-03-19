@@ -6,6 +6,13 @@ export const HUNT_TYPE = {
 
 export type HuntType = typeof HUNT_TYPE.GEO_LOCATION | typeof HUNT_TYPE.IMAGE;
 
+export const CLUE_STATUS = {
+  SOLVED: "solved",
+  SKIPPED: "skipped",
+} as const;
+
+export type ClueStatus = typeof CLUE_STATUS[keyof typeof CLUE_STATUS];
+
 // Helper function to convert enum value (0 or 1) to HuntType string
 export function enumToHuntType(enumValue: number | bigint): HuntType {
   return Number(enumValue) === 1 ? HUNT_TYPE.IMAGE : HUNT_TYPE.GEO_LOCATION;

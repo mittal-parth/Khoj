@@ -72,7 +72,7 @@ export const textColorClasses = {
 
 export interface AttestationEntry {
   clueIndex: number;
-  type: "retry" | "solve";
+  type: "retry" | "solve" | "skip";
   attemptCount: number;
   attestationId: string;
   timestamp: number;

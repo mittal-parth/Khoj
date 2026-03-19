@@ -286,7 +286,7 @@ export function useProfileData({
       huntName: string;
       clueIndex: number;
       attemptNumber: number;
-      type: 'retry' | 'solve';
+      type: 'retry' | 'solve' | 'skip';
       attestationId: string;
       timestamp: number;
     }> = [];
@@ -302,7 +302,7 @@ export function useProfileData({
       const huntName = huntsById.get(huntId) ?? `Hunt #${huntId}`;
       for (const clue of response.clues) {
         clue.attempts.forEach((entry, index) => {
-          if (mode === 'clues' && entry.type !== 'solve') return;
+          if (mode === 'clues' && entry.type !== 'solve' && entry.type !== 'skip') return;
           entries.push({
             huntId,
             huntName,

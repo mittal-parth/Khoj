@@ -15,6 +15,8 @@
  * @param {Array} attestations - Array of attestation objects with data field
  * @returns {Array} Ranked leaderboard array
  */
+import { CLUE_STATUS } from "./sign-protocol.js";
+
 export function calculateLeaderboard(attestations) {
   if (!attestations || attestations.length === 0) {
     return [];
@@ -25,6 +27,9 @@ export function calculateLeaderboard(attestations) {
   
   for (const attestation of attestations) {
     const data = JSON.parse(attestation.data);
+    if (data.status === CLUE_STATUS.SKIPPED) {
+      continue;
+    }
     const teamIdentifier = data.teamIdentifier;
     
     if (!teamData.has(teamIdentifier)) {
@@ -167,8 +172,18 @@ export function buildAttestationTimeline({
       }
     }
 
-    const retryAttestations = retryAttestationsByClue?.get(clueIndex) ?? [];
+    const solveAttestation = list.find(
+      (a) => parseInt(a.parsedData.clueIndex) === clueIndex
+    );
     const entries = [];
+    let solveAttemptCount = null;
+
+    if (solveAttestation) {
+      const data = solveAttestation.parsedData;
+      solveAttemptCount = parseInt(data.attemptCount);
+    }
+
+    const retryAttestations = retryAttestationsByClue?.get(clueIndex) ?? [];
 
     if (retryAttestations.length > 0) {
       const sortedRetries = retryAttestations
@@ -179,26 +194,26 @@ export function buildAttestationTimeline({
           const timeTaken = clueStartTimestamp != null
             ? Math.max(0, retryTimestamp - clueStartTimestamp)
             : 0;
+          const attemptCount = parseInt(data.attemptCount);
           return {
             type: "retry",
-            attemptCount: parseInt(data.attemptCount),
+            attemptCount,
             attestationId: a.attestationId,
             timestamp: retryTimestamp,
             timeTaken,
             clueIndex,
           };
         })
+        // Filter out the retry that corresponds to the final solve attempt
+        .filter((entry) => solveAttemptCount == null || entry.attemptCount !== solveAttemptCount)
         .sort((a, b) => a.timestamp - b.timestamp);
       entries.push(...sortedRetries);
     }
 
-    const solveAttestation = list.find(
-      (a) => parseInt(a.parsedData.clueIndex) === clueIndex
-    );
     if (solveAttestation) {
       const data = solveAttestation.parsedData;
       entries.push({
-        type: "solve",
+        type: data.status === CLUE_STATUS.SKIPPED ? "skip" : "solve",
         attemptCount: parseInt(data.attemptCount),
         attestationId: solveAttestation.attestationId,
         timestamp: Math.floor(Number(solveAttestation.attestTimestamp) / 1000),

@@ -48,6 +48,11 @@ const client = new SignProtocolClient(SpMode.OffChain, {
 // Initialize Index Service for querying attestations
 const indexService = new IndexService('mainnet');
 
+export const CLUE_STATUS = {
+  SOLVED: "solved",
+  SKIPPED: "skipped",
+};
+
 // Schema definition for clue solving attestations (when a clue is successfully solved)
 const CLUE_SCHEMA = {
   name: "Khoj Clue Solve",
@@ -62,6 +67,7 @@ const CLUE_SCHEMA = {
     { name: "timeTaken", type: "uint256" }, // Time taken to solve in seconds
     { name: "attemptCount", type: "uint256" },
     { name: "chainId", type: "uint256" },
+    { name: "status", type: "string" },
   ],
 };
 
@@ -222,7 +228,8 @@ export async function attestClueSolved(
   timeTaken,
   attemptCount,
   chainId,
-  contractAddress
+  contractAddress,
+  status = CLUE_STATUS.SOLVED
 ) {
   try {
     if (!schemaId) {
@@ -241,6 +248,7 @@ export async function attestClueSolved(
       timeTaken,
       attemptCount,
       chainId,
+      status,
       indexingValue,
     });
 
@@ -254,6 +262,7 @@ export async function attestClueSolved(
       timeTaken: timeTaken.toString(),
       attemptCount: attemptCount.toString(),
       chainId: chainId,
+      status: status,
     };
 
     const attestationInfo = await client.createAttestation({

@@ -5,6 +5,7 @@
  */
 
 import { calculateLeaderboard, buildAttestationTimeline } from '../src/services/leaderboard.js';
+import { CLUE_STATUS } from '../src/services/sign-protocol.js';
 
 // Mock attestation data for testing leaderboard logic
 const mockAttestations = [
@@ -301,6 +302,146 @@ describe('Leaderboard Logic', () => {
       expect(avgAttempts).toBe(3.4);
     });
   });
+
+  describe('Leaderboard with skipped clues', () => {
+    const mockAttestationsWithSkips = [
+      // Team A: solves clue 1 and 3, skips clue 2
+      {
+        data: JSON.stringify({
+          teamIdentifier: "A",
+          huntId: "0",
+          clueIndex: "1",
+          teamLeaderAddress: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          solverAddress: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          timeTaken: "300",
+          attemptCount: "1",
+          status: CLUE_STATUS.SOLVED,
+        }),
+      },
+      {
+        data: JSON.stringify({
+          teamIdentifier: "A",
+          huntId: "0",
+          clueIndex: "2",
+          teamLeaderAddress: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          solverAddress: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          timeTaken: "120",
+          attemptCount: "0",
+          status: CLUE_STATUS.SKIPPED,
+        }),
+      },
+      {
+        data: JSON.stringify({
+          teamIdentifier: "A",
+          huntId: "0",
+          clueIndex: "3",
+          teamLeaderAddress: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          solverAddress: "0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+          timeTaken: "400",
+          attemptCount: "2",
+          status: CLUE_STATUS.SOLVED,
+        }),
+      },
+
+      // Team B: solves all 3, no skips
+      {
+        data: JSON.stringify({
+          teamIdentifier: "B",
+          huntId: "0",
+          clueIndex: "1",
+          teamLeaderAddress: "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          solverAddress: "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          timeTaken: "600",
+          attemptCount: "3",
+          status: CLUE_STATUS.SOLVED,
+        }),
+      },
+      {
+        data: JSON.stringify({
+          teamIdentifier: "B",
+          huntId: "0",
+          clueIndex: "2",
+          teamLeaderAddress: "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          solverAddress: "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          timeTaken: "500",
+          attemptCount: "2",
+          status: CLUE_STATUS.SOLVED,
+        }),
+      },
+      {
+        data: JSON.stringify({
+          teamIdentifier: "B",
+          huntId: "0",
+          clueIndex: "3",
+          teamLeaderAddress: "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          solverAddress: "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+          timeTaken: "400",
+          attemptCount: "1",
+          status: CLUE_STATUS.SOLVED,
+        }),
+      },
+
+      // Team C: no status field (backward compat -- treated as solved)
+      {
+        data: JSON.stringify({
+          teamIdentifier: "C",
+          huntId: "0",
+          clueIndex: "1",
+          teamLeaderAddress: "0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+          solverAddress: "0xCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+          timeTaken: "200",
+          attemptCount: "1",
+        }),
+      },
+
+      // Team D: all skipped (should not appear)
+      {
+        data: JSON.stringify({
+          teamIdentifier: "D",
+          huntId: "0",
+          clueIndex: "1",
+          teamLeaderAddress: "0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+          solverAddress: "0xDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+          timeTaken: "60",
+          attemptCount: "0",
+          status: CLUE_STATUS.SKIPPED,
+        }),
+      },
+    ];
+
+    test('skipped clues are excluded from scoring', () => {
+      const lb = calculateLeaderboard(mockAttestationsWithSkips);
+      const teamA = lb.find((t) => t.teamIdentifier === "A");
+      expect(teamA).toBeDefined();
+      expect(teamA.cluesCompleted).toBe(2);
+      expect(teamA.totalTime).toBe(700); // 300 + 400
+      expect(teamA.totalAttempts).toBe(3); // 1 + 2
+    });
+
+    test('ranking uses solved clue count, not skipped', () => {
+      const lb = calculateLeaderboard(mockAttestationsWithSkips);
+      const teamB = lb.find((t) => t.teamIdentifier === "B");
+      const teamA = lb.find((t) => t.teamIdentifier === "A");
+      expect(teamB).toBeDefined();
+      expect(teamA).toBeDefined();
+      expect(teamB.cluesCompleted).toBe(3);
+      expect(teamA.cluesCompleted).toBe(2);
+      expect(teamB.rank).toBeLessThan(teamA.rank);
+    });
+
+    test('attestations without status are treated as solved (backward compat)', () => {
+      const lb = calculateLeaderboard(mockAttestationsWithSkips);
+      const teamC = lb.find((t) => t.teamIdentifier === "C");
+      expect(teamC).toBeDefined();
+      expect(teamC.cluesCompleted).toBe(1);
+    });
+
+    test('team with only skipped clues does not appear on leaderboard', () => {
+      const lb = calculateLeaderboard(mockAttestationsWithSkips);
+      const teamD = lb.find((t) => t.teamIdentifier === "D");
+      expect(teamD).toBeUndefined();
+    });
+  });
 });
 
 describe('Attestation Timeline', () => {
@@ -515,6 +656,185 @@ describe('Attestation Timeline', () => {
         expect(clue.attempts.length).toBe(1);
         expect(clue.attempts[0].type).toBe('solve');
       });
+    });
+  });
+
+  describe('Timeline with skipped clues', () => {
+    test('skipped solve attestation produces type \"skip\"', () => {
+      const skippedSolveAttestations = [
+        {
+          data: JSON.stringify({
+            teamIdentifier: teamId,
+            clueIndex: '1',
+            timeTaken: '600',
+            attemptCount: '2',
+            status: CLUE_STATUS.SOLVED,
+          }),
+          attestTimestamp: 1_600_000,
+          attestationId: 'solve-clue1',
+        },
+        {
+          data: JSON.stringify({
+            teamIdentifier: teamId,
+            clueIndex: '2',
+            timeTaken: '120',
+            attemptCount: '0',
+            status: CLUE_STATUS.SKIPPED,
+          }),
+          attestTimestamp: 1_720_000,
+          attestationId: 'skip-clue2',
+        },
+      ];
+
+      const teamSolveAttestationsWithSkip = skippedSolveAttestations.map((a) => ({
+        ...a,
+        parsedData: JSON.parse(a.data),
+      }));
+
+      const retryMap = new Map([
+        [1, []],
+        [2, []],
+      ]);
+
+      const result = buildAttestationTimeline({
+        teamSolveAttestations: teamSolveAttestationsWithSkip,
+        solvedClueIndices: [1, 2],
+        retryAttestationsByClue: retryMap,
+        huntStartAttestations,
+        teamIdentifier: teamId,
+        huntId,
+      });
+
+      const clue2 = result.clues.find((c) => c.clueIndex === 2);
+      expect(clue2).toBeDefined();
+      expect(clue2.attempts.length).toBe(1);
+      expect(clue2.attempts[0].type).toBe('skip');
+      expect(clue2.attempts[0].timeTaken).toBe(120);
+      expect(clue2.attempts[0].attestationId).toBe('skip-clue2');
+    });
+
+    test('skip with retries keeps earlier retries and ends with skip, without duplicate final retry', () => {
+      const skippedSolveAttestations = [
+        {
+          data: JSON.stringify({
+            teamIdentifier: teamId,
+            clueIndex: '1',
+            timeTaken: '600',
+            attemptCount: '2',
+            status: CLUE_STATUS.SKIPPED,
+          }),
+          attestTimestamp: 1_600_000,
+          attestationId: 'skip-clue1',
+        },
+      ];
+
+      const teamSolveAttestationsWithSkip = skippedSolveAttestations.map((a) => ({
+        ...a,
+        parsedData: JSON.parse(a.data),
+      }));
+
+      const retryClue1WithTwo = [
+        {
+          data: JSON.stringify({ attemptCount: '1' }),
+          attestTimestamp: 1_300_000,
+          attestationId: 'retry1-clue1',
+        },
+        {
+          data: JSON.stringify({ attemptCount: '2' }),
+          attestTimestamp: 1_400_000,
+          attestationId: 'retry2-clue1',
+        },
+      ];
+
+      const retryMap = new Map([[1, retryClue1WithTwo]]);
+
+      const result = buildAttestationTimeline({
+        teamSolveAttestations: teamSolveAttestationsWithSkip,
+        solvedClueIndices: [1],
+        retryAttestationsByClue: retryMap,
+        huntStartAttestations,
+        teamIdentifier: teamId,
+        huntId,
+      });
+
+      const clue1 = result.clues.find((c) => c.clueIndex === 1);
+      expect(clue1).toBeDefined();
+      // Retry with attemptCount=2 is filtered out; we keep attempt 1 + final skip
+      expect(clue1.attempts.length).toBe(2);
+      expect(clue1.attempts[0].type).toBe('retry');
+      expect(clue1.attempts[0].attemptCount).toBe(1);
+      expect(clue1.attempts[1].type).toBe('skip');
+      expect(clue1.attempts[1].attemptCount).toBe(2);
+    });
+  });
+
+  describe('Timeline with solve + matching retry attemptCount', () => {
+    test('omits retry entry whose attemptCount equals solve attemptCount', () => {
+      const localHuntId = 2;
+      const localTeamId = 'team-beta';
+
+      const localHuntStartAttestations = [
+        {
+          data: JSON.stringify({ attemptCount: '0' }),
+          attestTimestamp: 2_000_000,
+          attestationId: 'start-team-beta',
+        },
+      ];
+
+      const localSolveAttestations = [
+        {
+          data: JSON.stringify({
+            teamIdentifier: localTeamId,
+            clueIndex: '1',
+            timeTaken: '120',
+            attemptCount: '2',
+            status: CLUE_STATUS.SOLVED,
+          }),
+          attestTimestamp: 2_120_000,
+          attestationId: 'solve-team-beta-clue1',
+        },
+      ];
+
+      const localTeamSolveAttestations = localSolveAttestations.map((a) => ({
+        ...a,
+        parsedData: JSON.parse(a.data),
+      }));
+
+      const localRetryAttestationsByClue = new Map([
+        [
+          1,
+          [
+            {
+              data: JSON.stringify({ attemptCount: '1' }),
+              attestTimestamp: 2_060_000,
+              attestationId: 'retry1-team-beta-clue1',
+            },
+            {
+              data: JSON.stringify({ attemptCount: '2' }),
+              attestTimestamp: 2_100_000,
+              attestationId: 'retry2-team-beta-clue1',
+            },
+          ],
+        ],
+      ]);
+
+      const result = buildAttestationTimeline({
+        teamSolveAttestations: localTeamSolveAttestations,
+        solvedClueIndices: [1],
+        retryAttestationsByClue: localRetryAttestationsByClue,
+        huntStartAttestations: localHuntStartAttestations,
+        teamIdentifier: localTeamId,
+        huntId: localHuntId,
+      });
+
+      const clue1 = result.clues.find((c) => c.clueIndex === 1);
+      expect(clue1).toBeDefined();
+      // Only one retry (attempt 1) plus the solve
+      expect(clue1.attempts.length).toBe(2);
+      expect(clue1.attempts[0].type).toBe('retry');
+      expect(clue1.attempts[0].attemptCount).toBe(1);
+      expect(clue1.attempts[1].type).toBe('solve');
+      expect(clue1.attempts[1].attemptCount).toBe(2);
     });
   });
 });

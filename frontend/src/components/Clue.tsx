@@ -4,7 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from './ui/card'
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { cn } from '@/lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from './ui/dialog';
 import {
   BsArrowLeft,
   BsGeoAlt,
@@ -14,13 +21,9 @@ import {
   BsBarChartFill,
   BsArrowClockwise,
   BsInfoCircle,
+  BsSkipForward,
 } from 'react-icons/bs';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { HuddleRoom } from './HuddleRoom';
 import { Leaderboard } from './Leaderboard';
 import { useReadContract, useActiveAccount } from 'thirdweb/react';
@@ -29,12 +32,21 @@ import { huntABI } from '../assets/hunt_abi';
 import { useNetworkState } from '../lib/utils';
 import { toast } from '@/components/ui/toast';
 import { client } from '../lib/client';
-import { Hunt, Team, HUNT_TYPE, enumToHuntType, HuntType } from '../types';
+import {
+  CLUE_STATUS,
+  type ClueStatus,
+  Hunt,
+  Team,
+  HUNT_TYPE,
+  enumToHuntType,
+  HuntType,
+} from '../types';
 import {
   syncProgressAndNavigate,
   getTeamIdentifier,
   validateClueAccess,
   fetchProgress,
+  calculateTimeTaken,
   isClueSolved,
 } from '../utils/progressUtils';
 import {
@@ -72,6 +84,8 @@ export function Clue() {
   const [isSyncing, setIsSyncing] = useState(false);
   const [isRedirecting, setIsRedirecting] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isSkipDialogOpen, setIsSkipDialogOpen] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [isAttemptsTooltipOpen, setIsAttemptsTooltipOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -245,7 +259,7 @@ export function Clue() {
     }
 
     try {
-      const displayName = (teamData?.name && teamData.name.length > 0) ? teamData.name : userWallet;
+      const displayName = teamData?.name && teamData.name.length > 0 ? teamData.name : userWallet;
       const attestationData = {
         teamIdentifier,
         teamName: displayName,
@@ -278,7 +292,11 @@ export function Clue() {
   };
 
   // Create clue solve attestation
-  const createAttestation = async (timeTaken: number, totalAttempts: number) => {
+  const createAttestation = async (
+    timeTaken: number,
+    totalAttempts: number,
+    status: ClueStatus = CLUE_STATUS.SOLVED
+  ) => {
     if (
       !isDefined(userWallet) ||
       !hasRequiredClueParams({ huntId, clueId, chainId, contractAddress })
@@ -287,7 +305,7 @@ export function Clue() {
     }
 
     try {
-      const displayName = (teamData?.name && teamData.name.length > 0) ? teamData.name : userWallet;
+      const displayName = teamData?.name && teamData.name.length > 0 ? teamData.name : userWallet;
       const attestationData = {
         teamIdentifier: teamData?.teamId?.toString() || userWallet.toString(), // team id for teams, user wallet for solo users
         teamName: displayName,
@@ -297,6 +315,7 @@ export function Clue() {
         solverAddress: userWallet,
         timeTaken,
         attemptCount: totalAttempts,
+        status,
         chainId: chainId,
         contractAddress: contractAddress,
       };
@@ -314,12 +333,80 @@ export function Clue() {
       }
 
       await response.json();
-      toast.success('Clue solve recorded!');
     } catch (error) {
       console.error('Failed to create attestation:', (error as Error)?.message);
       toast.error('Failed to record clue solve');
     }
   };
+
+  const handleSkipClue = async () => {
+    if (
+      !hasRequiredClueAndTeamParams({ huntId, clueId, chainId, contractAddress, teamIdentifier })
+    ) {
+      toast.error('Missing required parameters to skip clue');
+      return;
+    }
+
+    try {
+      setIsSkipping(true);
+      setIsSkipDialogOpen(false);
+
+      // Determine current attempt count (may be 0 if user skips immediately)
+      const retryData = await fetchRetryAttempts(false);
+      const attemptCount = retryData?.attemptCount ? Number(retryData.attemptCount) : 0;
+
+      const timeTaken = await calculateTimeTaken({
+        huntId: parseInt(huntId ?? '0', 10),
+        teamIdentifier,
+        currentClue,
+        totalClues,
+        chainId,
+        contractAddress,
+      });
+
+      await createAttestation(timeTaken, attemptCount, CLUE_STATUS.SKIPPED);
+
+      const nextClueId = currentClue + 1;
+      if (currentClueData && nextClueId <= currentClueData.length) {
+        navigate(`/hunt/${huntId}/clue/${nextClueId}`);
+      } else {
+        navigate(`/hunt/${huntId}/end`);
+      }
+      toast.success(`Clue ${currentClue} skipped!`);
+    } catch (error) {
+      console.error('Failed to skip clue:', (error as Error)?.message);
+      toast.error('Failed to skip clue');
+    } finally {
+      setIsSkipping(false);
+    }
+  };
+
+  const skipDialog = (
+    <Dialog open={isSkipDialogOpen} onOpenChange={setIsSkipDialogOpen}>
+      <DialogContent className="max-w-xl w-[95vw] sm:w-[85vw]">
+        <DialogHeader>
+          <DialogTitle>Skip this clue?</DialogTitle>
+          <DialogDescription>
+            Once you skip, you cannot return to this clue. This clue will not count towards your
+            score.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsSkipDialogOpen(false)}
+            disabled={isSkipping}
+          >
+            Cancel
+          </Button>
+          <Button type="button" variant="default" onClick={handleSkipClue} disabled={isSkipping}>
+            {isSkipping ? 'Skipping...' : 'Skip Clue'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 
   // Sync progress with team
   const handleSyncProgress = async () => {
@@ -415,8 +502,8 @@ export function Clue() {
           const clueIndex = parseInt(clueId || '0');
 
           if (isClueSolved(progressData, clueIndex)) {
-            console.info('Clue already solved by team, skipping verification');
-            toast.info('This clue has already been solved by your team!');
+            console.info('Clue already completed by team, skipping verification');
+            toast.info('This clue has already been completed by your team!');
             setVerificationState('success');
             setShowSuccessMessage(true);
             haptics.success();
@@ -528,47 +615,18 @@ export function Clue() {
       const isCorrect = data.isClose === true || data.isClose === 'true';
 
       if (isCorrect) {
-        // Calculate time taken in seconds
-        const currentTimestamp = Math.floor(Date.now() / 1000);
-        let startTimestamp = currentTimestamp; // Default fallback
-
-        // Determine the correct start timestamp based on clue number
-        // For both first attempts and retries, we measure from when the clue became available
-        if (currentClue === 1) {
-          // For first clue, use hunt start timestamp from retry-attempts with clueIndex: 0
-          try {
-            const huntStartResponse = await fetch(
-              `${BACKEND_URL}/hunts/${huntId}/clues/0/teams/${teamIdentifier}/attempts?chainId=${chainId}&contractAddress=${contractAddress}`
-            );
-            if (huntStartResponse.ok) {
-              const huntStartData = await huntStartResponse.json();
-              if (huntStartData.firstAttemptTimestamp) {
-                startTimestamp = huntStartData.firstAttemptTimestamp;
-              }
-            }
-          } catch (error) {
-            console.error('Error fetching hunt start timestamp:', (error as Error)?.message);
-          }
-        } else {
-          // For other clues, use previous clue solve timestamp from progress endpoint
-          try {
-            const progressResponse = await fetch(
-              `${BACKEND_URL}/hunts/${huntId}/teams/${teamIdentifier}/progress?totalClues=${totalClues}&chainId=${chainId}&contractAddress=${contractAddress}`
-            );
-            if (progressResponse.ok) {
-              const progressData = await progressResponse.json();
-              const prevClueIndex = currentClue - 1;
-              if (progressData.solvedClues && progressData.solvedClues[prevClueIndex]) {
-                startTimestamp = progressData.solvedClues[prevClueIndex].solveTimestamp;
-              }
-            }
-          } catch (error) {
-            console.error('Error fetching previous clue solve timestamp:', (error as Error)?.message);
-          }
-        }
-
-        const timeTaken = currentTimestamp - startTimestamp;
-        console.info('Clue solved', { timeTakenSeconds: timeTaken, attempts: currentAttemptNumber });
+        const timeTaken = await calculateTimeTaken({
+          huntId: parseInt(huntId ?? '0', 10),
+          teamIdentifier,
+          currentClue,
+          totalClues,
+          chainId,
+          contractAddress,
+        });
+        console.info('Clue solved', {
+          timeTakenSeconds: timeTaken,
+          attempts: currentAttemptNumber,
+        });
 
         // Create attestation when clue is solved with timeTaken and total attempts
         await createAttestation(timeTaken, currentAttemptNumber);
@@ -592,7 +650,7 @@ export function Clue() {
         }, 500);
       } else {
         setVerificationState('error');
-        // By incrementing resultKey on each result, the button is recreated each time, 
+        // By incrementing resultKey on each result, the button is recreated each time,
         // so the wiggle animation runs again for every success or error.
         setResultKey((k) => k + 1);
         setAttempts((prev) => prev - 1);
@@ -702,20 +760,33 @@ export function Clue() {
               </div>
               <CardTitle className="text-3xl mb-4">No More Attempts</CardTitle>
               <p className="text-foreground/70 mb-8">
-                You've used all your attempts for this clue. Try another hunt or come back later.
+                You've used all your attempts for this clue. You can choose to skip this clue and continue with the next one.
+                This clue will not count towards your score.
               </p>
-              <Button
-                onClick={() => navigate('/hunts')}
-                variant="default"
-                size="lg"
-                className="px-8"
-              >
-                <BsArrowLeft className="mr-2" />
-                Return to Hunts
-              </Button>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Button
+                  onClick={() => setIsSkipDialogOpen(true)}
+                  variant="default"
+                  size="lg"
+                  className="px-8"
+                  disabled={isSkipping}
+                >
+                  <BsSkipForward className="mr-2" />
+                </Button>
+                <Button
+                  onClick={() => navigate('/hunts')}
+                  variant="outline"
+                  size="lg"
+                  className="px-8"
+                >
+                  <BsArrowLeft className="mr-2" />
+                  Return to Hunts
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
+        {skipDialog}
       </div>
     );
   }
@@ -725,32 +796,46 @@ export function Clue() {
       <div className="max-w-4xl mx-auto">
         <Card className="mb-8 min-h-[calc(100vh-180px)] flex flex-col bg-white">
           <CardHeader className="bg-main text-main-foreground p-6 -my-6">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xl flex-1 wrap-break-word">{huntData?.name}</CardTitle>
-              <div className="flex items-center space-x-4">
-                <div className="text-2xl shrink-0">
-                  # {currentClue}/{currentClueData?.length}
+            <div className="flex flex-row justify-between">
+              <div className="flex flex-col">
+                <CardTitle className="text-xl wrap-break-word">{huntData?.name}</CardTitle>
+                <div className="flex items-center justify-between">
+                  <div className="text-xl">
+                    # {currentClue}/{currentClueData?.length}
+                  </div>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    onClick={handleSyncProgress}
-                    disabled={isSyncing}
-                    variant="neutral"
-                    size="sm"
-                    className="p-2"
-                    title="Sync with team progress"
-                  >
-                    <BsArrowClockwise className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                  </Button>
-                  <Button
-                    onClick={() => setIsLeaderboardOpen(true)}
-                    variant="neutral"
-                    size="sm"
-                    className="p-2"
-                  >
-                    <BsBarChartFill className="w-4 h-4" />
-                  </Button>
-                </div>
+              </div>
+              <div className="flex items-center space-x-2 mb-1">
+                <Button
+                  type="button"
+                  onClick={() => setIsSkipDialogOpen(true)}
+                  variant="neutral"
+                  size="sm"
+                  className="p-2"
+                  title="Skip this clue"
+                  disabled={verificationState === 'verifying' || isRedirecting || isSyncing || isSkipping}
+                >
+                  <BsSkipForward className="w-4 h-4" />
+                </Button>
+                <Button
+                  onClick={handleSyncProgress}
+                  variant="neutral"
+                  size="sm"
+                  className="p-2"
+                  title="Sync with team progress"
+                  disabled={verificationState === 'verifying' || isRedirecting || isSyncing || isSkipping}
+                >
+                  <BsArrowClockwise className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+                </Button>
+                <Button
+                  onClick={() => setIsLeaderboardOpen(true)}
+                  variant="neutral"
+                  size="sm"
+                  className="p-2"
+                  disabled={verificationState === 'verifying' || isRedirecting || isSyncing || isSkipping }
+                >
+                  <BsBarChartFill className="w-4 h-4" />
+                </Button>
               </div>
             </div>
           </CardHeader>
@@ -800,8 +885,16 @@ export function Clue() {
                           <BsInfoCircle className="w-3.5 h-3.5" />
                         </button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" sideOffset={12} collisionPadding={10} className="max-w-xs">
-                        <p>Attempts are shared across your team. Any team member's attempt counts towards the total.</p>
+                      <TooltipContent
+                        side="top"
+                        sideOffset={12}
+                        collisionPadding={10}
+                        className="max-w-xs"
+                      >
+                        <p>
+                          Attempts are shared across your team. Any team member's attempt counts
+                          towards the total.
+                        </p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -813,19 +906,29 @@ export function Clue() {
               <div className=" space-y-2 w-full">
                 {!capturedImage ? (
                   // Show only Capture Image button when no image is captured
-                  <Button
-                    type="button"
-                    variant={getButtonVariant(huntType, location, capturedImage, verificationState)}
-                    size="lg"
-                    onClick={openCamera}
-                    className={cn(
-                      'w-full transition-colors duration-300',
-                      getButtonStyles(huntType, location, verificationState)
-                    )}
-                    disabled={verificationState === 'verifying' || verificationState === 'success'}
-                  >
-                    Take a picture
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant={getButtonVariant(
+                        huntType,
+                        location,
+                        capturedImage,
+                        verificationState
+                      )}
+                      size="lg"
+                      onClick={openCamera}
+                      className={cn(
+                        'w-full transition-colors duration-300',
+                        getButtonStyles(huntType, location, verificationState)
+                      )}
+                      disabled={
+                        verificationState === 'verifying' || verificationState === 'success'
+                        || isRedirecting || isSyncing || isSkipping
+                      }
+                    >
+                      Take a picture
+                    </Button>
+                  </div>
                 ) : (
                   // Show image preview and two buttons side by side when image is captured
                   <>
@@ -848,6 +951,7 @@ export function Clue() {
                           className="w-full"
                           disabled={
                             verificationState === 'verifying' || verificationState === 'success'
+                            || isRedirecting || isSyncing || isSkipping
                           }
                         >
                           Retry
@@ -855,11 +959,7 @@ export function Clue() {
                       </div>
                       <form onSubmit={handleVerify} className="flex-1">
                         <Button
-                          key={
-                            verificationState === 'error'
-                              ? `result-${resultKey}`
-                              : undefined
-                          }
+                          key={verificationState === 'error' ? `result-${resultKey}` : undefined}
                           type="submit"
                           variant={getButtonVariant(
                             huntType,
@@ -876,7 +976,7 @@ export function Clue() {
                           disabled={
                             verificationState === 'verifying' ||
                             verificationState === 'success' ||
-                            isRedirecting
+                            isRedirecting || isSyncing || isSkipping
                           }
                         >
                           {verificationState === 'success' && <BsCheckCircle className="mr-2" />}
@@ -893,11 +993,7 @@ export function Clue() {
               // Geolocation hunt - show verify button as before
               <form onSubmit={handleVerify} className="w-full">
                 <Button
-                      key={
-                        verificationState === 'error'
-                          ? `result-${resultKey}`
-                          : undefined
-                      }
+                  key={verificationState === 'error' ? `result-${resultKey}` : undefined}
                   type="submit"
                   variant={getButtonVariant(huntType, location, capturedImage, verificationState)}
                   size="lg"
@@ -910,7 +1006,7 @@ export function Clue() {
                     !location ||
                     verificationState === 'verifying' ||
                     verificationState === 'success' ||
-                    isRedirecting
+                    isRedirecting || isSyncing || isSkipping
                   }
                 >
                   {verificationState === 'success' && <BsCheckCircle className="mr-2" />}
@@ -960,6 +1056,8 @@ export function Clue() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {skipDialog}
       </div>
     </div>
   );
