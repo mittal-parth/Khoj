@@ -92,7 +92,7 @@ export const getCurrentNetwork = () => {
   if (stored && ENABLED_CHAINS[stored as keyof typeof ENABLED_CHAINS]) {
     return stored;
   }
-  return ENABLED_NETWORKS[0] || "moonbeam";
+  return ENABLED_NETWORKS[0] || "base";
 };
 
 // Helper function to get contract address for current network

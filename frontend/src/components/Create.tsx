@@ -1042,7 +1042,7 @@ export function Create() {
           )}
 
           {/* Create Hunt Button - Moved to right side */}
-          <div className="mt-8">
+          <div className="my-8">
             {canCreateHunt ? (
               <TransactionButton
                 contractAddress={contractAddress}

@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { User, Map } from "lucide-react";
+import { User, Map, Plus } from "lucide-react";
 
 export function Footer() {
   return (
@@ -11,6 +11,13 @@ export function Footer() {
         >
           <Map className="w-5 h-5" />
           <span className="text-xs">Hunts</span>
+        </Link>
+        <Link
+          to="/hunts/create"
+          className="flex flex-col items-center gap-0.5 text-gray-600 hover:text-green"
+        >
+          <Plus className="w-5 h-5" />
+          <span className="text-xs">Create</span>
         </Link>
         <Link 
           to="/profile"
