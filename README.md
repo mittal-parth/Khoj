@@ -66,9 +66,9 @@ Khoj (meaning "search" or "discovery" in Hindi) is a geo-location based treasure
 ### Core Gameplay
 - **Progressive Riddles**: Each hunt consists of multiple interconnected clues that tell a story. 
 - **Location-Based Verification**: The answer to each clue is a physical location.
-- **Personalised Clues**: The clues are tailored to the user's taste using AI while still keeping the answer same.
-- **Team based gameplay**: Players can form teams and invite other players to join.
-- **Multiple Attempts**: Players get 3 attempts per clue to verify their location
+- **Personalised Clues**: The clues are tailored to the user's taste using AI while still keeping the answer the same.
+- **Team-based gameplay**: Players can form teams and invite other players to join.
+- **Multiple Attempts**: Players get 3 attempts per clue to verify their location.
 - **Real-time Collaboration**: Built-in video chat for team coordination.
 - **Rewards & Reputation**: Fastest players win rewards based on a reputation score generated which can be redeemed later.
 
@@ -126,7 +126,7 @@ cd ../contracts && npm install  # Takes ~15 seconds
 
 ### Environment Setup
 
-Follow this detailed guide in the Wiki to setup all the environment variables.
+Follow this detailed guide in the Wiki to set up all the environment variables.
 
 [How to obtain env variables](https://github.com/mittal-parth/Khoj/wiki/How-to-obtain-env-variables-%F0%9F%A7%B0)
 
