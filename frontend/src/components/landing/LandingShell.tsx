@@ -60,9 +60,6 @@ export function LandingNav({
             </button>
           </DrawerTrigger>
           <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>Menu</DrawerTitle>
-            </DrawerHeader>
             <div className="p-4 flex flex-col gap-3">
               {links.map((link) => (
                 <DrawerClose key={link.id} asChild>
@@ -111,15 +108,11 @@ export function LandingNav({
   );
 }
 
-interface LandingFooterProps {
-  onLaunch: () => void;
-}
-
-export function LandingFooter({ onLaunch }: LandingFooterProps) {
+export function LandingFooter() {
   return (
     <footer className="bg-ink text-white pt-12 px-4 pb-[max(3rem,env(safe-area-inset-bottom,0px))] border-t-4 border-border overflow-hidden">
       <div className="max-w-6xl mx-auto flex flex-col gap-10">
-        <div className="flex flex-col md:flex-row items-center md:items-start justify-between gap-8">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="flex flex-col items-center md:items-start text-center md:text-left min-w-0">
             <KhojLogo size="md" className="mb-3" />
             <p className="text-white/60 text-sm max-w-xs leading-relaxed">
@@ -127,28 +120,30 @@ export function LandingFooter({ onLaunch }: LandingFooterProps) {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
-            <div className="flex flex-wrap justify-center gap-x-6 gap-y-3">
-              {FOOTER_LINKS.map((link) => {
-                const Icon = LINK_ICONS[link.label as keyof typeof LINK_ICONS];
-                return (
-                  <a
-                    key={link.label}
-                    href={link.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-white/55 hover:text-white transition-colors whitespace-nowrap"
-                  >
-                    {Icon && <Icon className="w-3.5 h-3.5 opacity-60" strokeWidth={2} />}
-                    {link.label}
-                  </a>
-                );
-              })}
-            </div>
-            <Button variant="reverse" size="sm" onClick={onLaunch} className="whitespace-nowrap shrink-0">
-              Launch App
-            </Button>
-          </div>
+          <nav
+            className="flex flex-row flex-nowrap items-center justify-center md:justify-end gap-6 md:gap-8 shrink-0"
+            aria-label="Resources"
+          >
+            {FOOTER_LINKS.map((link) => {
+              const Icon = LINK_ICONS[link.label as keyof typeof LINK_ICONS];
+              return (
+                <a
+                  key={link.label}
+                  href={link.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 text-sm leading-none text-white/55 hover:text-white transition-colors whitespace-nowrap"
+                >
+                  {Icon && (
+                    <span className="flex size-4 shrink-0 items-center justify-center" aria-hidden>
+                      <Icon className="size-3.5 opacity-60" strokeWidth={2} />
+                    </span>
+                  )}
+                  <span>{link.label}</span>
+                </a>
+              );
+            })}
+          </nav>
         </div>
 
         <p className="text-center text-white/35 text-xs border-t border-white/10 pt-8">

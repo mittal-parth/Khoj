@@ -302,7 +302,7 @@ function UseCaseCard({
 }) {
   return (
     <motion.div {...scrollFade(reducedMotion, { delay: index * 0.05, y: 16 })}>
-      <div style={{ transform: `rotate(${useCase.rotation}deg)` }}>
+      <div className={useCase.tiltClass}>
         <div
           className={cn(
             'group relative text-left bg-white border-2 border-border rounded-base p-4 shadow-shadow w-full min-w-0',
@@ -564,7 +564,7 @@ export function LandingPage() {
 
       <LandingCta onLaunch={launchApp} />
       <div className="bg-ink">
-        <LandingFooter onLaunch={launchApp} />
+        <LandingFooter />
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ import { FaChess, FaCoins, FaRegClock, FaCheckCircle, FaMedal, FaTrophy } from '
 import { TbChessKnight, TbUsersGroup } from 'react-icons/tb';
 import { IoIosPeople } from 'react-icons/io';
 import { FiRefreshCw } from 'react-icons/fi';
-import { Link2, Mail, Wallet } from 'lucide-react';
+import { Link2 } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -38,7 +38,7 @@ function VerifiedBlissImage() {
   return (
     <img
       src="/landing/bliss.png"
-      alt=""
+      alt="Bliss hills wallpaper (Windows XP)"
       className="absolute inset-0 w-full h-full object-cover"
     />
   );
@@ -153,38 +153,6 @@ export function HuntsListHeroMock(_props: MockProps) {
   );
 }
 
-export function SignUpMock(_props: MockProps) {
-  return (
-    <MockScreen className="bg-foreground/15 items-center justify-center p-3">
-      <Card className="w-full bg-background border-2 border-border shadow-shadow py-0 gap-0">
-        <CardHeader className="p-3 border-b-2 border-border">
-          <CardTitle className="text-xs font-bold text-center">Connect to Khoj</CardTitle>
-          <p className="text-[9px] text-center text-foreground/60 mt-1">
-            Sign up — gas sponsored, no seed phrases
-          </p>
-        </CardHeader>
-        <CardContent className="p-2.5 space-y-1.5">
-          {[
-            { icon: <Mail className="w-3.5 h-3.5" />, label: 'Continue with Email' },
-            { icon: <span className="w-3.5 h-3.5 rounded-full bg-chart-1 border border-border" />, label: 'Google' },
-            { icon: <Wallet className="w-3.5 h-3.5" />, label: 'MetaMask' },
-          ].map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              disabled
-              className="w-full flex items-center gap-2 px-2.5 py-2 rounded-base border-2 border-border bg-background text-left text-[10px] font-bold shadow-shadow"
-            >
-              {item.icon}
-              {item.label}
-            </button>
-          ))}
-        </CardContent>
-      </Card>
-    </MockScreen>
-  );
-}
-
 /** Compact team view — fits 448px phone viewport */
 export function TeamMock(_props: MockProps) {
   const [copied, setCopied] = useState(false);
@@ -193,11 +161,16 @@ export function TeamMock(_props: MockProps) {
     try {
       await navigator.clipboard.writeText(DOCS_URL);
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 2000);
     } catch {
       setCopied(false);
     }
   };
+
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
 
   return (
     <MockScreen>
@@ -263,13 +236,14 @@ export function ClueGeoMock({ interactive = false }: MockProps) {
   const [phase, setPhase] = useState<'idle' | 'coords' | 'success'>('idle');
 
   useEffect(() => {
-    if (phase === 'idle') return;
-    const toSuccess = window.setTimeout(() => setPhase('success'), 900);
-    const reset = window.setTimeout(() => setPhase('idle'), 3500);
-    return () => {
-      window.clearTimeout(toSuccess);
-      window.clearTimeout(reset);
-    };
+    if (phase === 'coords') {
+      const timer = window.setTimeout(() => setPhase('success'), 900);
+      return () => window.clearTimeout(timer);
+    }
+    if (phase === 'success') {
+      const timer = window.setTimeout(() => setPhase('idle'), 3500);
+      return () => window.clearTimeout(timer);
+    }
   }, [phase]);
 
   const handleVerify = () => {
@@ -339,18 +313,6 @@ export function ClueGeoMock({ interactive = false }: MockProps) {
           {footerContent}
         </CardFooter>
       </Card>
-    </MockScreen>
-  );
-}
-
-export function VerifyGeoMock(_props: MockProps) {
-  return (
-    <MockScreen className="items-center justify-center p-4">
-      <div className="w-full text-center space-y-2">
-        <BsCheckCircle className="w-10 h-10 text-chart-4 mx-auto" />
-        <h3 className="text-sm font-bold text-chart-4">Correct answer, clue solved!</h3>
-        <p className="text-[10px] text-foreground/60">On to the next waypoint.</p>
-      </div>
     </MockScreen>
   );
 }
@@ -566,8 +528,4 @@ export function RewardMock(_props: MockProps) {
       </Card>
     </MockScreen>
   );
-}
-
-export function ClueImageMock(props: MockProps) {
-  return ImageCaptureMock(props);
 }

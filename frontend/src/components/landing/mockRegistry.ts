@@ -1,6 +1,5 @@
 import {
   HuntsListHeroMock,
-  SignUpMock,
   TeamMock,
   ClueGeoMock,
   ImageCaptureMock,
@@ -9,7 +8,6 @@ import {
 } from './AppMocks';
 
 export const JOURNEY_MOCKS = {
-  signup: SignUpMock,
   team: TeamMock,
   clue: ClueGeoMock,
   'image-hunt': ImageCaptureMock,
