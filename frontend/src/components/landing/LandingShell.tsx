@@ -6,8 +6,6 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
   DrawerTrigger,
 } from '@/components/ui/drawer';
 import { KhojLogo } from '@/components/landing/KhojLogo';
